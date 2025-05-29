@@ -14,12 +14,7 @@ DeSaka is a comprehensive environmental monitoring system that collects, process
 
 ## 🏗️ System Architecture
 
-```
-┌──────────────┐     ┌──────────────┐     ┌────────────────────┐
-│   Sensors     │───▶│     ESP32    │───▶ │   Web Server / UI  │
-│ (DHT22, Soil) │    │ (WiFi + HTTP)│     │  (Laptop Browser)  │
-└──────────────┘     └──────────────┘     └────────────────────┘
-```
+![Example Image](./github/example.png)
 
 DeSaka uses a simplified architecture where the ESP32 communicates directly with the web client, eliminating the need for a separate server. Data is stored locally on the client, making the system more efficient and easier to deploy in remote locations.
 
