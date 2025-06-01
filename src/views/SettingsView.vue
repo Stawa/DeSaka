@@ -91,25 +91,25 @@ function setActiveTab(tab: string) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div class="container px-4">
-      <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
-        <p class="text-gray-600 dark:text-gray-400 max-w-2xl">
-          Configure system settings and preferences for your environmental monitoring dashboard
-        </p>
-      </div>
+  <div class="container mx-auto px-4 py-6">
+    <div class="mb-6 md:mb-8">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+      <p class="text-gray-600 dark:text-gray-400 max-w-2xl">
+        Configure system settings and preferences for your environmental monitoring dashboard
+      </p>
+    </div>
 
-      <!-- Tab Navigation -->
-      <div class="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-        <nav class="flex">
+    <!-- Tab Navigation - Modern Top Design -->
+    <div class="mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+        <nav class="flex flex-wrap">
           <button
             @click="setActiveTab('general')"
             :class="[
-              'flex-1 py-4 px-4 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center',
+              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
               activeTab === 'general'
-                ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 border-b-2 border-transparent',
+                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
             ]"
           >
             <span class="mdi mdi-cog text-lg mr-2"></span>
@@ -118,10 +118,10 @@ function setActiveTab(tab: string) {
           <button
             @click="setActiveTab('notifications')"
             :class="[
-              'flex-1 py-4 px-4 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center',
+              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
               activeTab === 'notifications'
-                ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 border-b-2 border-transparent',
+                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
             ]"
           >
             <span class="mdi mdi-bell text-lg mr-2"></span>
@@ -130,10 +130,10 @@ function setActiveTab(tab: string) {
           <button
             @click="setActiveTab('thresholds')"
             :class="[
-              'flex-1 py-4 px-4 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center',
+              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
               activeTab === 'thresholds'
-                ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 border-b-2 border-transparent',
+                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
             ]"
           >
             <span class="mdi mdi-alert text-lg mr-2"></span>
@@ -141,106 +141,162 @@ function setActiveTab(tab: string) {
           </button>
         </nav>
       </div>
+    </div>
 
+    <!-- Content Area -->
+    <div class="w-full">
       <!-- Settings Content -->
-      <div class="space-y-6">
+      <div class="space-y-4">
         <!-- General Settings -->
         <div
           v-if="activeTab === 'general'"
           id="general"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
         >
           <div
-            class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
           >
-            <h2 class="font-medium text-gray-700 dark:text-gray-200">General Settings</h2>
+            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+              <span class="mdi mdi-cog text-primary-500 dark:text-primary-400 mr-2"></span>
+              General Settings
+            </h2>
           </div>
-          <div class="p-6 space-y-4">
+          <div class="p-5 md:p-6 space-y-6">
             <div>
               <label
                 for="refresh-interval"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Data Refresh Interval (seconds)
               </label>
-              <input
-                type="number"
-                id="refresh-interval"
-                v-model="systemSettings.refreshInterval"
-                min="5"
-                max="3600"
-                class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-              />
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span
+                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-clock-outline"
+                  ></span>
+                </div>
+                <input
+                  type="number"
+                  id="refresh-interval"
+                  v-model="systemSettings.refreshInterval"
+                  min="5"
+                  max="3600"
+                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                />
+              </div>
             </div>
 
             <div>
               <label
                 for="data-retention"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Data Retention Period (days)
               </label>
-              <input
-                type="number"
-                id="data-retention"
-                v-model="systemSettings.dataRetentionDays"
-                min="1"
-                max="365"
-                class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-              />
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span
+                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-calendar-clock"
+                  ></span>
+                </div>
+                <input
+                  type="number"
+                  id="data-retention"
+                  v-model="systemSettings.dataRetentionDays"
+                  min="1"
+                  max="365"
+                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                />
+              </div>
             </div>
 
             <div>
               <label
                 for="timezone"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Timezone
               </label>
-              <select
-                id="timezone"
-                v-model="systemSettings.timezone"
-                class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-              >
-                <option v-for="tz in availableTimezones" :key="tz" :value="tz">{{ tz }}</option>
-              </select>
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-earth"></span>
+                </div>
+                <select
+                  id="timezone"
+                  v-model="systemSettings.timezone"
+                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
+                >
+                  <option v-for="tz in availableTimezones" :key="tz" :value="tz">{{ tz }}</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span
+                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
+                  ></span>
+                </div>
+              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   for="date-format"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
                   Date Format
                 </label>
-                <select
-                  id="date-format"
-                  v-model="systemSettings.dateFormat"
-                  class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <option v-for="format in dateFormats" :key="format.value" :value="format.value">
-                    {{ format.label }}
-                  </option>
-                </select>
+                <div class="relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span
+                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-calendar"
+                    ></span>
+                  </div>
+                  <select
+                    id="date-format"
+                    v-model="systemSettings.dateFormat"
+                    class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
+                  >
+                    <option v-for="format in dateFormats" :key="format.value" :value="format.value">
+                      {{ format.label }}
+                    </option>
+                  </select>
+                  <div
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+                  >
+                    <span
+                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
+                    ></span>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label
                   for="time-format"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
                   Time Format
                 </label>
-                <select
-                  id="time-format"
-                  v-model="systemSettings.timeFormat"
-                  class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <option v-for="format in timeFormats" :key="format.value" :value="format.value">
-                    {{ format.label }}
-                  </option>
-                </select>
+                <div class="relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-clock"></span>
+                  </div>
+                  <select
+                    id="time-format"
+                    v-model="systemSettings.timeFormat"
+                    class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
+                  >
+                    <option v-for="format in timeFormats" :key="format.value" :value="format.value">
+                      {{ format.label }}
+                    </option>
+                  </select>
+                  <div
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+                  >
+                    <span
+                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
+                    ></span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -250,14 +306,17 @@ function setActiveTab(tab: string) {
         <div
           v-if="activeTab === 'notifications'"
           id="notifications"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
         >
           <div
-            class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
           >
-            <h2 class="font-medium text-gray-700 dark:text-gray-200">Notification Settings</h2>
+            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+              <span class="mdi mdi-bell text-primary-500 dark:text-primary-400 mr-2"></span>
+              Notification Settings
+            </h2>
           </div>
-          <div class="p-6 space-y-4">
+          <div class="p-5 md:p-6 space-y-6">
             <div class="flex items-center">
               <input
                 type="checkbox"
@@ -306,32 +365,44 @@ function setActiveTab(tab: string) {
             <div>
               <label
                 for="notification-email"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Notification Email
               </label>
-              <input
-                type="email"
-                id="notification-email"
-                v-model="systemSettings.notificationEmail"
-                class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-              />
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span
+                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-email-outline"
+                  ></span>
+                </div>
+                <input
+                  type="email"
+                  id="notification-email"
+                  v-model="systemSettings.notificationEmail"
+                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                />
+              </div>
             </div>
 
             <div>
               <label
                 for="notification-phone"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Notification Phone Number
               </label>
-              <input
-                type="tel"
-                id="notification-phone"
-                v-model="systemSettings.notificationPhone"
-                placeholder="+1234567890"
-                class="block w-full px-3 py-2 dark:text-white text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600"
-              />
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-phone"></span>
+                </div>
+                <input
+                  type="tel"
+                  id="notification-phone"
+                  v-model="systemSettings.notificationPhone"
+                  placeholder="+1234567890"
+                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -340,14 +411,17 @@ function setActiveTab(tab: string) {
         <div
           v-if="activeTab === 'thresholds'"
           id="thresholds"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
         >
           <div
-            class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
           >
-            <h2 class="font-medium text-gray-700 dark:text-gray-200">Alert Thresholds</h2>
+            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+              <span class="mdi mdi-alert text-primary-500 dark:text-primary-400 mr-2"></span>
+              Alert Thresholds
+            </h2>
           </div>
-          <div class="p-6 space-y-6">
+          <div class="p-5 md:p-6 space-y-6">
             <div>
               <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Soil Temperature (°C)
@@ -455,23 +529,35 @@ function setActiveTab(tab: string) {
         <!-- User Profile section removed as requested -->
 
         <!-- Action Buttons -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden p-6">
-          <div class="flex justify-between items-center">
-            <button
-              @click="resetToDefaults"
-              class="px-5 py-2.5 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center"
-            >
-              <span class="mdi mdi-refresh mr-2"></span>
-              Reset to Defaults
-            </button>
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
+        >
+          <div
+            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
+          >
+            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
+              <span class="mdi mdi-cog-transfer text-primary-500 dark:text-primary-400 mr-2"></span>
+              Actions
+            </h2>
+          </div>
+          <div class="p-5 md:p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <button
+                @click="resetToDefaults"
+                class="w-full sm:w-auto px-5 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600 transition-all duration-200 flex items-center justify-center"
+              >
+                <span class="mdi mdi-refresh mr-2"></span>
+                Reset to Defaults
+              </button>
 
-            <button
-              @click="saveSettings"
-              class="px-5 py-2.5 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-600 dark:hover:bg-primary-700 transition-colors duration-200 flex items-center"
-            >
-              <span class="mdi mdi-content-save mr-2"></span>
-              Save Settings
-            </button>
+              <button
+                @click="saveSettings"
+                class="w-full sm:w-auto px-5 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-600 dark:hover:bg-primary-700 transition-all duration-200 flex items-center justify-center"
+              >
+                <span class="mdi mdi-content-save mr-2"></span>
+                Save Settings
+              </button>
+            </div>
           </div>
         </div>
       </div>

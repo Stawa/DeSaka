@@ -5,6 +5,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base font styles */
+@layer base {
+  html {
+    @apply font-sans text-gray-800 dark:text-gray-200;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-semibold;
+  }
+  code,
+  pre,
+  .mono {
+    @apply font-mono;
+  }
+}
+
 #app {
   width: 100%;
   font-weight: normal;
@@ -48,10 +68,10 @@ a,
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-600;
+    @apply bg-primary-500 text-white hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-700;
   }
 
   .btn-secondary {
-    @apply bg-secondary text-white hover:bg-secondary-600;
+    @apply bg-secondary-500 text-white hover:bg-secondary-600 dark:bg-secondary-600 dark:hover:bg-secondary-700;
   }
 }
