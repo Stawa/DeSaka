@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type Ref } from 'vue'
 
 // ESP32 FT232 specific system metrics with more detailed data
 const cpuUsage = ref(42)
@@ -11,12 +11,6 @@ const memoryDetails = ref({
   total: 520, // KB
   free: 166, // KB
   used: 354, // KB,
-})
-
-const flashMemory = ref({
-  used: 1.8,
-  total: 4,
-  unit: 'MB',
 })
 
 const uptime = ref({
@@ -74,11 +68,6 @@ const serialInterface = ref({
   baudRate: 115200,
   rxBytes: 1024,
   txBytes: 768,
-})
-
-// Calculate flash memory usage percentage
-const flashUsagePercent = computed(() => {
-  return Math.round((flashMemory.value.used / flashMemory.value.total) * 100)
 })
 
 // Format uptime string with more precision
@@ -196,27 +185,20 @@ onMounted(() => {
 
 <template>
   <div
-    class="system-metrics-container bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden max-w-full"
-  >
+    class="system-metrics-container bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 overflow-hidden max-w-full">
     <!-- Header with ESP32 title and last updated time -->
     <div
-      class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2 sm:gap-4"
-    >
+      class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/80 p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2 sm:gap-4">
       <div class="flex items-center min-w-0">
-        <div
-          class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0"
-        >
-          <span
-            class="mdi mdi-chip text-primary-600 dark:text-primary-400 text-lg sm:text-xl"
-          ></span>
+        <div class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
+          <span class="mdi mdi-chip text-primary-600 dark:text-primary-400 text-lg sm:text-xl"></span>
         </div>
         <h2 class="text-base sm:text-lg font-medium text-gray-800 dark:text-gray-200 truncate">
           ESP32 FT232 Metrics
         </h2>
       </div>
       <div
-        class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 bg-white/80 dark:bg-gray-700/80 px-2 py-1 rounded-full shadow-sm backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 flex items-center"
-      >
+        class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 bg-white/80 dark:bg-gray-700/80 px-2 py-1 rounded-full shadow-sm backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 flex items-center">
         <span class="mdi mdi-clock-outline mr-1 text-gray-400 dark:text-gray-500"></span>
         <span class="truncate">{{ lastUpdatedFormatted }}</span>
       </div>
@@ -224,27 +206,21 @@ onMounted(() => {
 
     <!-- Main metrics grid -->
     <div class="p-3 sm:p-4">
-      <div
-        class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4"
-      >
+      <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <!-- CPU Usage -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
           <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
             <div class="flex items-center min-w-0">
               <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-cpu-64-bit text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
+                <span class="mdi mdi-cpu-64-bit text-blue-600 dark:text-blue-400 text-base sm:text-lg"></span>
               </div>
               <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                 CPU
               </h3>
             </div>
             <span
-              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50"
-            >
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
               {{ cpuFrequency }} MHz
             </span>
           </div>
@@ -254,64 +230,51 @@ onMounted(() => {
               {{ cpuUsage }}%
             </div>
             <div class="flex items-center">
-              <span
-                class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+              <span class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
                 :class="{
                   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300': cpuUsage > 80,
                   'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
                     cpuUsage > 50 && cpuUsage <= 80,
                   'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
                     cpuUsage <= 50,
-                }"
-              >
+                }">
                 {{ cpuUsage > 80 ? 'High' : cpuUsage > 50 ? 'Medium' : 'Low' }}
               </span>
             </div>
           </div>
 
           <!-- CPU Temperature indicator -->
-          <div class="flex items-center mt-1 mb-2">
-            <span
-              class="mdi mdi-thermometer text-sm mr-1 flex-shrink-0"
-              :class="cpuTempStatus.color"
-            ></span>
-            <span class="text-2xs sm:text-xs" :class="cpuTempStatus.color"
-              >{{ cpuTemperature }}°C</span
-            >
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-2xs sm:text-xs mb-2 mt-1">
+            <div class="text-gray-600 dark:text-gray-400 col-span-2 flex items-center">
+              <span class="mdi mdi-thermometer mr-1" :class="cpuTempStatus.color"></span>Temperature:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1" :class="cpuTempStatus.color">{{ cpuTemperature }}°C</span>
+            </div>
           </div>
 
           <!-- Progress bar -->
           <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-red-500': cpuUsage > 80,
-                'bg-amber-500': cpuUsage > 50 && cpuUsage <= 80,
-                'bg-green-500': cpuUsage <= 50,
-              }"
-              :style="{ width: `${cpuUsage}%` }"
-            ></div>
+            <div class="h-full rounded-full transition-all duration-500" :class="{
+              'bg-red-500': cpuUsage > 80,
+              'bg-amber-500': cpuUsage > 50 && cpuUsage <= 80,
+              'bg-green-500': cpuUsage <= 50,
+            }" :style="{ width: `${cpuUsage}%` }"></div>
           </div>
         </div>
 
         <!-- Memory Usage -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
           <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
             <div class="flex items-center min-w-0">
               <div class="bg-purple-50 dark:bg-purple-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-memory text-purple-600 dark:text-purple-400 text-base sm:text-lg"
-                ></span>
+                <span class="mdi mdi-memory text-purple-600 dark:text-purple-400 text-base sm:text-lg"></span>
               </div>
               <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                 Memory
               </h3>
             </div>
             <span
-              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50"
-            >
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
               {{ memoryDetails.total }} KB
             </span>
           </div>
@@ -321,1086 +284,688 @@ onMounted(() => {
               {{ memoryUsage }}%
             </div>
             <div class="flex items-center">
-              <span
-                class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+              <span class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
                 :class="{
                   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300': memoryUsage > 80,
                   'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
                     memoryUsage > 50 && memoryUsage <= 80,
                   'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
                     memoryUsage <= 50,
-                }"
-              >
+                }">
                 {{ memoryUsage > 80 ? 'High' : memoryUsage > 50 ? 'Medium' : 'Low' }}
               </span>
             </div>
           </div>
 
           <!-- Memory details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Used: {{ memoryDetails.used }} KB</span>
-            <span class="whitespace-nowrap flex-shrink-0">Free: {{ memoryDetails.free }} KB</span>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-2xs sm:text-xs mb-2 mt-1">
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-arrow-down-box-outline mr-1"></span>Used:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ memoryDetails.used }} KB</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-arrow-up-box-outline mr-1"></span>Free:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ memoryDetails.free }} KB</span>
+            </div>
           </div>
 
           <!-- Progress bar -->
           <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-red-500': memoryUsage > 80,
-                'bg-amber-500': memoryUsage > 50 && memoryUsage <= 80,
-                'bg-green-500': memoryUsage <= 50,
-              }"
-              :style="{ width: `${memoryUsage}%` }"
-            ></div>
+            <div class="h-full rounded-full transition-all duration-500" :class="{
+              'bg-red-500': memoryUsage > 80,
+              'bg-amber-500': memoryUsage > 50 && memoryUsage <= 80,
+              'bg-green-500': memoryUsage <= 50,
+            }" :style="{ width: `${memoryUsage}%` }"></div>
+          </div>
+        </div>
+
+        <!-- System Uptime -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                System Uptime
+              </h3>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
+            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+              {{ uptimeFormatted }}
+            </div>
+          </div>
+
+          <!-- Uptime details -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-2xs sm:text-xs mb-2 mt-1">
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-calendar-blank-outline mr-1"></span>Days:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.days }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-clock-start mr-1"></span>Hours:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.hours }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-timer-sand-empty mr-1"></span>Seconds:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.seconds }}</span>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500 bg-blue-500"
+              :style="{ width: `${Math.min(100, (uptime.days / 30) * 100)}%` }"></div>
+          </div>
+        </div>
+
+        <!-- WiFi Details -->
+        <div
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-teal-50 dark:bg-teal-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-wifi text-teal-600 dark:text-teal-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                WiFi Details
+              </h3>
+            </div>
+            <span
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ wifiDetails.status }}
+            </span>
+          </div>
+
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
+            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+              {{ wifiDetails.ssid || 'N/A' }}
+            </div>
+            <div class="flex items-center">
+              <span class="mdi mdi-signal text-base sm:text-lg mr-1"
+                :class="getSignalStrengthColor(wifiDetails.rssi)"></span>
+              <span class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300">{{ wifiDetails.rssi }} dBm</span>
+            </div>
+          </div>
+
+          <!-- WiFi details grid -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-2xs sm:text-xs mb-2 mt-1">
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-ip-network-outline mr-1"></span>IP Address:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ wifiDetails.ip }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-key-variant mr-1"></span>Auth Mode:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ wifiDetails.authmode }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center col-span-2">
+              <span class="mdi mdi-access-point-network mr-1"></span>MAC Address:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ wifiDetails.mac }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center col-span-2">
+              <span class="mdi mdi-information-outline mr-1"></span>Channel:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ wifiDetails.channel }}</span>
+            </div>
           </div>
         </div>
 
         <!-- Flash Memory -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
           <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
             <div class="flex items-center min-w-0">
-              <div class="bg-amber-50 dark:bg-amber-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-flash text-amber-600 dark:text-amber-400 text-base sm:text-lg"
-                ></span>
+              <div class="bg-orange-50 dark:bg-orange-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-chip text-orange-600 dark:text-orange-400 text-base sm:text-lg"></span>
               </div>
               <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                 Flash Memory
               </h3>
             </div>
             <span
-              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50"
-            >
-              {{ flashMemory.total }} MB
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ flashMemory.size }} KB
             </span>
           </div>
 
           <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
             <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ flashUsagePercent }}%
+              {{ flashMemory.usagePercentage.toFixed(1) }}%
             </div>
             <div class="flex items-center">
-              <span
-                class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+              <span class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
                 :class="{
-                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300':
-                    flashUsagePercent > 80,
+                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300': flashMemory.usagePercentage > 80,
                   'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
-                    flashUsagePercent > 50 && flashUsagePercent <= 80,
+                    flashMemory.usagePercentage > 50 && flashMemory.usagePercentage <= 80,
                   'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
-                    flashUsagePercent <= 50,
-                }"
-              >
-                {{ flashUsagePercent > 80 ? 'High' : flashUsagePercent > 50 ? 'Medium' : 'Low' }}
+                    flashMemory.usagePercentage <= 50,
+                }">
+                {{ flashMemory.usagePercentage > 80 ? 'High' : flashMemory.usagePercentage > 50 ? 'Medium' : 'Low' }}
               </span>
             </div>
           </div>
 
-          <!-- Flash details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Used: {{ flashMemory.used }} MB</span>
-            <span class="whitespace-nowrap flex-shrink-0">Free: {{ flashMemory.free }} MB</span>
+          <!-- Flash memory details -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-2xs sm:text-xs mb-2 mt-1">
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-arrow-down-box-outline mr-1"></span>Used:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ flashMemory.used }} KB</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class="mdi mdi-arrow-up-box-outline mr-1"></span>Free:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ flashMemory.free }} KB</span>
+            </div>
           </div>
 
           <!-- Progress bar -->
           <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-red-500': flashUsagePercent > 80,
-                'bg-amber-500': flashUsagePercent > 50 && flashUsagePercent <= 80,
-                'bg-green-500': flashUsagePercent <= 50,
-              }"
-              :style="{ width: `${flashUsagePercent}%` }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ formattedUptime }}
-            </div>
-          </div>
-
-          <!-- Uptime details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Days: {{ uptime.days }}</span>
-            <span class="whitespace-nowrap flex-shrink-0">Hours: {{ uptime.hours }}</span>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500 bg-blue-500"
-              :style="{ width: `${Math.min(100, (uptime.days / 30) * 100)}%` }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ flashUsagePercent }}%
-            </div>
-            <div class="flex items-center">
-              <span
-                class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-                :class="{
-                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300':
-                    flashUsagePercent > 80,
-                  'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
-                    flashUsagePercent > 50 && flashUsagePercent <= 80,
-                  'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
-                    flashUsagePercent <= 50,
-                }"
-              >
-                {{ flashUsagePercent > 80 ? 'High' : flashUsagePercent > 50 ? 'Medium' : 'Low' }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Flash details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Used: {{ flashMemory.used }} MB</span>
-            <span class="whitespace-nowrap flex-shrink-0">Free: {{ flashMemory.free }} MB</span>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-red-500': flashUsagePercent > 80,
-                'bg-amber-500': flashUsagePercent > 50 && flashUsagePercent <= 80,
-                'bg-green-500': flashUsagePercent <= 50,
-              }"
-              :style="{ width: `${flashUsagePercent}%` }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ formattedUptime }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Secondary metrics grid -->
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4 xs:grid-cols-1"
-      >
-        <!-- WiFi Status -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-green-50 dark:bg-green-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  :class="{
-                    'mdi mdi-wifi text-green-600 dark:text-green-400': wifiStatus.connected,
-                    'mdi mdi-wifi-off text-red-600 dark:text-red-400': !wifiStatus.connected,
-                  }"
-                  class="text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                WiFi Status
-              </h3>
-            </div>
-            <span
-              class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-              :class="{
-                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
-                  wifiStatus.connected,
-                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300':
-                  !wifiStatus.connected,
-              }"
-            >
-              {{ wifiStatus.connected ? 'Connected' : 'Disconnected' }}
-            </span>
-          </div>
-
-          <div class="space-y-3">
-            <!-- WiFi Network -->
-            <div class="flex items-center">
-              <div
-                class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-3 flex-shrink-0"
-              >
-                <span class="mdi mdi-wifi text-blue-600 dark:text-blue-400"></span>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                    {{ wifiDetails.ssid || 'Not Connected' }}
-                  </p>
-                  <p
-                    class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0"
-                    v-if="wifiDetails.connected"
-                  >
-                    {{ wifiDetails.signalStrength }}%
-                  </p>
-                </div>
-                <div
-                  class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1"
-                >
-                  <div
-                    class="h-full rounded-full"
-                    :class="{
-                      'bg-green-500':
-                        wifiSignalQuality === 'excellent' || wifiSignalQuality === 'good',
-                      'bg-amber-500': wifiSignalQuality === 'fair',
-                      'bg-red-500':
-                        wifiSignalQuality === 'poor' || wifiSignalQuality === 'very poor',
-                    }"
-                    :style="{ width: `${wifiDetails.signalStrength}%` }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Data Transfer -->
-            <div
-              class="flex flex-wrap justify-between text-xs text-gray-500 dark:text-gray-400 gap-x-4 gap-y-1"
-            >
-              <div class="whitespace-nowrap flex-shrink-0">
-                <span>Received</span>
-                <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap"
-                  >{{ (wifiDetails.rxBytes / (1024 * 1024)).toFixed(2) }} MB</span
-                >
-              </div>
-              <div class="whitespace-nowrap flex-shrink-0">
-                <span>Transmitted</span>
-                <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap"
-                  >{{ (wifiDetails.txBytes / (1024 * 1024)).toFixed(2) }} MB</span
-                >
-              </div>
-            </div>
+            <div class="h-full bg-orange-500 rounded-full transition-all duration-500"
+              :style="{ width: `${flashMemory.usagePercentage}%` }"></div>
           </div>
         </div>
 
         <!-- Environmental Sensors -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex flex-wrap items-center mb-3 gap-2">
+        <div v-if="hasEnvironmentalSensors"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-lime-50 dark:bg-lime-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-thermometer-lines text-lime-600 dark:text-lime-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                Environmental Sensors
+              </h3>
+            </div>
             <span
-              class="mdi mdi-thermometer text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              Environmental
-            </h3>
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ availableSensorsCount }} Sensor{{ availableSensorsCount !== 1 ? 's' : '' }} Active
+            </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Temperature</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.temperature.toFixed(1) }}°C
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <template v-for="(sensor, key) in sensorReadings" :key="key">
+              <div v-if="sensor.value !== null && sensor.value !== undefined && sensor.value !== ''"
+                class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center min-w-0">
+                    <span class="mdi text-gray-500 dark:text-gray-400 mr-1.5 text-sm"
+                      :class="sensor.icon"></span>
+                    <span class="text-gray-600 dark:text-gray-300 truncate">{{ sensor.name }}:</span>
+                  </div>
+                  <span class="font-medium text-gray-800 dark:text-gray-200 ml-1 whitespace-nowrap">
+                    {{ formatSensorValue(sensor.value, sensor.unit) }}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Humidity</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.humidity.toFixed(0) }}%
-              </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Pressure</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.pressure.toFixed(0) }} hPa
-              </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Light</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.light.toFixed(0) }} lux
-              </div>
-            </div>
+            </template>
           </div>
         </div>
 
         <!-- I/O Pins -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex flex-wrap items-center mb-3 gap-2">
+        <div v-if="hasIoPins"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-sky-50 dark:bg-sky-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-gesture-tap-button text-sky-600 dark:text-sky-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                I/O Pins
+              </h3>
+            </div>
             <span
-              class="mdi mdi-chip text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">I/O Pins</h3>
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ Object.keys(ioPins).length }} Pin{{ Object.keys(ioPins).length !== 1 ? 's' : '' }} Available
+            </span>
           </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+            <div v-for="(pin, name) in ioPins" :key="name"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30 flex flex-col items-center justify-center aspect-square">
+              <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ name }}</span>
+              <span class="text-lg font-bold"
+                :class="pin.state ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+                {{ pin.state ? 'ON' : 'OFF' }}
+              </span>
+              <span class="text-2xs text-gray-500 dark:text-gray-400 mt-0.5">({{ pin.mode }})</span>
+            </div>
+          </div>
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+          </div>
+        </div>
 
-          <div class="mb-3">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">Digital</div>
-            <div class="flex flex-wrap gap-2">
-              <div
-                v-for="(pin, index) in ioPins.digital"
-                :key="'digital-' + index"
-                class="px-2 py-1 rounded text-xs font-medium whitespace-nowrap flex-shrink-0"
-                :class="{
-                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
-                    pin.value === 1,
-                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': pin.value === 0,
-                }"
-              >
-                D{{ pin.pin }}: {{ pin.value }}
+        <!-- Serial Interface -->
+        <div v-if="hasSerialPorts"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-serial-port text-indigo-600 dark:text-indigo-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                Serial Interface
+              </h3>
+            </div>
+            <span
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ serialPorts.length }} Port{{ serialPorts.length !== 1 ? 's' : '' }} Available
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <div v-for="(port, index) in serialPorts" :key="index"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ port.name }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ port.baud_rate }} bps</span>
+              </div>
+              <div class="flex items-center text-gray-600 dark:text-gray-400">
+                <span class="mdi mdi-arrow-down-bold-box-outline mr-1"></span>Rx: {{ port.rx_pin }}
+                <span class="mdi mdi-arrow-up-bold-box-outline mr-1 ml-2"></span>Tx: {{ port.tx_pin }}
               </div>
             </div>
           </div>
-
-          <div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">Analog</div>
-            <div class="flex flex-wrap gap-2">
-              <div
-                v-for="(pin, index) in ioPins.analog"
-                :key="'analog-' + index"
-                class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs font-medium whitespace-nowrap flex-shrink-0"
-              >
-                A{{ pin.pin }}: {{ pin.value.toFixed(2) }}V
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Serial Interface - Full width -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-      >
-        <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-          <div class="flex items-center min-w-0">
-            <span
-              class="mdi mdi-serial-port text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              FT232 Serial Interface
-            </h3>
-          </div>
-          <span
-            class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap"
-          >
-            {{ serialInterface.baudRate }} baud
-          </span>
         </div>
 
-        <div class="flex flex-wrap gap-4 text-xs mb-2">
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">Baud rate:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.baudRate }}
-            </span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">Format:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">8-N-1</span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">RX:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.rxBytes }} bytes
-            </span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">TX:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.txBytes }} bytes
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer with actions -->
-    <div
-      class="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-y-2"
-    >
-      <div class="flex flex-wrap gap-2">
-        <button
-          @click="refreshData"
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-        >
-          <span class="mdi mdi-refresh mr-1 flex-shrink-0"></span>
-          <span class="truncate flex-shrink-0">Refresh</span>
-        </button>
-        <button
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-        >
-          <span class="mdi mdi-history mr-1 flex-shrink-0"></span>
-          <span class="truncate flex-shrink-0">History</span>
-        </button>
-      </div>
-      <button
-        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-      >
-        <span class="mdi mdi-console mr-1 flex-shrink-0"></span>
-        <span class="truncate flex-shrink-0">Console</span>
-      </button>
-    </div>
-  </div>
+      </div> <!-- End of main grid -->
+    </div> <!-- End of main container -->
+  </div> <!-- End of SystemMetrics component -->
 </template>
 
 <style scoped>
-/* Add any additional styling here */
-
-/* Custom media query for tablet sizes */
-@media (min-width: 768px) and (max-width: 900px) {
-  .system-metrics-container {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* Ensure text doesn't overflow in metric cards */
-  .text-2xl {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-  }
-
-  .p-4 {
-    padding: 0.75rem;
-  }
+/* Ensure consistent card height and prevent content overflow issues */
+.grid>div {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Custom media query for mobile sizes */
-@media (max-width: 767px) {
-  .system-metrics-container {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* Ensure text doesn't overflow in metric cards */
-  .text-2xl {
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-  }
-
-  .text-base {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-
-  .text-sm {
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-
-  .text-xs {
-    font-size: 0.7rem;
-    line-height: 0.9rem;
-  }
-
-  .p-4 {
-    padding: 0.625rem;
-  }
-
-  /* Adjust grid layout for better mobile display */
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-
-  /* Increase spacing between flex items */
-  .gap-2 {
-    gap: 0.375rem;
-  }
+/* Custom scrollbar for WebKit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-</style>
 
-          <div class="flex flex-col gap-2 mb-2">
-            <div v-if="wifiStatus.connected" class="flex items-center gap-2">
-              <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">SSID:</span>
-              <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                {{ wifiStatus.ssid }}
-              </span>
-            </div>
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-            <div v-if="wifiStatus.connected" class="flex items-center gap-2">
-              <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">Signal:</span>
-              <div class="flex items-center gap-1">
-                <span
-                  class="text-xs sm:text-sm font-medium"
-                  :class="{
-                    'text-green-600 dark:text-green-400': wifiStatus.signalStrength > 70,
-                    'text-amber-600 dark:text-amber-400':
-                      wifiStatus.signalStrength > 30 && wifiStatus.signalStrength <= 70,
-                    'text-red-600 dark:text-red-400': wifiStatus.signalStrength <= 30,
-                  }"
-                >
-                  {{ wifiStatus.signalStrength }}%
-                </span>
-                <span
-                  class="mdi text-base"
-                  :class="{
-                    'mdi-wifi-strength-4 text-green-600 dark:text-green-400': wifiStatus.signalStrength > 70,
-                    'mdi-wifi-strength-2 text-amber-600 dark:text-amber-400':
-                      wifiStatus.signalStrength > 30 && wifiStatus.signalStrength <= 70,
-                    'mdi-wifi-strength-1 text-red-600 dark:text-red-400': wifiStatus.signalStrength <= 30,
-                  }"
-                ></span>
-              </div>
-            </div>
-          </div>
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  border-radius: 3px;
+}
 
-          <!-- Signal strength bar -->
-          <div v-if="wifiStatus.connected" class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-green-500': wifiStatus.signalStrength > 70,
-                'bg-amber-500': wifiStatus.signalStrength > 30 && wifiStatus.signalStrength <= 70,
-                'bg-red-500': wifiStatus.signalStrength <= 30,
-              }"
-              :style="{ width: `${wifiStatus.signalStrength}%` }"
-            ></div>
-          </div>
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.7); /* gray-500 with 70% opacity */
+}
 
-          <!-- Data transfer -->
-          <div v-if="wifiStatus.connected" class="flex flex-wrap justify-between mt-2 gap-x-4 gap-y-1">
-            <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
-              RX: {{ wifiStatus.bytesReceived }} KB
-            </span>
-            <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
-              TX: {{ wifiStatus.bytesSent }} KB
-            </span>
-          </div>
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+</style>"text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
           </div>
         </div>
 
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <!-- Serial Interface -->
+        <div v-if="hasSerialPorts"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
             <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-serial-port text-indigo-600 dark:text-indigo-400 text-base sm:text-lg"></span>
               </div>
               <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ formattedUptime }}
-            </div>
-          </div>
-
-          <!-- Uptime details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Days: {{ uptime.days }}</span>
-            <span class="whitespace-nowrap flex-shrink-0">Hours: {{ uptime.hours }}</span>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500 bg-blue-500"
-              :style="{ width: `${Math.min(100, (uptime.days / 30) * 100)}%` }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ flashUsagePercent }}%
-            </div>
-            <div class="flex items-center">
-              <span
-                class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-                :class="{
-                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300':
-                    flashUsagePercent > 80,
-                  'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300':
-                    flashUsagePercent > 50 && flashUsagePercent <= 80,
-                  'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
-                    flashUsagePercent <= 50,
-                }"
-              >
-                {{ flashUsagePercent > 80 ? 'High' : flashUsagePercent > 50 ? 'Medium' : 'Low' }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Flash details -->
-          <div
-            class="flex flex-wrap justify-between text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2 gap-x-4 gap-y-1"
-          >
-            <span class="whitespace-nowrap flex-shrink-0">Used: {{ flashMemory.used }} MB</span>
-            <span class="whitespace-nowrap flex-shrink-0">Free: {{ flashMemory.free }} MB</span>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="{
-                'bg-red-500': flashUsagePercent > 80,
-                'bg-amber-500': flashUsagePercent > 50 && flashUsagePercent <= 80,
-                'bg-green-500': flashUsagePercent <= 50,
-              }"
-              :style="{ width: `${flashUsagePercent}%` }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- System Uptime -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-blue-50 dark:bg-blue-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  class="mdi mdi-clock-outline text-blue-600 dark:text-blue-400 text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                System Uptime
-              </h3>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
-            <div class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-              {{ formattedUptime }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Secondary metrics grid -->
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4 xs:grid-cols-1"
-      >
-        <!-- WiFi Status -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-        >
-          <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-            <div class="flex items-center min-w-0">
-              <div class="bg-green-50 dark:bg-green-900/20 p-1 rounded-md mr-2 flex-shrink-0">
-                <span
-                  :class="{
-                    'mdi mdi-wifi text-green-600 dark:text-green-400': wifiStatus.connected,
-                    'mdi mdi-wifi-off text-red-600 dark:text-red-400': !wifiStatus.connected,
-                  }"
-                  class="text-base sm:text-lg"
-                ></span>
-              </div>
-              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                WiFi Status
+                Serial Interface
               </h3>
             </div>
             <span
-              class="text-2xs sm:text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
-              :class="{
-                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300':
-                  wifiStatus.connected,
-                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300':
-                  !wifiStatus.connected,
-              }"
-            >
-              {{ wifiStatus.connected ? 'Connected' : 'Disconnected' }}
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ serialPorts.length }} Port{{ serialPorts.length !== 1 ? 's' : '' }} Available
             </span>
           </div>
-
-          <div class="space-y-3">
-            <!-- WiFi Network -->
-            <div class="flex items-center">
-              <div
-                class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-3 flex-shrink-0"
-              >
-                <span class="mdi mdi-wifi text-blue-600 dark:text-blue-400"></span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <div v-for="(port, index) in serialPorts" :key="index"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ port.name }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ port.baud_rate }} bps</span>
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                    {{ wifiDetails.ssid || 'Not Connected' }}
-                  </p>
-                  <p
-                    class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0"
-                    v-if="wifiDetails.connected"
-                  >
-                    {{ wifiDetails.signalStrength }}%
-                  </p>
-                </div>
-                <div
-                  class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1"
-                >
-                  <div
-                    class="h-full rounded-full"
-                    :class="{
-                      'bg-green-500':
-                        wifiSignalQuality === 'excellent' || wifiSignalQuality === 'good',
-                      'bg-amber-500': wifiSignalQuality === 'fair',
-                      'bg-red-500':
-                        wifiSignalQuality === 'poor' || wifiSignalQuality === 'very poor',
-                    }"
-                    :style="{ width: `${wifiDetails.signalStrength}%` }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Data Transfer -->
-            <div
-              class="flex flex-wrap justify-between text-xs text-gray-500 dark:text-gray-400 gap-x-4 gap-y-1"
-            >
-              <div class="whitespace-nowrap flex-shrink-0">
-                <span>Received</span>
-                <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap"
-                  >{{ (wifiDetails.rxBytes / (1024 * 1024)).toFixed(2) }} MB</span
-                >
-              </div>
-              <div class="whitespace-nowrap flex-shrink-0">
-                <span>Transmitted</span>
-                <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap"
-                  >{{ (wifiDetails.txBytes / (1024 * 1024)).toFixed(2) }} MB</span
-                >
+              <div class="flex items-center text-gray-600 dark:text-gray-400">
+                <span class="mdi mdi-arrow-down-bold-box-outline mr-1"></span>Rx: {{ port.rx_pin }}
+                <span class="mdi mdi-arrow-up-bold-box-outline mr-1 ml-2"></span>Tx: {{ port.tx_pin }}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Environmental Sensors -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex flex-wrap items-center mb-3 gap-2">
-            <span
-              class="mdi mdi-thermometer text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              Environmental
-            </h3>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Temperature</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.temperature.toFixed(1) }}°C
-              </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Humidity</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.humidity.toFixed(0) }}%
-              </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Pressure</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.pressure.toFixed(0) }} hPa
-              </div>
-            </div>
-            <div class="overflow-hidden">
-              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">Light</div>
-              <div
-                class="text-base font-medium text-gray-800 dark:text-gray-200 truncate flex-shrink-0"
-              >
-                {{ sensorReadings.light.toFixed(0) }} lux
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- I/O Pins -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex flex-wrap items-center mb-3 gap-2">
-            <span
-              class="mdi mdi-chip text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">I/O Pins</h3>
-          </div>
-
-          <div class="mb-3">
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">Digital</div>
-            <div class="flex flex-wrap gap-2">
-              <div
-                v-for="(pin, index) in ioPins.digital"
-                :key="'digital-' + index"
-                class="px-2 py-1 rounded text-xs font-medium whitespace-nowrap flex-shrink-0"
-                :class="{
-                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
-                    pin.value === 1,
-                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': pin.value === 0,
-                }"
-              >
-                D{{ pin.pin }}: {{ pin.value }}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">Analog</div>
-            <div class="flex flex-wrap gap-2">
-              <div
-                v-for="(pin, index) in ioPins.analog"
-                :key="'analog-' + index"
-                class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs font-medium whitespace-nowrap flex-shrink-0"
-              >
-                A{{ pin.pin }}: {{ pin.value.toFixed(2) }}V
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Serial Interface - Full width -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-      >
-        <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-          <div class="flex items-center min-w-0">
-            <span
-              class="mdi mdi-serial-port text-gray-700 dark:text-gray-300 text-lg mr-2 flex-shrink-0"
-            ></span>
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              FT232 Serial Interface
-            </h3>
-          </div>
-          <span
-            class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap"
-          >
-            {{ serialInterface.baudRate }} baud
-          </span>
-        </div>
-
-        <div class="flex flex-wrap gap-4 text-xs mb-2">
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">Baud rate:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.baudRate }}
-            </span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">Format:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">8-N-1</span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">RX:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.rxBytes }} bytes
-            </span>
-          </div>
-          <div class="flex items-center flex-shrink-0">
-            <span class="text-gray-500 dark:text-gray-400 whitespace-nowrap">TX:</span>
-            <span class="text-gray-700 dark:text-gray-300 ml-2 whitespace-nowrap">
-              {{ serialInterface.txBytes }} bytes
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer with actions -->
-    <div
-      class="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-y-2"
-    >
-      <div class="flex flex-wrap gap-2">
-        <button
-          @click="refreshData"
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-        >
-          <span class="mdi mdi-refresh mr-1 flex-shrink-0"></span>
-          <span class="truncate flex-shrink-0">Refresh</span>
-        </button>
-        <button
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-        >
-          <span class="mdi mdi-history mr-1 flex-shrink-0"></span>
-          <span class="truncate flex-shrink-0">History</span>
-        </button>
-      </div>
-      <button
-        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
-      >
-        <span class="mdi mdi-console mr-1 flex-shrink-0"></span>
-        <span class="truncate flex-shrink-0">Console</span>
-      </button>
-    </div>
-  </div>
+      </div> <!-- End of main grid -->
+    </div> <!-- End of main container -->
+  </div> <!-- End of SystemMetrics component -->
 </template>
 
 <style scoped>
-/* Add any additional styling here */
-
-/* Custom media query for tablet sizes */
-@media (min-width: 768px) and (max-width: 900px) {
-  .system-metrics-container {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* Ensure text doesn't overflow in metric cards */
-  .text-2xl {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-  }
-
-  .p-4 {
-    padding: 0.75rem;
-  }
+/* Ensure consistent card height and prevent content overflow issues */
+.grid>div {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Custom media query for mobile sizes */
-@media (max-width: 767px) {
-  .system-metrics-container {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* Ensure text doesn't overflow in metric cards */
-  .text-2xl {
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-  }
-
-  .text-base {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-
-  .text-sm {
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-
-  .text-xs {
-    font-size: 0.7rem;
-    line-height: 0.9rem;
-  }
-
-  .p-4 {
-    padding: 0.625rem;
-  }
-
-  /* Adjust grid layout for better mobile display */
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-
-  /* Increase spacing between flex items */
-  .gap-2 {
-    gap: 0.375rem;
-  }
+/* Custom scrollbar for WebKit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-</style>
 
-          <div class="flex flex-col gap-2 mb-2">
-            <div v-if="wifiStatus.connected" class="flex items-center gap-2">
-              <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">SSID:</span>
-              <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                {{ wifiStatus.ssid }}
-              </span>
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.7); /* gray-500 with 70% opacity */
+}
+
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+</style>"text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+          </div>
+        </div>
+
+        <!-- Serial Interface -->
+        <div v-if="hasSerialPorts"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-serial-port text-indigo-600 dark:text-indigo-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                Serial Interface
+              </h3>
             </div>
+            <span
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ serialPorts.length }} Port{{ serialPorts.length !== 1 ? 's' : '' }} Available
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <div v-for="(port, index) in serialPorts" :key="index"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ port.name }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ port.baud_rate }} bps</span>
+              </div>
+              <div class="flex items-center text-gray-600 dark:text-gray-400">
+                <span class="mdi mdi-arrow-down-bold-box-outline mr-1"></span>Rx: {{ port.rx_pin }}
+                <span class="mdi mdi-arrow-up-bold-box-outline mr-1 ml-2"></span>Tx: {{ port.tx_pin }}
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <div v-if="wifiStatus.connected" class="flex items-center gap-2">
-              <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">Signal:</span>
-              <div class="flex items-center gap-1">
-                <span
-                  class="text-xs sm:text-sm font-medium"
-                  :class="{
-                    'text-green-600 dark
+      </div> <!-- End of main grid -->
+    </div> <!-- End of main container -->
+  </div> <!-- End of SystemMetrics component -->
+</template>
+
+<style scoped>
+/* Ensure consistent card height and prevent content overflow issues */
+.grid>div {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar for WebKit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.7); /* gray-500 with 70% opacity */
+}
+
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+</style>"text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+          </div>
+        </div>
+
+        <!-- Serial Interface -->
+        <div v-if="hasSerialPorts"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-serial-port text-indigo-600 dark:text-indigo-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                Serial Interface
+              </h3>
+            </div>
+            <span
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ serialPorts.length }} Port{{ serialPorts.length !== 1 ? 's' : '' }} Available
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <div v-for="(port, index) in serialPorts" :key="index"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ port.name }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ port.baud_rate }} bps</span>
+              </div>
+              <div class="flex items-center text-gray-600 dark:text-gray-400">
+                <span class="mdi mdi-arrow-down-bold-box-outline mr-1"></span>Rx: {{ port.rx_pin }}
+                <span class="mdi mdi-arrow-up-bold-box-outline mr-1 ml-2"></span>Tx: {{ port.tx_pin }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- End of main grid -->
+    </div> <!-- End of main container -->
+  </div> <!-- End of SystemMetrics component -->
+</template>
+
+<style scoped>
+/* Ensure consistent card height and prevent content overflow issues */
+.grid>div {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar for WebKit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.7); /* gray-500 with 70% opacity */
+}
+
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+</style>"text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+          </div>
+        </div>
+
+        <!-- Serial Interface -->
+        <div v-if="hasSerialPorts"
+          class="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+          <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+            <div class="flex items-center min-w-0">
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-1 rounded-md mr-2 flex-shrink-0">
+                <span class="mdi mdi-serial-port text-indigo-600 dark:text-indigo-400 text-base sm:text-lg"></span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                Serial Interface
+              </h3>
+            </div>
+            <span
+              class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/80 px-2 py-0.5 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-600/50">
+              {{ serialPorts.length }} Port{{ serialPorts.length !== 1 ? 's' : '' }} Available
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-2xs sm:text-xs">
+            <div v-for="(port, index) in serialPorts" :key="index"
+              class="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ port.name }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ port.baud_rate }} bps</span>
+              </div>
+              <div class="flex items-center text-gray-600 dark:text-gray-400">
+                <span class="mdi mdi-arrow-down-bold-box-outline mr-1"></span>Rx: {{ port.rx_pin }}
+                <span class="mdi mdi-arrow-up-bold-box-outline mr-1 ml-2"></span>Tx: {{ port.tx_pin }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- End of main grid -->
+    </div> <!-- End of main container -->
+  </div> <!-- End of SystemMetrics component -->
+</template>
+
+<style scoped>
+/* Ensure consistent card height and prevent content overflow issues */
+.grid>div {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar for WebKit browsers */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(107, 114, 128, 0.7); /* gray-500 with 70% opacity */
+}
+
+/* For Firefox */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+</style>"text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{{ uptime.minutes }}</span>
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 flex items-center">
+              <span class=
+              <span class="mdi mdi-clock-time-five-outline mr-1"></span>Minutes:
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1"
