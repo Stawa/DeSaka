@@ -2,7 +2,7 @@
 import { ref, onMounted, type Ref, computed, onUnmounted } from 'vue'
 import SensorCard from '../components/SensorCard.vue'
 import SensorChart from '../components/SensorChart.vue'
-import PlantStatusDashboard from '@/components/PlantStatusDashboard.vue'
+import PlantStatusDashboard from '../components/PlantStatusDashboard.vue'
 
 const windowWidth = ref(window.innerWidth)
 
