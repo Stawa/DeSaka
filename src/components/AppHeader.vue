@@ -20,48 +20,41 @@ const toggleDarkMode = () => {
 
 <template>
   <header
-    class="relative backdrop-blur-lg shadow-md z-50 sticky top-0 transition-all duration-300"
+    class="relative shadow-md z-50 sticky top-0 transition-all duration-300"
     :class="
       isDarkMode
-        ? 'bg-slate-800/95 border-b border-slate-700/50'
-        : 'bg-indigo-600/95 border-b border-white/10'
+        ? 'bg-slate-800 border-b border-slate-700'
+        : 'bg-indigo-500 border-b border-indigo-600'
     "
   >
-    <div class="container mx-auto px-6 py-4 relative z-10">
+    <div class="container mx-auto px-6 py-3 relative z-10">
       <div class="flex items-center justify-between">
         <!-- Left section -->
         <div class="flex items-center">
           <!-- Mobile menu button -->
           <button
             @click="$emit('toggle-sidebar')"
-            class="mr-4 p-2 rounded-xl transition-all duration-300 md:hidden group hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            class="mr-4 p-2 rounded-lg transition-all duration-300 md:hidden focus:outline-none focus:ring-2 focus:ring-offset-2"
             :class="
               isDarkMode
-                ? 'text-slate-300 hover:text-white hover:bg-slate-700/50 focus:ring-slate-400'
-                : 'text-white/90 hover:text-white hover:bg-white/20 focus:ring-white/50'
+                ? 'text-slate-300 hover:text-white hover:bg-slate-700 focus:ring-slate-400'
+                : 'text-white hover:bg-indigo-600 focus:ring-white/50'
             "
             aria-label="Toggle sidebar"
           >
-            <span
-              class="mdi mdi-menu text-2xl transform transition-transform duration-200 group-hover:rotate-180"
-            ></span>
+            <span class="mdi mdi-menu text-2xl transition-transform duration-200"></span>
           </button>
 
           <!-- Logo section -->
           <div class="flex items-center cursor-pointer">
             <div
               class="relative p-2 rounded-lg mr-4 transition-all duration-300"
-              :class="isDarkMode ? 'bg-slate-700' : 'bg-white/20'"
+              :class="isDarkMode ? 'bg-slate-700' : 'bg-indigo-600'"
             >
               <img src="/Logo.webp" alt="DeSaka Logo" class="h-8 w-8 relative z-10" />
             </div>
             <div>
-              <h1
-                class="text-2xl font-bold tracking-tight"
-                :class="isDarkMode ? 'text-white' : 'text-white'"
-              >
-                DeSaka
-              </h1>
+              <h1 class="text-2xl font-bold tracking-tight text-white">DeSaka</h1>
             </div>
           </div>
         </div>
@@ -71,27 +64,28 @@ const toggleDarkMode = () => {
           <!-- Dark mode toggle -->
           <button
             @click="toggleDarkMode"
-            class="relative py-2 px-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 hidden md:flex"
+            class="relative py-2 px-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 hidden md:flex items-center"
             :class="
               isDarkMode
                 ? 'bg-slate-700 text-yellow-300 focus:ring-yellow-300/50'
-                : 'bg-white/20 text-white focus:ring-white/50'
+                : 'bg-indigo-600 text-white focus:ring-white/50'
             "
             :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle dark mode"
           >
             <!-- Icon container -->
-            <div class="flex items-center justify-center">
-              <span
-                class="mdi text-xl"
-                :class="{
-                  'mdi-weather-sunny': isDarkMode,
-                  'mdi-weather-night': !isDarkMode,
-                  'animate-spin-slow': isAnimating,
-                }"
-              ></span>
-            </div>
+            <span
+              class="mdi text-xl"
+              :class="{
+                'mdi-weather-sunny': isDarkMode,
+                'mdi-weather-night': !isDarkMode,
+                'animate-spin-slow': isAnimating,
+              }"
+            ></span>
 
+            <span class="ml-2 text-sm font-medium">{{
+              isDarkMode ? 'Light Mode' : 'Dark Mode'
+            }}</span>
             <span class="sr-only">{{
               isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'
             }}</span>
@@ -143,7 +137,7 @@ button:focus-visible {
 * {
   transition-property:
     color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
-    transform, filter, backdrop-filter;
+    transform, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

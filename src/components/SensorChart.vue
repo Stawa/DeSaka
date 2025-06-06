@@ -247,33 +247,39 @@ onMounted(() => {
 
 <template>
   <div
-    class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md p-5 transition-all duration-300 hover:shadow-lg border border-gray-100 dark:border-gray-700 transform hover:-translate-y-1"
+    class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md p-3 sm:p-4 md:p-5 transition-all duration-300 hover:shadow-lg border border-gray-100 dark:border-gray-700 transform hover:-translate-y-1 w-full max-w-full overflow-hidden"
   >
-    <div class="flex justify-between items-center mb-4">
-      <div class="flex items-center">
-        <div class="bg-primary-100 dark:bg-primary-900/30 p-1.5 rounded-lg mr-2">
-          <span class="mdi mdi-chart-line text-primary-600 dark:text-primary-400"></span>
+    <div class="flex justify-between items-center mb-3 sm:mb-4">
+      <div class="flex items-center min-w-0">
+        <div
+          class="bg-primary-100 dark:bg-primary-900/30 p-1 sm:p-1.5 rounded-lg mr-2 flex-shrink-0"
+        >
+          <span
+            class="mdi mdi-chart-line text-primary-600 dark:text-primary-400 text-sm sm:text-base"
+          ></span>
         </div>
-        <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ title }}</h3>
+        <h3 class="font-bold text-gray-800 dark:text-gray-200 text-sm sm:text-base truncate">
+          {{ title }}
+        </h3>
       </div>
 
-      <div class="flex space-x-2">
+      <div class="flex space-x-1 sm:space-x-2 flex-shrink-0">
         <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
           title="Download Data"
         >
           <span class="mdi mdi-download"></span>
         </button>
 
         <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
           title="Expand Chart"
         >
           <span class="mdi mdi-arrow-expand"></span>
         </button>
 
         <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
           title="More Options"
         >
           <span class="mdi mdi-dots-vertical"></span>
@@ -283,7 +289,7 @@ onMounted(() => {
 
     <!-- Chart Container with Subtle Border -->
     <div
-      class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-700 shadow-sm mb-3"
+      class="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 shadow-sm mb-2 sm:mb-3 overflow-hidden"
       :style="{ height: `${chartHeight}px` }"
     >
       <!--@vue-ignore-->
@@ -292,12 +298,12 @@ onMounted(() => {
 
     <!-- Chart Footer with Stats -->
     <div
-      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-3 text-xs"
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2 sm:mt-3 text-xs overflow-x-auto"
     >
-      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
         <div class="flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-          <span class="mdi mdi-arrow-up-bold text-green-500 mr-1"></span>
-          <span class="truncate">
+          <span class="mdi mdi-arrow-up-bold text-green-500 mr-1 text-xs sm:text-sm"></span>
+          <span class="truncate text-xs sm:text-sm">
             High: {{ Math.max(...chartData.datasets[0].data).toFixed(1)
             }}{{
               props.valueLabel.includes('(')
@@ -308,8 +314,8 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-          <span class="mdi mdi-arrow-down-bold text-red-500 mr-1"></span>
-          <span class="truncate">
+          <span class="mdi mdi-arrow-down-bold text-red-500 mr-1 text-xs sm:text-sm"></span>
+          <span class="truncate text-xs sm:text-sm">
             Low: {{ Math.min(...chartData.datasets[0].data).toFixed(1)
             }}{{
               props.valueLabel.includes('(')
@@ -321,20 +327,20 @@ onMounted(() => {
       </div>
 
       <div
-        class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-1 mt-2 sm:mt-0"
+        class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-0.5 sm:p-1 mt-2 sm:mt-0 flex-shrink-0"
       >
         <button
-          class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-primary-500 text-white"
+          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-primary-500 text-white"
         >
           24h
         </button>
         <button
-          class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           7d
         </button>
         <button
-          class="px-2 sm:px-3 py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           30d
         </button>

@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 import AppSidebar from './components/AppSidebar.vue'
+import Toast from './components/Toast.vue'
 import { ref, watch, onMounted } from 'vue'
 import { usePreferredDark } from '@vueuse/core'
 
@@ -83,6 +84,9 @@ watch(prefersDark, (newValue) => {
         <RouterView />
       </main>
     </div>
+
+    <!-- Toast component for notifications -->
+    <Toast />
   </div>
 </template>
 

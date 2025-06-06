@@ -1,566 +1,815 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useToast } from '@/composables/useToast'
 
+// Active tab management
 const activeTab = ref('general')
-
-const systemSettings = ref({
-  refreshInterval: 30,
-  dataRetentionDays: 90,
-  timezone: 'UTC',
-  dateFormat: 'YYYY-MM-DD',
-  timeFormat: '24h',
-
-  emailNotifications: true,
-  smsNotifications: false,
-  pushNotifications: true,
-  notificationEmail: 'admin@example.com',
-  notificationPhone: '',
-
-  alertThresholds: {
-    soil_temperature: { min: 15, max: 30 },
-    soil_moisture: { min: 40, max: 80 },
-    soil_ph: { min: 5.5, max: 7.5 },
-    air_temperature: { min: 18, max: 32 },
-    air_humidity: { min: 30, max: 70 },
-    co2_level: { min: 400, max: 1000 },
-  },
-})
-
-const availableTimezones = [
-  'UTC',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'Europe/London',
-  'Europe/Berlin',
-  'Europe/Moscow',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Asia/Singapore',
-  'Australia/Sydney',
-  'Pacific/Auckland',
-]
-
-const dateFormats = [
-  { value: 'YYYY-MM-DD', label: '2023-01-31' },
-  { value: 'MM/DD/YYYY', label: '01/31/2023' },
-  { value: 'DD/MM/YYYY', label: '31/01/2023' },
-  { value: 'DD.MM.YYYY', label: '31.01.2023' },
-]
-
-const timeFormats = [
-  { value: '24h', label: '14:30' },
-  { value: '12h', label: '2:30 PM' },
-]
-
-function saveSettings() {
-  alert('Settings saved successfully!')
+const setActiveTab = (tab: string) => {
+  activeTab.value = tab
 }
 
-function resetToDefaults() {
+// Toast notifications
+const { showToast } = useToast()
+
+// Track if settings have been modified
+const settingsModified = ref(false)
+
+// System settings
+const originalSettings = {
+  general: {
+    dataRefreshInterval: 5,
+    dataRetentionPeriod: 30,
+    timezone: 'UTC',
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+  },
+  notifications: {
+    emailEnabled: false,
+    smsEnabled: false,
+    pushEnabled: true,
+    email: '',
+    phone: '',
+  },
+  thresholds: {
+    soilTemperature: {
+      min: 10,
+      max: 30,
+    },
+    soilMoisture: {
+      min: 20,
+      max: 80,
+    },
+    soilPH: {
+      min: 5.5,
+      max: 7.5,
+    },
+  },
+}
+
+const settings = ref(JSON.parse(JSON.stringify(originalSettings)))
+
+// Watch for changes to mark settings as modified
+watch(
+  settings,
+  () => {
+    settingsModified.value = JSON.stringify(settings.value) !== JSON.stringify(originalSettings)
+  },
+  { deep: true },
+)
+
+// Available options
+const timezoneOptions = [
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+  { value: 'EST', label: 'EST (Eastern Standard Time)' },
+  { value: 'CST', label: 'CST (Central Standard Time)' },
+  { value: 'MST', label: 'MST (Mountain Standard Time)' },
+  { value: 'PST', label: 'PST (Pacific Standard Time)' },
+  { value: 'IST', label: 'IST (Indian Standard Time)' },
+]
+
+const dateFormatOptions = [
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+]
+
+const timeFormatOptions = [
+  { value: '12h', label: '12-hour (AM/PM)' },
+  { value: '24h', label: '24-hour' },
+]
+
+// Form validation
+const emailValid = computed(() => {
+  if (!settings.value.notifications.email) return true
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(settings.value.notifications.email)
+})
+
+const phoneValid = computed(() => {
+  if (!settings.value.notifications.phone) return true
+  const phoneRegex = /^\+?\d{10,15}$/
+  return phoneRegex.test(settings.value.notifications.phone)
+})
+
+const formValid = computed(() => {
+  return emailValid.value && phoneValid.value
+})
+
+// Save settings
+const saveSettings = () => {
+  if (!formValid.value) {
+    showToast('Please correct the validation errors before saving', 'error')
+    return
+  }
+
+  // Here you would typically send the settings to an API
+  console.log('Saving settings:', settings.value)
+
+  // Update original settings to match current settings
+  Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
+  settingsModified.value = false
+
+  showToast('Settings saved successfully', 'success')
+}
+
+// Reset settings to defaults
+const resetSettings = () => {
   if (confirm('Are you sure you want to reset all settings to default values?')) {
-    systemSettings.value = {
-      refreshInterval: 30,
-      dataRetentionDays: 90,
-      timezone: 'UTC',
-      dateFormat: 'YYYY-MM-DD',
-      timeFormat: '24h',
-
-      emailNotifications: true,
-      smsNotifications: false,
-      pushNotifications: true,
-      notificationEmail: 'admin@example.com',
-      notificationPhone: '',
-
-      alertThresholds: {
-        soil_temperature: { min: 15, max: 30 },
-        soil_moisture: { min: 40, max: 80 },
-        soil_ph: { min: 5.5, max: 7.5 },
-        air_temperature: { min: 18, max: 32 },
-        air_humidity: { min: 30, max: 70 },
-        co2_level: { min: 400, max: 1000 },
-      },
-    }
+    settings.value = JSON.parse(JSON.stringify(originalSettings))
+    showToast('Settings reset to defaults', 'info')
   }
 }
 
-function setActiveTab(tab: string) {
-  activeTab.value = tab
+// Cancel changes
+const cancelChanges = () => {
+  if (settingsModified.value) {
+    if (confirm('Discard unsaved changes?')) {
+      settings.value = JSON.parse(JSON.stringify(originalSettings))
+      settingsModified.value = false
+      showToast('Changes discarded', 'info')
+    }
+  }
 }
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <div class="mb-6 md:mb-8">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
-      <p class="text-gray-600 dark:text-gray-400 max-w-2xl">
-        Configure system settings and preferences for your environmental monitoring dashboard
-      </p>
-    </div>
-
-    <!-- Tab Navigation - Modern Top Design -->
-    <div class="mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-        <nav class="flex flex-wrap">
-          <button
-            @click="setActiveTab('general')"
-            :class="[
-              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
-              activeTab === 'general'
-                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
-            ]"
-          >
-            <span class="mdi mdi-cog text-lg mr-2"></span>
-            General Settings
-          </button>
-          <button
-            @click="setActiveTab('notifications')"
-            :class="[
-              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
-              activeTab === 'notifications'
-                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
-            ]"
-          >
-            <span class="mdi mdi-bell text-lg mr-2"></span>
-            Notifications
-          </button>
-          <button
-            @click="setActiveTab('thresholds')"
-            :class="[
-              'py-4 px-6 text-center font-medium text-sm transition-all duration-200 flex items-center justify-center flex-1',
-              activeTab === 'thresholds'
-                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-gray-800'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:bg-gray-700 border-b-2 border-transparent',
-            ]"
-          >
-            <span class="mdi mdi-alert text-lg mr-2"></span>
-            Alert Thresholds
-          </button>
-        </nav>
+    <!-- Page Header -->
+    <div class="mb-6 bg-primary-600 rounded-lg p-5 text-white shadow-md">
+      <div class="flex items-center">
+        <div class="bg-white/20 p-2 rounded-lg mr-3">
+          <span class="mdi mdi-cog text-2xl"></span>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">System Settings</h1>
+          <p class="text-primary-100 mt-1">
+            Configure your system preferences and alert thresholds
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Content Area -->
-    <div class="w-full">
-      <!-- Settings Content -->
-      <div class="space-y-4">
-        <!-- General Settings -->
-        <div
-          v-if="activeTab === 'general'"
-          id="general"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
+    <!-- Tab Navigation -->
+    <div
+      class="flex border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto hide-scrollbar"
+    >
+      <div class="flex w-full sm:w-auto justify-between sm:justify-start">
+        <button
+          @click="setActiveTab('general')"
+          class="flex items-center px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start"
+          :class="{
+            'text-primary-600 border-b-2 border-primary-600 dark:text-primary-400 dark:border-primary-400':
+              activeTab === 'general',
+            'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300':
+              activeTab !== 'general',
+          }"
         >
-          <div
-            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
-          >
-            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
-              <span class="mdi mdi-cog text-primary-500 dark:text-primary-400 mr-2"></span>
-              General Settings
-            </h2>
-          </div>
-          <div class="p-5 md:p-6 space-y-6">
+          <span class="mdi mdi-tune mr-2 text-lg"></span>
+          <span>General</span>
+        </button>
+        <button
+          @click="setActiveTab('notifications')"
+          class="flex items-center px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start"
+          :class="{
+            'text-primary-600 border-b-2 border-primary-600 dark:text-primary-400 dark:border-primary-400':
+              activeTab === 'notifications',
+            'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300':
+              activeTab !== 'notifications',
+          }"
+        >
+          <span class="mdi mdi-bell-outline mr-2 text-lg"></span>
+          <span>Notifications</span>
+        </button>
+        <button
+          @click="setActiveTab('thresholds')"
+          class="flex items-center px-4 py-3 font-medium text-sm transition-colors whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start"
+          :class="{
+            'text-primary-600 border-b-2 border-primary-600 dark:text-primary-400 dark:border-primary-400':
+              activeTab === 'thresholds',
+            'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300':
+              activeTab !== 'thresholds',
+          }"
+        >
+          <span class="mdi mdi-alert-circle-outline mr-2 text-lg"></span>
+          <span>Thresholds</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- General Settings Tab -->
+      <div v-if="activeTab === 'general'" class="fade-in">
+        <div
+          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 mb-5 border border-gray-100 dark:border-gray-700"
+        >
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
+            <span class="mdi mdi-refresh mr-2 text-primary-600 dark:text-primary-400"></span>
+            Data Settings
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+            <!-- Data Refresh Interval -->
             <div>
               <label
-                for="refresh-interval"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                for="data-refresh-interval"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Data Refresh Interval (seconds)
+                Data Refresh Interval
               </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span
-                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-clock-outline"
-                  ></span>
-                </div>
+              <div class="relative">
                 <input
+                  id="data-refresh-interval"
+                  v-model="settings.general.dataRefreshInterval"
                   type="number"
-                  id="refresh-interval"
-                  v-model="systemSettings.refreshInterval"
-                  min="5"
-                  max="3600"
-                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                  min="1"
+                  max="60"
+                  class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
                 />
+                <div
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                >
+                  minutes
+                </div>
               </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                How often to refresh sensor data (1-60 minutes)
+              </p>
             </div>
 
+            <!-- Data Retention Period -->
             <div>
               <label
-                for="data-retention"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                for="data-retention-period"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Data Retention Period (days)
+                Data Retention Period
               </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span
-                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-calendar-clock"
-                  ></span>
-                </div>
+              <div class="relative">
                 <input
+                  id="data-retention-period"
+                  v-model="settings.general.dataRetentionPeriod"
                   type="number"
-                  id="data-retention"
-                  v-model="systemSettings.dataRetentionDays"
                   min="1"
                   max="365"
-                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                  class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
                 />
+                <div
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                >
+                  days
+                </div>
               </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                How long to keep historical data (1-365 days)
+              </p>
             </div>
+          </div>
+        </div>
 
+        <div
+          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700"
+        >
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
+            <span class="mdi mdi-clock-outline mr-2 text-primary-600 dark:text-primary-400"></span>
+            Time & Format Settings
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Timezone -->
             <div>
               <label
-                for="timezone"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                for="timezone-select"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Timezone
               </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-earth"></span>
-                </div>
-                <select
-                  id="timezone"
-                  v-model="systemSettings.timezone"
-                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
-                >
-                  <option v-for="tz in availableTimezones" :key="tz" :value="tz">{{ tz }}</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <span
-                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
-                  ></span>
-                </div>
-              </div>
+              <select
+                id="timezone-select"
+                v-model="settings.general.timezone"
+                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
+              >
+                <option v-for="option in timezoneOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Select your local timezone for accurate time display
+              </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  for="date-format"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <!-- Date Format -->
+            <div>
+              <label
+                for="date-format-select"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Date Format
+              </label>
+              <select
+                id="date-format-select"
+                v-model="settings.general.dateFormat"
+                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
+              >
+                <option
+                  v-for="option in dateFormatOptions"
+                  :key="option.value"
+                  :value="option.value"
                 >
-                  Date Format
-                </label>
-                <div class="relative rounded-md shadow-sm">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span
-                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-calendar"
-                    ></span>
-                  </div>
-                  <select
-                    id="date-format"
-                    v-model="systemSettings.dateFormat"
-                    class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
-                  >
-                    <option v-for="format in dateFormats" :key="format.value" :value="format.value">
-                      {{ format.label }}
-                    </option>
-                  </select>
-                  <div
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
-                  >
-                    <span
-                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
-                    ></span>
-                  </div>
-                </div>
-              </div>
+                  {{ option.label }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Choose how dates are displayed throughout the application
+              </p>
+            </div>
 
-              <div>
-                <label
-                  for="time-format"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <!-- Time Format -->
+            <div>
+              <label
+                for="time-format-select"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Time Format
+              </label>
+              <select
+                id="time-format-select"
+                v-model="settings.general.timeFormat"
+                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
+              >
+                <option
+                  v-for="option in timeFormatOptions"
+                  :key="option.value"
+                  :value="option.value"
                 >
-                  Time Format
-                </label>
-                <div class="relative rounded-md shadow-sm">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-clock"></span>
-                  </div>
-                  <select
-                    id="time-format"
-                    v-model="systemSettings.timeFormat"
-                    class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200 appearance-none"
-                  >
-                    <option v-for="format in timeFormats" :key="format.value" :value="format.value">
-                      {{ format.label }}
-                    </option>
-                  </select>
-                  <div
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
-                  >
-                    <span
-                      class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-chevron-down"
-                    ></span>
-                  </div>
-                </div>
-              </div>
+                  {{ option.label }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Choose how time is displayed throughout the application
+              </p>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Notification Settings -->
+      <!-- Notification Settings Tab -->
+      <div v-if="activeTab === 'notifications'" class="fade-in">
         <div
-          v-if="activeTab === 'notifications'"
-          id="notifications"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
+          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700"
         >
-          <div
-            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
-          >
-            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
-              <span class="mdi mdi-bell text-primary-500 dark:text-primary-400 mr-2"></span>
-              Notification Settings
-            </h2>
-          </div>
-          <div class="p-5 md:p-6 space-y-6">
-            <div class="flex items-center">
-              <input
-                type="checkbox"
-                id="email-notifications"
-                v-model="systemSettings.emailNotifications"
-                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-              <label
-                for="email-notifications"
-                class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-              >
-                Email Notifications
-              </label>
-            </div>
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
+            <span class="mdi mdi-bell-outline mr-2 text-primary-600 dark:text-primary-400"></span>
+            Notification Channels
+          </h2>
 
-            <div class="flex items-center">
-              <input
-                type="checkbox"
-                id="sms-notifications"
-                v-model="systemSettings.smsNotifications"
-                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-              <label
-                for="sms-notifications"
-                class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-              >
-                SMS Notifications
-              </label>
-            </div>
-
-            <div class="flex items-center">
-              <input
-                type="checkbox"
-                id="push-notifications"
-                v-model="systemSettings.pushNotifications"
-                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-              <label
-                for="push-notifications"
-                class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-              >
-                Push Notifications
-              </label>
-            </div>
-
-            <div>
-              <label
-                for="notification-email"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Notification Email
-              </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div class="space-y-4">
+            <!-- Email Notifications -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
                   <span
-                    class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-email-outline"
+                    class="mdi mdi-email-outline text-xl mr-3 text-primary-600 dark:text-primary-400"
                   ></span>
+                  <div>
+                    <h3 class="font-medium text-gray-800 dark:text-gray-200">
+                      Email Notifications
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive alerts via email</p>
+                  </div>
                 </div>
+                <label
+                  for="email-notifications-toggle"
+                  class="relative inline-flex items-center cursor-pointer"
+                >
+                  <span class="sr-only">Enable email notifications</span>
+                  <input
+                    id="email-notifications-toggle"
+                    type="checkbox"
+                    v-model="settings.notifications.emailEnabled"
+                    class="sr-only peer"
+                  />
+                  <div
+                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+                  ></div>
+                </label>
+              </div>
+
+              <!-- Email Address Input (conditionally displayed) -->
+              <div v-if="settings.notifications.emailEnabled" class="mt-4">
+                <label
+                  for="notification-email"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Notification Email Address
+                </label>
                 <input
-                  type="email"
                   id="notification-email"
-                  v-model="systemSettings.notificationEmail"
-                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                  v-model="settings.notifications.email"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
+                  :class="{
+                    'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
+                      emailValid,
+                    'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
+                      !emailValid,
+                  }"
                 />
+                <p
+                  v-if="!emailValid"
+                  class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
+                >
+                  <span class="mdi mdi-alert-circle mr-1"></span>
+                  Please enter a valid email address
+                </p>
               </div>
             </div>
 
-            <div>
-              <label
-                for="notification-phone"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Notification Phone Number
-              </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 dark:text-gray-400 sm:text-sm mdi mdi-phone"></span>
+            <!-- SMS Notifications -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span
+                    class="mdi mdi-message-text-outline text-xl mr-3 text-primary-600 dark:text-primary-400"
+                  ></span>
+                  <div>
+                    <h3 class="font-medium text-gray-800 dark:text-gray-200">SMS Notifications</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      Receive alerts via text message
+                    </p>
+                  </div>
                 </div>
+                <label
+                  for="sms-notifications-toggle"
+                  class="relative inline-flex items-center cursor-pointer"
+                >
+                  <span class="sr-only">Enable SMS notifications</span>
+                  <input
+                    id="sms-notifications-toggle"
+                    type="checkbox"
+                    v-model="settings.notifications.smsEnabled"
+                    class="sr-only peer"
+                  />
+                  <div
+                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+                  ></div>
+                </label>
+              </div>
+
+              <!-- Phone Number Input (conditionally displayed) -->
+              <div v-if="settings.notifications.smsEnabled" class="mt-4">
+                <label
+                  for="phone-number-input"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Phone Number
+                </label>
                 <input
+                  id="phone-number-input"
+                  v-model="settings.notifications.phone"
                   type="tel"
-                  id="notification-phone"
-                  v-model="systemSettings.notificationPhone"
                   placeholder="+1234567890"
-                  class="block w-full pl-10 pr-3 py-3 dark:text-white text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 transition-all duration-200"
+                  class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
+                  :class="{
+                    'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
+                      phoneValid,
+                    'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
+                      !phoneValid,
+                  }"
                 />
+                <p
+                  v-if="!phoneValid"
+                  class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
+                >
+                  <span class="mdi mdi-alert-circle mr-1"></span>
+                  Please enter a valid phone number (10-15 digits, can start with +)
+                </p>
+              </div>
+            </div>
+
+            <!-- Push Notifications -->
+            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <span
+                    class="mdi mdi-cellphone-message text-xl mr-3 text-primary-600 dark:text-primary-400"
+                  ></span>
+                  <div>
+                    <h3 class="font-medium text-gray-800 dark:text-gray-200">Push Notifications</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      Receive alerts on your device
+                    </p>
+                  </div>
+                </div>
+                <label
+                  for="push-notifications-toggle"
+                  class="relative inline-flex items-center cursor-pointer"
+                >
+                  <span class="sr-only">Enable push notifications</span>
+                  <input
+                    id="push-notifications-toggle"
+                    type="checkbox"
+                    v-model="settings.notifications.pushEnabled"
+                    class="sr-only peer"
+                  />
+                  <div
+                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+                  ></div>
+                </label>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Alert Thresholds -->
-        <div
-          v-if="activeTab === 'thresholds'"
-          id="thresholds"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
-        >
+      <!-- Alert Thresholds Tab -->
+      <div v-if="activeTab === 'thresholds'" class="fade-in">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Soil Temperature Thresholds -->
           <div
-            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
           >
-            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
-              <span class="mdi mdi-alert text-primary-500 dark:text-primary-400 mr-2"></span>
-              Alert Thresholds
-            </h2>
-          </div>
-          <div class="p-5 md:p-6 space-y-6">
-            <div>
-              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Soil Temperature (°C)
-              </h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="soil-temp-min"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Minimum</label
-                  >
+            <h3
+              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
+            >
+              <span class="mdi mdi-thermometer mr-2 text-amber-600 dark:text-amber-400"></span>
+              Soil Temperature
+            </h3>
+
+            <div class="space-y-4">
+              <!-- Minimum Threshold -->
+              <div>
+                <label
+                  for="soil-temp-min"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Minimum Threshold
+                </label>
+                <div class="relative">
                   <input
-                    type="number"
                     id="soil-temp-min"
-                    v-model="systemSettings.alertThresholds.soil_temperature.min"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
-                  />
-                </div>
-                <div>
-                  <label
-                    for="soil-temp-max"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Maximum</label
-                  >
-                  <input
+                    v-model="settings.thresholds.soilTemperature.min"
                     type="number"
+                    step="0.1"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                  >
+                    °C
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when below this temperature
+                </p>
+              </div>
+
+              <!-- Maximum Threshold -->
+              <div>
+                <label
+                  for="soil-temp-max"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Maximum Threshold
+                </label>
+                <div class="relative">
+                  <input
                     id="soil-temp-max"
-                    v-model="systemSettings.alertThresholds.soil_temperature.max"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Soil Moisture (%)
-              </h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="soil-moisture-min"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Minimum</label
-                  >
-                  <input
+                    v-model="settings.thresholds.soilTemperature.max"
                     type="number"
-                    id="soil-moisture-min"
-                    v-model="systemSettings.alertThresholds.soil_moisture.min"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
-                  />
-                </div>
-                <div>
-                  <label
-                    for="soil-moisture-max"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Maximum</label
-                  >
-                  <input
-                    type="number"
-                    id="soil-moisture-max"
-                    v-model="systemSettings.alertThresholds.soil_moisture.max"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Soil pH</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="soil-ph-min"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Minimum</label
-                  >
-                  <input
-                    type="number"
-                    id="soil-ph-min"
-                    v-model="systemSettings.alertThresholds.soil_ph.min"
                     step="0.1"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                   />
-                </div>
-                <div>
-                  <label
-                    for="soil-ph-max"
-                    class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                    >Maximum</label
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
                   >
-                  <input
-                    type="number"
-                    id="soil-ph-max"
-                    v-model="systemSettings.alertThresholds.soil_ph.max"
-                    step="0.1"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-black"
-                  />
+                    °C
+                  </div>
                 </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when above this temperature
+                </p>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- User Profile section removed as requested -->
-
-        <!-- Action Buttons -->
-        <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-300 transform"
-        >
+          <!-- Soil Moisture Thresholds -->
           <div
-            class="p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600"
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
           >
-            <h2 class="font-semibold text-gray-700 dark:text-gray-200 flex items-center">
-              <span class="mdi mdi-cog-transfer text-primary-500 dark:text-primary-400 mr-2"></span>
-              Actions
-            </h2>
-          </div>
-          <div class="p-5 md:p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <button
-                @click="resetToDefaults"
-                class="w-full sm:w-auto px-5 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600 transition-all duration-200 flex items-center justify-center"
-              >
-                <span class="mdi mdi-refresh mr-2"></span>
-                Reset to Defaults
-              </button>
+            <h3
+              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
+            >
+              <span class="mdi mdi-water mr-2 text-blue-600 dark:text-blue-400"></span>
+              Soil Moisture
+            </h3>
 
-              <button
-                @click="saveSettings"
-                class="w-full sm:w-auto px-5 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-600 dark:hover:bg-primary-700 transition-all duration-200 flex items-center justify-center"
-              >
-                <span class="mdi mdi-content-save mr-2"></span>
-                Save Settings
-              </button>
+            <div class="space-y-4">
+              <!-- Minimum Threshold -->
+              <div>
+                <label
+                  for="soil-moisture-min"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Minimum Threshold
+                </label>
+                <div class="relative">
+                  <input
+                    id="soil-moisture-min"
+                    v-model="settings.thresholds.soilMoisture.min"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-colors"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                  >
+                    %
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when below this moisture level
+                </p>
+              </div>
+
+              <!-- Maximum Threshold -->
+              <div>
+                <label
+                  for="soil-moisture-max"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Maximum Threshold
+                </label>
+                <div class="relative">
+                  <input
+                    id="soil-moisture-max"
+                    v-model="settings.thresholds.soilMoisture.max"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-colors"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                  >
+                    %
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when above this moisture level
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Soil pH Thresholds -->
+          <div
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
+          >
+            <h3
+              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
+            >
+              <span class="mdi mdi-flask mr-2 text-green-600 dark:text-green-400"></span>
+              Soil pH
+            </h3>
+
+            <div class="space-y-4">
+              <!-- Minimum Threshold -->
+              <div>
+                <label
+                  for="soil-ph-min"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Minimum Threshold
+                </label>
+                <div class="relative">
+                  <input
+                    id="soil-ph-min"
+                    v-model="settings.thresholds.soilPH.min"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="14"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-500 dark:focus:border-green-500 transition-colors"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                  >
+                    pH
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when below this pH level
+                </p>
+              </div>
+
+              <!-- Maximum Threshold -->
+              <div>
+                <label
+                  for="soil-ph-max"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Maximum Threshold
+                </label>
+                <div class="relative">
+                  <input
+                    id="soil-ph-max"
+                    v-model="settings.thresholds.soilPH.max"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="14"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-500 dark:focus:border-green-500 transition-colors"
+                  />
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
+                  >
+                    pH
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Alert when above this pH level
+                </p>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Actions Section -->
+    <div
+      class="mt-6 flex flex-col sm:flex-row justify-between items-center bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 gap-4"
+    >
+      <div class="flex items-center space-x-3 w-full sm:w-auto">
+        <button
+          @click="resetSettings"
+          class="w-full sm:w-auto px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+        >
+          <span class="mdi mdi-refresh mr-2"></span>
+          Reset
+        </button>
+        <button
+          v-if="settingsModified"
+          @click="cancelChanges"
+          class="w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 border border-gray-300 dark:border-gray-600"
+        >
+          <span class="mdi mdi-close mr-2"></span>
+          Cancel
+        </button>
+      </div>
+
+      <div class="flex items-center w-full sm:w-auto">
+        <div
+          v-if="settingsModified"
+          class="mr-3 text-sm text-amber-600 dark:text-amber-400 flex items-center"
+        >
+          <span class="mdi mdi-alert-circle mr-1"></span>
+          Unsaved changes
+        </div>
+        <button
+          @click="saveSettings"
+          :disabled="!formValid"
+          class="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          :class="{ 'opacity-50 cursor-not-allowed': !formValid }"
+        >
+          <span class="mdi mdi-content-save mr-2"></span>
+          Save Settings
+        </button>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content {
+  min-height: 300px;
+}
+
+/* Custom scrollbar */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+</style>
