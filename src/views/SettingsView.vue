@@ -2,19 +2,14 @@
 import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 
-// Active tab management
 const activeTab = ref('general')
 const setActiveTab = (tab: string) => {
   activeTab.value = tab
 }
 
-// Toast notifications
 const { showToast } = useToast()
-
-// Track if settings have been modified
 const settingsModified = ref(false)
 
-// System settings
 const originalSettings = {
   general: {
     dataRefreshInterval: 5,
@@ -48,7 +43,6 @@ const originalSettings = {
 
 const settings = ref(JSON.parse(JSON.stringify(originalSettings)))
 
-// Watch for changes to mark settings as modified
 watch(
   settings,
   () => {
@@ -57,7 +51,6 @@ watch(
   { deep: true },
 )
 
-// Available options
 const timezoneOptions = [
   { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
   { value: 'EST', label: 'EST (Eastern Standard Time)' },
@@ -78,7 +71,6 @@ const timeFormatOptions = [
   { value: '24h', label: '24-hour' },
 ]
 
-// Form validation
 const emailValid = computed(() => {
   if (!settings.value.notifications.email) return true
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -95,24 +87,19 @@ const formValid = computed(() => {
   return emailValid.value && phoneValid.value
 })
 
-// Save settings
 const saveSettings = () => {
   if (!formValid.value) {
     showToast('Please correct the validation errors before saving', 'error')
     return
   }
 
-  // Here you would typically send the settings to an API
   console.log('Saving settings:', settings.value)
-
-  // Update original settings to match current settings
   Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
   settingsModified.value = false
 
   showToast('Settings saved successfully', 'success')
 }
 
-// Reset settings to defaults
 const resetSettings = () => {
   if (confirm('Are you sure you want to reset all settings to default values?')) {
     settings.value = JSON.parse(JSON.stringify(originalSettings))
@@ -120,7 +107,6 @@ const resetSettings = () => {
   }
 }
 
-// Cancel changes
 const cancelChanges = () => {
   if (settingsModified.value) {
     if (confirm('Discard unsaved changes?')) {
@@ -135,16 +121,33 @@ const cancelChanges = () => {
 <template>
   <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
-    <div class="mb-6 bg-primary-600 rounded-lg p-5 text-white shadow-md">
-      <div class="flex items-center">
-        <div class="bg-white/20 p-2 rounded-lg mr-3">
-          <span class="mdi mdi-cog text-2xl"></span>
-        </div>
-        <div>
-          <h1 class="text-2xl font-bold">System Settings</h1>
-          <p class="text-primary-100 mt-1">
-            Configure your system preferences and alert thresholds
-          </p>
+    <div
+      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
+    >
+      <div class="h-1.5 w-full bg-gradient-to-r from-amber-400 to-amber-600"></div>
+      <div class="p-4 sm:p-6">
+        <!-- Header Content -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <!-- Title and Description -->
+          <div class="flex items-start sm:items-center w-full md:w-auto">
+            <div
+              class="bg-amber-100 dark:bg-amber-900/30 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
+            >
+              <span
+                class="mdi mdi-cog text-amber-600 dark:text-amber-400 text-xl sm:text-2xl"
+              ></span>
+            </div>
+            <div class="flex-grow">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
+                System Settings
+              </h1>
+              <p
+                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
+              >
+                Configure your system preferences and alert thresholds
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -9,7 +9,6 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'toggle-dark-mode', 'toggle-collapse'])
 
-// State for sidebar collapse on larger screens
 const isCollapsed = ref(false)
 
 const sidebarClass = computed(() => {
@@ -180,7 +179,7 @@ const navItems = [
           <span
             class="text-sm font-medium text-gray-700 dark:text-gray-300 transition-opacity duration-300 whitespace-nowrap overflow-hidden"
             :class="{ 'md:opacity-0 md:w-0': isCollapsed, 'md:opacity-100': !isCollapsed }"
-            >DeSaka v1.0.0</span
+            >DeSaka v1.2.5</span
           >
         </div>
         <p

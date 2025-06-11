@@ -1,28 +1,26 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Line } from 'vue-chartjs'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler,
 } from 'chart.js'
 import type { ChartDataset } from 'chart.js'
-
-type CustomLineDataset = ChartDataset<'line', number[]> & {
-  borderDash?: number[]
-}
+import { Line, Bar } from 'vue-chartjs'
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -37,40 +35,44 @@ const props = defineProps<{
   secondaryLabel?: string
   chartColor?: string
   secondaryColor?: string
+  valueUnit?: string
 }>()
 
+const chartType = ref<'line' | 'bar'>('line')
+const chartRef = ref<InstanceType<typeof Line | typeof Bar> | null>(null)
+const chartHeight = ref(240)
+const isLoading = ref(false)
+
+const createGradient = (color: string): CanvasGradient | string => {
+  const canvas = chartRef.value?.$el?.querySelector('canvas')
+  if (!canvas) return color + '20'
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return color + '20'
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+  gradient.addColorStop(0, color + '30')
+  gradient.addColorStop(0.5, color + '15')
+  gradient.addColorStop(1, color + '05')
+  return gradient
+}
+
 const chartData = computed(() => {
-  // Create gradient for the chart
-  const createGradient = (ctx: any, color: string) => {
-    if (!ctx) return color + '20'
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height)
-    const colorWithOpacity = (opacity: string) => color + opacity
-
-    gradient.addColorStop(0, colorWithOpacity('30'))
-    gradient.addColorStop(0.5, colorWithOpacity('15'))
-    gradient.addColorStop(1, colorWithOpacity('05'))
-
-    return gradient
-  }
-
-  // Get the chart context if available
-  const chartElement = document.querySelector('canvas')?.getContext('2d')
-
   const primaryColor = props.chartColor || '#3B7D4A'
   const secondaryColor = props.secondaryColor || '#4A3B7D'
+  const currentType = chartType.value
 
-  const datasets: CustomLineDataset[] = [
+  const datasets: ChartDataset<'line' | 'bar', number[]>[] = [
     {
+      type: currentType,
       label: props.valueLabel,
       data: props.data.map((item) => item.value),
       borderColor: primaryColor,
-      backgroundColor: createGradient(chartElement, primaryColor),
+      backgroundColor: currentType === 'bar' ? primaryColor + '80' : createGradient(primaryColor),
       borderWidth: 2,
       tension: 0.4,
-      fill: true,
-      pointRadius: 3,
-      pointHoverRadius: 6,
+      fill: currentType === 'line',
+      pointRadius: currentType === 'line' ? 3 : 0,
+      pointHoverRadius: currentType === 'line' ? 6 : 0,
       pointBackgroundColor: '#fff',
       pointBorderColor: primaryColor,
       pointBorderWidth: 2,
@@ -81,16 +83,17 @@ const chartData = computed(() => {
 
   if (props.secondaryData && props.secondaryLabel) {
     datasets.push({
+      type: currentType,
       label: props.secondaryLabel,
       data: props.secondaryData.map((item) => item.value),
       borderColor: secondaryColor,
-      backgroundColor: 'transparent',
+      backgroundColor: currentType === 'bar' ? secondaryColor + '60' : 'transparent',
       borderWidth: 2,
-      borderDash: [5, 5],
+      borderDash: currentType === 'line' ? [5, 5] : undefined,
       tension: 0.4,
       fill: false,
-      pointRadius: 3,
-      pointHoverRadius: 6,
+      pointRadius: currentType === 'line' ? 3 : 0,
+      pointHoverRadius: currentType === 'line' ? 6 : 0,
       pointBackgroundColor: '#fff',
       pointBorderColor: secondaryColor,
       pointBorderWidth: 2,
@@ -104,245 +107,337 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = computed(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  animation: {
-    duration: 1000,
-    easing: 'easeOutQuart' as const,
-  },
-  plugins: {
-    legend: {
-      position: 'top' as const,
-      align: 'end' as 'start' | 'end' | 'center' | undefined,
-      labels: {
-        boxWidth: 12,
-        usePointStyle: true,
-        pointStyle: 'circle',
-        color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#333',
-        font: {
-          size: 11,
-          family: '"Inter", sans-serif',
-        },
-        padding: 15,
-      },
-    },
-    tooltip: {
-      mode: 'index' as 'index' | 'nearest' | 'x' | 'dataset' | 'point' | 'y',
-      intersect: false,
-      backgroundColor: document.documentElement.classList.contains('dark')
-        ? 'rgba(31, 41, 55, 0.95)'
-        : 'rgba(255, 255, 255, 0.95)',
-      titleColor: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#333',
-      bodyColor: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#666',
-      borderColor: document.documentElement.classList.contains('dark') ? '#4b5563' : '#ddd',
-      borderWidth: 1,
-      padding: 12,
-      boxPadding: 6,
-      cornerRadius: 8,
-      displayColors: true,
-      titleFont: {
-        size: 12,
-        weight: 'bold',
-        family: '"Inter", sans-serif',
-      },
-      bodyFont: {
-        size: 11,
-        family: '"Inter", sans-serif',
-      },
-      callbacks: {
-        label: function (context: any) {
-          let label = context.dataset.label || ''
-          if (label) {
-            label += ': '
-          }
-          if (context.parsed.y !== null) {
-            label += context.parsed.y.toFixed(1)
-          }
-          return label
-        },
-      },
-    },
-  },
-  scales: {
-    x: {
-      grid: {
-        display: false,
-      },
-      border: {
-        display: false,
-      },
-      ticks: {
-        maxRotation: 0,
-        autoSkip: true,
-        maxTicksLimit: 6,
-        color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#666',
-        font: {
-          size: 10,
-          family: '"Inter", sans-serif',
-        },
-        padding: 8,
-      },
-    },
-    y: {
-      beginAtZero: false,
-      border: {
-        display: false,
-      },
-      grid: {
-        color: document.documentElement.classList.contains('dark')
-          ? 'rgba(255, 255, 255, 0.05)'
-          : 'rgba(0, 0, 0, 0.05)',
-        drawBorder: false,
-        lineWidth: 0.5,
-      },
-      ticks: {
-        precision: 1,
-        color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#666',
-        font: {
-          size: 10,
-          family: '"Inter", sans-serif',
-        },
-        padding: 8,
-        callback: function (this: any, value: string | number) {
-          return typeof value === 'number' ? value.toFixed(1) : value
-        },
-      },
-    },
-  },
-  interaction: {
-    mode: 'nearest' as const,
-    axis: 'x' as const,
-    intersect: false,
-  },
-  elements: {
-    line: {
-      tension: 0.4,
-      borderWidth: 2,
-    },
-    point: {
-      radius: 2,
-      hoverRadius: 5,
-      hitRadius: 30,
-      borderWidth: 2,
-    },
-  },
-}))
+const chartOptions = computed(() => {
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  const gridColor = isDarkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.8)'
+  const tickColor = isDarkMode ? 'rgba(209, 213, 219, 0.8)' : 'rgba(107, 114, 128, 0.8)'
+  const tooltipBgColor = isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+  const tooltipTitleColor = isDarkMode ? '#e5e7eb' : '#333'
+  const tooltipBodyColor = isDarkMode ? '#d1d5db' : '#666'
+  const tooltipBorderColor = isDarkMode ? '#4b5563' : '#ddd'
 
-const chartHeight = ref(240)
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 800,
+      easing: chartType.value === 'line' ? ('easeOutQuart' as const) : ('easeOutQuad' as const),
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        align: 'start' as const,
+        labels: {
+          boxWidth: 12,
+          boxHeight: 12,
+          padding: 15,
+          color: isDarkMode ? '#e5e7eb' : '#333',
+          font: {
+            size: 12,
+            weight: 'normal' as const,
+            family: '"Inter", sans-serif',
+          },
+        },
+      },
+      tooltip: {
+        backgroundColor: tooltipBgColor,
+        titleColor: tooltipTitleColor,
+        bodyColor: tooltipBodyColor,
+        borderColor: tooltipBorderColor,
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: {
+          size: 14,
+          weight: 'bold' as const,
+          family: '"Inter", sans-serif',
+        },
+        bodyFont: {
+          size: 13,
+          weight: 'normal' as const,
+          family: '"Inter", sans-serif',
+        },
+        displayColors: true,
+        boxWidth: 8,
+        boxHeight: 8,
+        boxPadding: 4,
+        usePointStyle: true,
+        callbacks: {
+          title: (tooltipItems: Array<{ label: string }>) => {
+            return tooltipItems[0].label
+          },
+          label: (context: { parsed: { y: number }; dataset: { label?: string } }) => {
+            let label = context.dataset.label || ''
+            if (label) {
+              label += ': '
+            }
+            if (context.parsed.y !== null) {
+              label += context.parsed.y
+              if (props.valueUnit) {
+                label += ` ${props.valueUnit}`
+              }
+            }
+            return label
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        border: {
+          display: false,
+        },
+        ticks: {
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 8,
+          color: tickColor,
+          font: {
+            size: 11,
+          },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        border: {
+          display: false,
+        },
+        grid: {
+          color: gridColor,
+          drawBorder: false,
+          lineWidth: 0.5,
+        },
+        ticks: {
+          font: {
+            size: 11,
+          },
+          color: tickColor,
+          callback: (value: number) => {
+            return value + (props.valueUnit ? ` ${props.valueUnit}` : '')
+          },
+        },
+      },
+    },
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    elements: {
+      line: {
+        borderWidth: 2,
+      },
+      point: {
+        hoverBorderWidth: 4,
+      },
+    },
+  }
+})
+
+const toggleChartType = () => {
+  chartType.value = chartType.value === 'line' ? 'bar' : 'line'
+  nextTick(() => {
+    if (chartRef.value) {
+      const chart = chartRef.value as unknown as { update: () => void }
+      chart.update()
+    }
+  })
+}
+
+const getUnitFromLabel = () => {
+  if (props.valueLabel.includes('(')) {
+    return props.valueLabel.match(/\(([^)]+)\)/)?.at(1) || ''
+  }
+  return ''
+}
+
+const getAverageValue = () => {
+  const data = chartData.value.datasets[0].data as number[]
+  if (!data.length) return '0.0'
+  const sum = data.reduce((acc, val) => acc + val, 0)
+  return (sum / data.length).toFixed(1)
+}
+
+const getTimeRangeText = () => {
+  if (!props.data || !props.data.length) return 'No data'
+
+  try {
+    const firstTimeStr = props.data[0]?.time
+    const lastTimeStr = props.data[props.data.length - 1]?.time
+
+    if (!firstTimeStr || !lastTimeStr) {
+      return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    }
+
+    const first = new Date(firstTimeStr)
+    const last = new Date(lastTimeStr)
+
+    if (isNaN(first.getTime()) || isNaN(last.getTime())) {
+      return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    }
+
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+
+    if (first.toDateString() === last.toDateString()) {
+      return first.toLocaleDateString(undefined, options)
+    }
+
+    return `${first.toLocaleDateString(undefined, options)} - ${last.toLocaleDateString(undefined, options)}`
+  } catch (error) {
+    console.error('Error formatting date range', error)
+    return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+}
+
+const zoomToData = () => {
+  if (!chartData.value.datasets[0].data.length) return
+  isLoading.value = true
+  setTimeout(() => {
+    isLoading.value = false
+  }, 500)
+}
+
+watch(
+  () => props.data,
+  () => {
+    if (props.data.length) {
+      isLoading.value = true
+      setTimeout(() => {
+        isLoading.value = false
+      }, 500)
+    }
+  },
+  { deep: true },
+)
 
 onMounted(() => {
   const handleResize = () => {
     chartHeight.value = window.innerWidth < 768 ? 200 : 240
   }
-
   window.addEventListener('resize', handleResize)
   handleResize()
 
-  return () => {
-    window.removeEventListener('resize', handleResize)
+  if (props.data.length) {
+    isLoading.value = true
+    setTimeout(() => {
+      isLoading.value = false
+    }, 500)
   }
+
+  return () => window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <template>
-  <div
-    class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md p-3 sm:p-4 md:p-5 transition-all duration-300 hover:shadow-lg border border-gray-100 dark:border-gray-700 transform hover:-translate-y-1 w-full max-w-full overflow-hidden"
-  >
-    <div class="flex justify-between items-center mb-3 sm:mb-4">
-      <div class="flex items-center min-w-0">
-        <div
-          class="bg-primary-100 dark:bg-primary-900/30 p-1 sm:p-1.5 rounded-lg mr-2 flex-shrink-0"
-        >
-          <span
-            class="mdi mdi-chart-line text-primary-600 dark:text-primary-400 text-sm sm:text-base"
-          ></span>
-        </div>
-        <h3 class="font-bold text-gray-800 dark:text-gray-200 text-sm sm:text-base truncate">
-          {{ title }}
-        </h3>
-      </div>
-
-      <div class="flex space-x-1 sm:space-x-2 flex-shrink-0">
-        <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
-          title="Download Data"
-        >
-          <span class="mdi mdi-download"></span>
-        </button>
-
-        <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
-          title="Expand Chart"
-        >
-          <span class="mdi mdi-arrow-expand"></span>
-        </button>
-
-        <button
-          class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-sm sm:text-base"
-          title="More Options"
-        >
-          <span class="mdi mdi-dots-vertical"></span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Chart Container with Subtle Border -->
+  <div class="w-full transition-all">
+    <!-- Chart -->
     <div
-      class="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 shadow-sm mb-2 sm:mb-3 overflow-hidden"
+      class="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 shadow-inner overflow-hidden relative"
       :style="{ height: `${chartHeight}px` }"
     >
-      <!--@vue-ignore-->
-      <Line :data="chartData" :options="chartOptions" />
+      <!-- Loading overlay -->
+      <div
+        v-if="isLoading"
+        class="absolute inset-0 bg-gray-50/80 dark:bg-gray-800/80 flex items-center justify-center z-10"
+      >
+        <div class="animate-pulse flex flex-col items-center">
+          <span class="mdi mdi-loading mdi-spin text-primary-500 text-2xl mb-2"></span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">Loading data...</span>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div
+        v-else-if="!chartData.datasets[0].data.length"
+        class="absolute inset-0 flex items-center justify-center"
+      >
+        <div class="text-center">
+          <span
+            class="mdi mdi-chart-timeline-variant text-gray-300 dark:text-gray-600 text-3xl block mb-2"
+          ></span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">No data available</span>
+        </div>
+      </div>
+
+      <!-- Chart component -->
+      <div v-else class="relative h-full">
+        <component
+          :is="chartType === 'line' ? Line : Bar"
+          :data="chartData as any"
+          :options="chartOptions as any"
+          ref="chartRef"
+        />
+
+        <!-- Time period indicator -->
+        <div
+          class="absolute top-2 right-2 bg-white/70 dark:bg-gray-800/70 text-xs text-gray-500 dark:text-gray-400 py-1 px-2 rounded-md backdrop-blur-sm"
+        >
+          {{ getTimeRangeText() }}
+        </div>
+      </div>
     </div>
 
-    <!-- Chart Footer with Stats -->
-    <div
-      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2 sm:mt-3 text-xs overflow-x-auto"
-    >
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-        <div class="flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-          <span class="mdi mdi-arrow-up-bold text-green-500 mr-1 text-xs sm:text-sm"></span>
-          <span class="truncate text-xs sm:text-sm">
-            High: {{ Math.max(...chartData.datasets[0].data).toFixed(1)
-            }}{{
-              props.valueLabel.includes('(')
-                ? props.valueLabel.match(/\(([^)]+)\)/)?.at(1) || ''
-                : ''
+    <!-- Footer Stats -->
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-y-3 text-sm">
+      <div class="flex items-center gap-4 text-gray-700 dark:text-gray-300 flex-wrap">
+        <div
+          class="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md"
+        >
+          <span class="mdi mdi-arrow-up-bold text-green-500"></span>
+          <span class="font-medium">
+            {{
+              chartData.datasets[0].data.length
+                ? Math.max(...chartData.datasets[0].data).toFixed(1)
+                : '0.0'
             }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
+              getUnitFromLabel()
+            }}</span>
           </span>
         </div>
-
-        <div class="flex items-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-          <span class="mdi mdi-arrow-down-bold text-red-500 mr-1 text-xs sm:text-sm"></span>
-          <span class="truncate text-xs sm:text-sm">
-            Low: {{ Math.min(...chartData.datasets[0].data).toFixed(1)
-            }}{{
-              props.valueLabel.includes('(')
-                ? props.valueLabel.match(/\(([^)]+)\)/)?.at(1) || ''
-                : ''
+        <div class="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">
+          <span class="mdi mdi-arrow-down-bold text-red-500"></span>
+          <span class="font-medium">
+            {{
+              chartData.datasets[0].data.length
+                ? Math.min(...chartData.datasets[0].data).toFixed(1)
+                : '0.0'
             }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
+              getUnitFromLabel()
+            }}</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
+          <span class="mdi mdi-calculator-variant text-blue-500"></span>
+          <span class="font-medium">
+            {{ getAverageValue() }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
+              getUnitFromLabel()
+            }}</span>
           </span>
         </div>
       </div>
 
-      <div
-        class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-0.5 sm:p-1 mt-2 sm:mt-0 flex-shrink-0"
-      >
+      <div class="flex gap-2">
         <button
-          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium bg-primary-500 text-white"
+          class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+          @click="toggleChartType"
         >
-          24h
+          <span
+            class="mdi"
+            :class="chartType === 'line' ? 'mdi-chart-bar' : 'mdi-chart-line'"
+          ></span>
+          <span class="ml-1">{{ chartType === 'line' ? 'Bar' : 'Line' }}</span>
         </button>
         <button
-          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+          @click="zoomToData"
         >
-          7d
-        </button>
-        <button
-          class="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-        >
-          30d
+          <span class="mdi mdi-magnify"></span>
+          <span class="ml-1">Auto Scale</span>
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -7,7 +7,7 @@ const props = defineProps({
     required: true,
   },
   value: {
-    type: [Number, String],
+    type: [String, Number],
     required: true,
   },
   unit: {
@@ -16,168 +16,112 @@ const props = defineProps({
   },
   status: {
     type: String,
-    default: 'normal',
-    validator: (value) => ['normal', 'warning', 'critical'].includes(value),
+    default: 'optimal',
+    validator: (value: string) => ['optimal', 'warning', 'critical', 'inactive'].includes(value),
   },
   icon: {
     type: String,
-    default: '',
+    default: 'thermometer',
+  },
+  trend: {
+    type: String,
+    default: 'stable',
   },
 })
 
-// Determine status color based on status prop
-const statusColor = computed(() => {
-  switch (props.status) {
-    case 'normal':
-      return 'bg-green-500 dark:bg-green-600'
-    case 'warning':
-      return 'bg-yellow-500 dark:bg-yellow-600'
-    case 'critical':
-      return 'bg-red-500 dark:bg-red-600'
-    default:
-      return 'bg-gray-500 dark:bg-gray-600'
-  }
+const iconClass = computed(() => {
+  return `mdi mdi-${props.icon}`
 })
 
-// Determine status icon based on status prop
-const statusIcon = computed(() => {
-  switch (props.status) {
-    case 'normal':
-      return 'mdi-check-circle'
-    case 'warning':
-      return 'mdi-alert'
-    case 'critical':
-      return 'mdi-alert-circle'
-    default:
-      return 'mdi-information'
+const trendInfo = computed(() => {
+  const info = {
+    icon: 'mdi-minus',
+    text: 'No Change',
+    color: 'text-gray-500 dark:text-gray-400',
   }
-})
 
-// Emit events
-const emit = defineEmits(['view-details', 'view-chart', 'view-history', 'more-options'])
+  if (props.trend === 'increasing') {
+    info.icon = 'mdi-arrow-up'
+    info.text = 'Increasing'
+    info.color = 'text-red-500 dark:text-red-400'
+  } else if (props.trend === 'decreasing') {
+    info.icon = 'mdi-arrow-down'
+    info.text = 'Decreasing'
+    info.color = 'text-blue-500 dark:text-blue-400'
+  } else if (props.trend === 'stable') {
+    info.icon = 'mdi-arrow-right'
+    info.text = 'Stable'
+    info.color = 'text-green-500 dark:text-green-400'
+  }
+
+  return info
+})
 </script>
 
 <template>
   <div
-    class="sensor-card relative bg-white dark:bg-gray-800 rounded-xl border overflow-hidden transition-all duration-300 hover:shadow-lg group w-full max-w-full"
-    :class="{
-      'border-green-200 dark:border-green-700': status === 'normal',
-      'border-yellow-200 dark:border-yellow-700': status === 'warning',
-      'border-red-200 dark:border-red-700': status === 'critical',
-    }"
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 fadeIn"
   >
     <!-- Status indicator bar at top -->
-    <div class="h-1 sm:h-1.5 w-full" :class="statusColor"></div>
+    <div
+      class="h-1.5"
+      :class="{
+        'bg-green-500': status === 'optimal',
+        'bg-yellow-500': status === 'warning',
+        'bg-red-500': status === 'critical',
+        'bg-gray-400': status === 'inactive',
+      }"
+    ></div>
 
-    <div class="p-2 sm:p-3 md:p-4 lg:p-5">
-      <!-- Card header with title and status -->
-      <div class="flex justify-between items-start mb-2 sm:mb-3 md:mb-4">
+    <div class="p-4">
+      <!-- Header: Title, Icon, and Status Badge -->
+      <div class="flex items-center justify-between mb-3">
         <div class="flex items-center">
           <span
-            v-if="icon"
-            class="mdi text-base sm:text-lg md:text-xl mr-1.5 sm:mr-2 bg-primary-50 dark:bg-primary-900/30 p-1 sm:p-1.5 md:p-2 rounded-lg text-primary-500 dark:text-primary-400 flex-shrink-0"
-            :class="icon"
+            :class="[
+              iconClass,
+              {
+                'text-green-500': status === 'optimal',
+                'text-yellow-500': status === 'warning',
+                'text-red-500': status === 'critical',
+                'text-gray-400': status === 'inactive',
+              },
+              'text-xl mr-2',
+            ]"
           ></span>
-          <h3
-            class="font-medium text-xs sm:text-sm md:text-base text-gray-800 dark:text-gray-200 truncate max-w-[100px] sm:max-w-[120px] md:max-w-[150px] lg:max-w-full"
-          >
-            {{ title }}
-          </h3>
+          <h3 class="font-medium text-gray-800 dark:text-gray-200">{{ title }}</h3>
         </div>
         <span
-          class="mdi text-sm sm:text-base md:text-lg flex-shrink-0"
+          class="px-2 py-0.5 text-xs rounded-full"
           :class="{
-            [statusIcon]: true,
-            'text-green-500 dark:text-green-400': status === 'normal',
-            'text-yellow-500 dark:text-yellow-400': status === 'warning',
-            'text-red-500 dark:text-red-400': status === 'critical',
+            'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
+              status === 'optimal',
+            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200':
+              status === 'warning',
+            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': status === 'critical',
+            'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200': status === 'inactive',
           }"
-        ></span>
-      </div>
-
-      <!-- Value display -->
-      <div class="flex items-baseline mb-2 sm:mb-3">
-        <span
-          class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mr-1.5 sm:mr-2 transition-all duration-300 group-hover:text-primary-600 dark:group-hover:text-primary-400"
         >
-          {{ value }}
+          {{ status.charAt(0).toUpperCase() + status.slice(1) }}
         </span>
-        <span class="text-2xs sm:text-xs md:text-sm text-gray-500 dark:text-gray-400">{{
-          unit
-        }}</span>
       </div>
 
-      <!-- Status badge -->
-      <div
-        class="inline-block px-1.5 sm:px-2 md:px-3 py-0.5 rounded-full text-2xs sm:text-xs font-medium"
-        :class="{
-          'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-            status === 'normal',
-          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-            status === 'warning',
-          'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300': status === 'critical',
-        }"
-      >
-        {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+      <!-- Value and Unit -->
+      <div class="flex items-baseline mb-2">
+        <span class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ value }}</span>
+        <span class="ml-1 text-sm text-gray-500 dark:text-gray-400">{{ unit }}</span>
+      </div>
+
+      <!-- Trend Indicator -->
+      <div class="flex items-center text-xs">
+        <span :class="[`mdi ${trendInfo.icon}`, trendInfo.color, 'mr-1']"></span>
+        <span :class="trendInfo.color">{{ trendInfo.text }}</span>
       </div>
     </div>
-
-    <!-- Card footer with quick actions -->
-    <div
-      class="px-2 sm:px-3 md:px-4 lg:px-5 py-1.5 sm:py-2 md:py-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center overflow-x-auto"
-    >
-      <div class="flex space-x-0.5 sm:space-x-1 md:space-x-2">
-        <button
-          @click="emit('view-details')"
-          class="p-0.5 sm:p-1 md:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-          title="View Details"
-        >
-          <span class="mdi mdi-information-outline text-sm sm:text-base md:text-lg"></span>
-        </button>
-        <button
-          @click="emit('view-chart')"
-          class="p-0.5 sm:p-1 md:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-          title="View Chart"
-        >
-          <span class="mdi mdi-chart-line text-sm sm:text-base md:text-lg"></span>
-        </button>
-        <button
-          @click="emit('view-history')"
-          class="p-0.5 sm:p-1 md:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-          title="View History"
-        >
-          <span class="mdi mdi-history text-sm sm:text-base md:text-lg"></span>
-        </button>
-      </div>
-      <button
-        @click="emit('more-options')"
-        class="p-0.5 sm:p-1 md:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-        title="More Options"
-      >
-        <span class="mdi mdi-dots-vertical text-sm sm:text-base md:text-lg"></span>
-      </button>
-    </div>
-
-    <!-- Hover effect overlay -->
-    <div
-      class="absolute inset-0 bg-primary-500/0 pointer-events-none transition-colors duration-300 group-hover:bg-primary-500/5 dark:group-hover:bg-primary-500/10"
-    ></div>
   </div>
 </template>
 
 <style scoped>
-.sensor-card {
-  animation: fadeIn 0.5s ease-out;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.sensor-card:hover {
-  transform: translateY(-2px);
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -187,5 +131,9 @@ const emit = defineEmits(['view-details', 'view-chart', 'view-history', 'more-op
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 </style>

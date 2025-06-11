@@ -2,13 +2,28 @@
 import { ref, computed, onMounted } from 'vue'
 import SensorChart from '@/components/SensorChart.vue'
 
-// Date range selection
-const dateRange = ref({
-  start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days ago
-  end: new Date().toISOString().split('T')[0], // today
+const activeTab = ref('date-range')
+const setActiveTab = (tab: string) => {
+  activeTab.value = tab
+}
+
+const screenWidth = ref(0)
+const updateScreenWidth = () => {
+  screenWidth.value = window.innerWidth
+}
+
+const chartLayout = ref(window.innerWidth >= 768 ? 'grid' : 'list')
+
+onMounted(() => {
+  updateScreenWidth()
+  window.addEventListener('resize', updateScreenWidth)
 })
 
-// Selected sensors for display
+const dateRange = ref({
+  start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  end: new Date().toISOString().split('T')[0],
+})
+
 const selectedSensors = ref([
   'soil_temperature',
   'soil_moisture',
@@ -16,7 +31,6 @@ const selectedSensors = ref([
   'air_humidity',
 ])
 
-// Available sensors
 const availableSensors = [
   { id: 'soil_temperature', name: 'Soil Temperature', unit: '°C', color: '#e05d44' },
   { id: 'soil_moisture', name: 'Soil Moisture', unit: '%', color: '#3b82f6' },
@@ -29,7 +43,6 @@ const availableSensors = [
   { id: 'light_intensity', name: 'Light Intensity', unit: 'lux', color: '#f59e0b' },
 ]
 
-// Types for historical data
 type DataPoint = {
   timestamp: string
   value: number
@@ -39,60 +52,53 @@ type SensorData = {
   [key: string]: DataPoint[]
 }
 
-// Historical data
 const historicalData = ref<SensorData>({})
 
-// Generate mock historical data
 function generateMockData() {
   const data: SensorData = {}
   const now = new Date()
   const startDate = new Date(dateRange.value.start)
 
-  // Calculate number of days in the range
   const daysDiff = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
 
-  // Generate data for each sensor
   availableSensors.forEach((sensor) => {
     data[sensor.id] = []
 
-    // Generate data points for each day
     for (let i = 0; i <= daysDiff; i++) {
       const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000)
       const dateStr = date.toISOString().split('T')[0]
 
-      // Generate 24 data points for each day (hourly)
       for (let hour = 0; hour < 24; hour++) {
         const timestamp = `${dateStr}T${hour.toString().padStart(2, '0')}:00:00`
 
-        // Generate random value based on sensor type
         let value = 0
         switch (sensor.id) {
           case 'soil_temperature':
-            value = 18 + Math.random() * 8 // 18-26°C
+            value = 18 + Math.random() * 8
             break
           case 'soil_moisture':
-            value = 45 + Math.random() * 30 // 45-75%
+            value = 45 + Math.random() * 30
             break
           case 'soil_ph':
-            value = 6 + Math.random() * 1.2 // 6.0-7.2 pH
+            value = 6 + Math.random() * 1.2
             break
           case 'soil_conductivity':
-            value = 0.9 + Math.random() * 0.5 // 0.9-1.4 mS/cm
+            value = 0.9 + Math.random() * 0.5
             break
           case 'air_temperature':
-            value = 20 + Math.random() * 6 // 20-26°C
+            value = 20 + Math.random() * 6
             break
           case 'air_humidity':
-            value = 35 + Math.random() * 20 // 35-55%
+            value = 35 + Math.random() * 20
             break
           case 'air_co2':
-            value = 500 + Math.random() * 450 // 500-950 ppm
+            value = 500 + Math.random() * 450
             break
           case 'air_tvoc':
-            value = 100 + Math.random() * 200 // 100-300 ppb
+            value = 100 + Math.random() * 200
             break
           case 'light_intensity':
-            value = 250 + Math.random() * 550 // 250-800 lux
+            value = 250 + Math.random() * 550
             break
         }
 
@@ -107,11 +113,10 @@ function generateMockData() {
   historicalData.value = data
 }
 
-// Filter data based on date range
 const filteredData = computed(() => {
   const result: SensorData = {}
   const startDate = new Date(dateRange.value.start).getTime()
-  const endDate = new Date(dateRange.value.end).getTime() + 24 * 60 * 60 * 1000 - 1 // End of the selected day
+  const endDate = new Date(dateRange.value.end).getTime() + 24 * 60 * 60 * 1000 - 1
 
   Object.keys(historicalData.value).forEach((sensorId) => {
     result[sensorId] = historicalData.value[sensorId].filter((point) => {
@@ -123,7 +128,6 @@ const filteredData = computed(() => {
   return result
 })
 
-// Format data for charts
 const chartData = computed(() => {
   const result: { [key: string]: { time: string; value: number }[] } = {}
 
@@ -142,12 +146,10 @@ const chartData = computed(() => {
   return result
 })
 
-// Get sensor details by ID
 function getSensorById(id: string) {
   return availableSensors.find((sensor) => sensor.id === id)
 }
 
-// Set date range
 function setDateRange(range: string) {
   const now = new Date()
   const end = now.toISOString().split('T')[0]
@@ -176,7 +178,6 @@ function setDateRange(range: string) {
   generateMockData()
 }
 
-// Toggle sensor selection
 function toggleSensor(sensorId: string) {
   const index = selectedSensors.value.indexOf(sensorId)
   if (index === -1) {
@@ -186,9 +187,7 @@ function toggleSensor(sensorId: string) {
   }
 }
 
-// Export data as CSV
 function exportCSV() {
-  // Create CSV header
   let csv = 'Timestamp'
   selectedSensors.value.forEach((sensorId) => {
     const sensor = getSensorById(sensorId)
@@ -198,7 +197,6 @@ function exportCSV() {
   })
   csv += '\n'
 
-  // Get all timestamps from the filtered data
   const timestamps = new Set<string>()
   selectedSensors.value.forEach((sensorId) => {
     if (filteredData.value[sensorId]) {
@@ -208,10 +206,8 @@ function exportCSV() {
     }
   })
 
-  // Sort timestamps
   const sortedTimestamps = Array.from(timestamps).sort()
 
-  // Create a map of timestamp -> values for each sensor
   const dataMap: { [timestamp: string]: { [sensorId: string]: number } } = {}
   sortedTimestamps.forEach((timestamp) => {
     dataMap[timestamp] = {}
@@ -225,7 +221,6 @@ function exportCSV() {
     }
   })
 
-  // Add data rows
   sortedTimestamps.forEach((timestamp) => {
     const date = new Date(timestamp)
     const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
@@ -239,7 +234,6 @@ function exportCSV() {
     csv += row + '\n'
   })
 
-  // Create and download the CSV file
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -261,128 +255,206 @@ onMounted(() => {
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Historical Data</h1>
-        <p class="text-gray-600 dark:text-gray-300 mb-1">View and analyze historical sensor data</p>
-      </div>
-
-      <div class="mt-4 md:mt-0 flex space-x-2">
-        <button
-          class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center shadow-sm"
-          @click="exportCSV"
-        >
-          <span class="mdi mdi-download mr-2"></span>
-          Export CSV
-        </button>
-      </div>
-    </div>
-
-    <!-- Controls Section -->
+    <!-- Title Banner -->
     <div
-      class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md overflow-hidden mb-8 border border-gray-100 dark:border-gray-700"
+      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
     >
-      <div class="p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Date Range Selection -->
-          <div>
-            <h2
-              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center"
+      <div class="h-1.5 w-full bg-gradient-to-r from-rose-400 to-rose-600"></div>
+      <div class="p-4 sm:p-6">
+        <!-- Header Content -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <!-- Title and Description -->
+          <div class="flex items-start sm:items-center w-full md:w-auto">
+            <div
+              class="bg-rose-100 dark:bg-rose-900/30 p-2 px-3 sm:px-4 sm:py-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
             >
-              <span class="mdi mdi-calendar-range text-primary-500 mr-2"></span>
-              Date Range
-            </h2>
-
-            <div class="flex flex-wrap gap-3 mb-4">
-              <button
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                :class="{
-                  'bg-primary-500 text-white': dateRange.start === dateRange.end,
-                  'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
-                    dateRange.start !== dateRange.end,
-                }"
-                @click="setDateRange('day')"
-              >
-                Today
-              </button>
-
-              <button
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                :class="{
-                  'bg-primary-500 text-white':
-                    new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() ===
-                    6 * 24 * 60 * 60 * 1000,
-                  'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
-                    new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() !==
-                    6 * 24 * 60 * 60 * 1000,
-                }"
-                @click="setDateRange('week')"
-              >
-                Last 7 Days
-              </button>
-
-              <button
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                @click="setDateRange('month')"
-              >
-                Last 30 Days
-              </button>
-
-              <button
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                @click="setDateRange('year')"
-              >
-                Last Year
-              </button>
+              <span
+                class="mdi mdi-chart-line text-rose-600 dark:text-rose-400 text-xl sm:text-2xl"
+              ></span>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label
-                  for="start-date"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Start Date</label
-                >
-                <input
-                  id="start-date"
-                  type="date"
-                  v-model="dateRange.start"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  @change="generateMockData"
-                />
-              </div>
-
-              <div>
-                <label
-                  for="end-date"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >End Date</label
-                >
-                <input
-                  id="end-date"
-                  type="date"
-                  v-model="dateRange.end"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  @change="generateMockData"
-                />
-              </div>
+            <div class="flex-grow">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
+                Historical Data
+              </h1>
+              <p
+                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
+              >
+                View and analyze historical sensor data
+              </p>
             </div>
           </div>
 
-          <!-- Sensor Selection -->
-          <div>
-            <h2
-              class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center"
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
+            <button
+              @click="exportCSV"
+              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
             >
-              <span class="mdi mdi-tune text-primary-500 mr-2"></span>
-              Select Sensors
-            </h2>
+              <span class="mdi mdi-download mr-1.5"></span>
+              <span class="whitespace-nowrap">Export CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+    <!-- Unified History Data Card with Tabs -->
+    <div
+      class="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 dashboard-section mb-6"
+    >
+      <!-- Tab Navigation (All Screen Sizes) -->
+      <div class="border-b border-gray-100 dark:border-gray-700">
+        <div class="flex">
+          <button
+            @click="setActiveTab('date-range')"
+            class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
+            :class="{
+              'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
+                activeTab === 'date-range',
+              'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
+                activeTab !== 'date-range',
+            }"
+          >
+            <span class="mdi mdi-calendar-range mr-1"></span>
+            Date Range
+          </button>
+          <button
+            @click="setActiveTab('sensors')"
+            class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
+            :class="{
+              'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
+                activeTab === 'sensors',
+              'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
+                activeTab !== 'sensors',
+            }"
+          >
+            <span class="mdi mdi-tune mr-1"></span>
+            Sensors
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-0">
+          <!-- Date Range Tab Content -->
+          <div v-if="activeTab === 'date-range'" class="animate-fade-in">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center">
+              <span class="mdi mdi-calendar-range text-primary-500 mr-2 text-xl"></span>
+              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Date Range</h2>
+            </div>
+
+            <!-- Date Range Controls -->
+            <div class="p-4">
+              <div class="flex flex-wrap gap-3 mb-4">
+                <button
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="{
+                    'bg-primary-500 text-white': dateRange.start === dateRange.end,
+                    'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
+                      dateRange.start !== dateRange.end,
+                  }"
+                  @click="setDateRange('day')"
+                >
+                  Today
+                </button>
+
+                <button
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  :class="{
+                    'bg-primary-500 text-white':
+                      new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() ===
+                      6 * 24 * 60 * 60 * 1000,
+                    'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
+                      new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() !==
+                      6 * 24 * 60 * 60 * 1000,
+                  }"
+                  @click="setDateRange('week')"
+                >
+                  Last 7 Days
+                </button>
+
+                <button
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  @click="setDateRange('month')"
+                >
+                  Last 30 Days
+                </button>
+
+                <button
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  @click="setDateRange('year')"
+                >
+                  Last Year
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    for="start-date"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Start Date</label
+                  >
+                  <input
+                    id="start-date"
+                    type="date"
+                    v-model="dateRange.start"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    @change="generateMockData"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    for="end-date"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >End Date</label
+                  >
+                  <input
+                    id="end-date"
+                    type="date"
+                    v-model="dateRange.end"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    @change="generateMockData"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4"
+            >
+              <div class="flex flex-wrap gap-4 justify-between">
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  <span class="font-medium">{{ selectedSensors.length }}</span> sensors selected
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  <span class="font-medium">{{
+                    new Date(dateRange.start).toLocaleDateString()
+                  }}</span>
+                  to
+                  <span class="font-medium">{{
+                    new Date(dateRange.end).toLocaleDateString()
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensors Tab Content -->
+        <div v-if="activeTab === 'sensors'" class="animate-fade-in">
+          <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center">
+            <span class="mdi mdi-tune text-primary-500 mr-2 text-xl"></span>
+            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Select Sensors</h2>
+          </div>
+
+          <!-- Sensor Selection Controls -->
+          <div class="p-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <div
                 v-for="sensor in availableSensors"
                 :key="sensor.id"
-                class="flex items-center space-x-2 p-2 rounded-lg transition-colors"
+                class="flex items-center space-x-2 p-2 rounded-lg transition-colors cursor-pointer"
                 :class="{
                   'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700':
                     selectedSensors.includes(sensor.id),
@@ -417,41 +489,107 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4">
-        <div class="flex flex-wrap gap-4 justify-between">
-          <div class="text-sm text-gray-600 dark:text-gray-300">
-            <span class="font-medium">{{ selectedSensors.length }}</span> sensors selected
-          </div>
-          <div class="text-sm text-gray-600 dark:text-gray-300">
-            <span class="font-medium">{{ new Date(dateRange.start).toLocaleDateString() }}</span> to
-            <span class="font-medium">{{ new Date(dateRange.end).toLocaleDateString() }}</span>
+          <div
+            class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4"
+          >
+            <div class="flex flex-wrap gap-4 justify-between">
+              <div class="text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">{{ selectedSensors.length }}</span> sensors selected
+              </div>
+              <div class="text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">{{
+                  new Date(dateRange.start).toLocaleDateString()
+                }}</span>
+                to
+                <span class="font-medium">{{ new Date(dateRange.end).toLocaleDateString() }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Charts Section -->
-    <div v-if="selectedSensors.length > 0">
-      <div class="flex items-center mb-4">
-        <div class="bg-primary-100 dark:bg-primary-900/30 p-1.5 rounded-lg mr-2">
-          <span class="mdi mdi-chart-line text-primary-600 dark:text-primary-400"></span>
+    <!-- Charts Section - Now Below Tab Navigation -->
+    <div v-if="selectedSensors.length > 0" class="animate-fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+          <div class="bg-primary-100 dark:bg-primary-900/30 px-3 py-2 rounded-lg mr-3">
+            <span class="mdi mdi-chart-line text-primary-600 dark:text-primary-400 text-xl"></span>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Sensor Data Charts</h2>
         </div>
-        <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Sensor Data Charts</h2>
+        <div class="flex items-center gap-2">
+          <button
+            class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+            :class="{
+              'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400':
+                chartLayout === 'grid',
+            }"
+            @click="chartLayout = 'grid'"
+          >
+            <span
+              class="mdi mdi-view-grid mr-1.5"
+              :class="{ 'text-primary-500': chartLayout === 'grid' }"
+            ></span>
+            <span class="hidden sm:inline">Grid</span>
+          </button>
+          <button
+            class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+            :class="{
+              'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400':
+                chartLayout === 'list',
+            }"
+            @click="chartLayout = 'list'"
+          >
+            <span
+              class="mdi mdi-view-sequential mr-1.5"
+              :class="{ 'text-primary-500': chartLayout === 'list' }"
+            ></span>
+            <span class="hidden sm:inline">List</span>
+          </button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-6">
+      <div
+        :class="{
+          'grid gap-6': true,
+          'grid-cols-1 md:grid-cols-2': chartLayout === 'grid' && selectedSensors.length > 1,
+          'grid-cols-1': chartLayout === 'list' || selectedSensors.length === 1,
+        }"
+      >
         <div
           v-for="sensorId in selectedSensors"
           :key="sensorId"
           class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg"
         >
-          <div
-            class="h-1 w-full"
-            :style="{ backgroundColor: getSensorById(sensorId)?.color }"
-          ></div>
+          <div class="flex items-center p-3 border-b border-gray-100 dark:border-gray-700">
+            <div
+              class="w-3 h-3 rounded-full mr-2.5"
+              :style="{ backgroundColor: getSensorById(sensorId)?.color }"
+            ></div>
+            <h3 class="text-base font-medium text-gray-800 dark:text-gray-200">
+              {{ getSensorById(sensorId)?.name || '' }}
+            </h3>
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+              {{ getSensorById(sensorId)?.unit }}
+            </span>
+            <div class="ml-auto flex gap-1">
+              <button
+                class="p-1 px-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Download CSV"
+              >
+                <span class="mdi mdi-download text-sm"></span>
+              </button>
+              <button
+                class="p-1 px-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Remove from view"
+                @click="toggleSensor(sensorId)"
+              >
+                <span class="mdi mdi-close text-sm"></span>
+              </button>
+            </div>
+          </div>
           <div class="p-4">
             <SensorChart
               :title="getSensorById(sensorId)?.name || ''"
@@ -490,3 +628,51 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Default (light mode): no inversion */
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
+/* Dark mode: invert icon color to white */
+.dark input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-gray-100,
+.dark .bg-gray-200,
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900 {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+</style>

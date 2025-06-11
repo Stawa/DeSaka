@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const emit = defineEmits(['toggle-sidebar', 'toggle-dark-mode'])
 
-const props = defineProps<{
+defineProps<{
   isDarkMode?: boolean
 }>()
 
 const isAnimating = ref(false)
+const isScrolled = ref(false)
 
 const toggleDarkMode = () => {
   isAnimating.value = true
@@ -16,16 +17,29 @@ const toggleDarkMode = () => {
   }, 600)
   emit('toggle-dark-mode')
 }
+
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 10
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
 
 <template>
   <header
-    class="relative shadow-md z-50 sticky top-0 transition-all duration-300"
-    :class="
+    class="relative z-50 sticky top-0 transition-all duration-300"
+    :class="[
       isDarkMode
-        ? 'bg-slate-800 border-b border-slate-700'
-        : 'bg-indigo-500 border-b border-indigo-600'
-    "
+        ? 'bg-gray-800 border-b border-gray-700'
+        : 'bg-primary-500 border-b border-primary-600',
+      isScrolled ? 'shadow-lg' : 'shadow-md',
+    ]"
   >
     <div class="container mx-auto px-6 py-3 relative z-10">
       <div class="flex items-center justify-between">
@@ -37,8 +51,8 @@ const toggleDarkMode = () => {
             class="mr-4 p-2 rounded-lg transition-all duration-300 md:hidden focus:outline-none focus:ring-2 focus:ring-offset-2"
             :class="
               isDarkMode
-                ? 'text-slate-300 hover:text-white hover:bg-slate-700 focus:ring-slate-400'
-                : 'text-white hover:bg-indigo-600 focus:ring-white/50'
+                ? 'text-gray-300 hover:text-white hover:bg-gray-700 focus:ring-gray-400'
+                : 'text-white hover:bg-primary-600 focus:ring-white/50'
             "
             aria-label="Toggle sidebar"
           >
@@ -49,7 +63,7 @@ const toggleDarkMode = () => {
           <div class="flex items-center cursor-pointer">
             <div
               class="relative p-2 rounded-lg mr-4 transition-all duration-300"
-              :class="isDarkMode ? 'bg-slate-700' : 'bg-indigo-600'"
+              :class="isDarkMode ? 'bg-gray-700' : 'bg-primary-600'"
             >
               <img src="/Logo.webp" alt="DeSaka Logo" class="h-8 w-8 relative z-10" />
             </div>
@@ -67,8 +81,8 @@ const toggleDarkMode = () => {
             class="relative py-2 px-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 hidden md:flex items-center"
             :class="
               isDarkMode
-                ? 'bg-slate-700 text-yellow-300 focus:ring-yellow-300/50'
-                : 'bg-indigo-600 text-white focus:ring-white/50'
+                ? 'bg-gray-700 text-yellow-300 focus:ring-yellow-300/50'
+                : 'bg-primary-600 text-white focus:ring-white/50'
             "
             :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle dark mode"
@@ -139,5 +153,43 @@ button:focus-visible {
     color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
     transform, filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header shadow effects */
+header {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+.dark header {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+header.shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark header.shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Enhance the logo area */
+header .logo-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Improve button interactions */
+button {
+  transform: translateY(0);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+button:active {
+  transform: translateY(1px);
 }
 </style>

@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, type Ref, computed, onUnmounted } from 'vue'
-import SensorCard from '../components/SensorCard.vue'
 import SensorChart from '../components/SensorChart.vue'
 import PlantStatusDashboard from '../components/PlantStatusDashboard.vue'
+import SensorReadingsGrid from '../components/SensorReadingsGrid.vue'
+import SensorReadingsTable from '../components/SensorReadingsTable.vue'
+import {
+  generateMockData,
+  getSensorStatus,
+  calculateParameterScore,
+  getGrowthPrediction,
+  getSystemStatus,
+  formatCurrentTime,
+} from '@/scripts'
 
 const windowWidth = ref(window.innerWidth)
+const isRefreshing = ref(false)
+const trendTimeframe = ref('24h')
 
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
@@ -49,42 +60,32 @@ const sensorData = ref<SensorDataType>({
 })
 
 const historicalData = ref<HistoricalDataType>({
-  soilTemperature: generateMockData(24, 20, 30),
-  soilMoisture: generateMockData(24, 50, 80),
-  soilPH: generateMockData(24, 6, 7.5),
-  airTemperature: generateMockData(24, 25, 35),
-  airHumidity: generateMockData(24, 60, 90),
+  soilTemperature: generateMockData(24, 20, 30, trendTimeframe.value),
+  soilMoisture: generateMockData(24, 50, 80, trendTimeframe.value),
+  soilPH: generateMockData(24, 6, 7.5, trendTimeframe.value),
+  airTemperature: generateMockData(24, 25, 35, trendTimeframe.value),
+  airHumidity: generateMockData(24, 60, 90, trendTimeframe.value),
 })
 
-function generateMockData(points: number, min: number, max: number) {
-  const data = []
-  const now = new Date()
-
-  for (let i = points; i > 0; i--) {
-    const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-    data.push({
-      time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      value: parseFloat((Math.random() * (max - min) + min).toFixed(1)),
-    })
+function updateHistoricalData(timeframe: string) {
+  trendTimeframe.value = timeframe
+  historicalData.value = {
+    soilTemperature: generateMockData(24, 20, 30, timeframe),
+    soilMoisture: generateMockData(24, 50, 80, timeframe),
+    soilPH: generateMockData(24, 6, 7.5, timeframe),
+    airTemperature: generateMockData(24, 25, 35, timeframe),
+    airHumidity: generateMockData(24, 60, 90, timeframe),
   }
-
-  return data
 }
 
-const lastUpdate: Ref = ref(
-  `Today, ${new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  })}`,
-)
+const lastUpdate: Ref<string> = ref(formatCurrentTime({ second: '2-digit' }))
 
-const viewMode = ref('grid')
+function openSensorDetails(sensorId: string) {
+  console.log(`Opening details for sensor: ${sensorId}`)
+}
 
 const quickActions = [
   { name: 'Refresh Data', icon: 'refresh', action: updateData },
-  { name: 'Toggle View', icon: 'view-grid-outline', action: toggleViewMode },
   {
     name: 'Export Data',
     icon: 'download-outline',
@@ -97,98 +98,128 @@ const quickActions = [
   },
 ]
 
-function toggleViewMode() {
-  viewMode.value = viewMode.value === 'grid' ? 'compact' : 'grid'
-}
-
 function updateData() {
-  sensorData.value.soilTemperature.value = parseFloat(
-    (sensorData.value.soilTemperature.value + (Math.random() * 0.6 - 0.3)).toFixed(1),
-  )
-  sensorData.value.soilMoisture.value = parseFloat(
-    (sensorData.value.soilMoisture.value + (Math.random() * 2 - 1)).toFixed(1),
-  )
-  sensorData.value.soilPH.value = parseFloat(
-    (sensorData.value.soilPH.value + (Math.random() * 0.2 - 0.1)).toFixed(1),
-  )
-  sensorData.value.airTemperature.value = parseFloat(
-    (sensorData.value.airTemperature.value + (Math.random() * 0.8 - 0.4)).toFixed(1),
-  )
-  sensorData.value.airHumidity.value = parseFloat(
-    (sensorData.value.airHumidity.value + (Math.random() * 3 - 1.5)).toFixed(1),
-  )
-  sensorData.value.lightIntensity.value = parseFloat(
-    (sensorData.value.lightIntensity.value + (Math.random() * 50 - 25)).toFixed(0),
-  )
+  isRefreshing.value = true
 
-  sensorData.value.soilTemperature.status = getSensorStatus(
-    sensorData.value.soilTemperature.value,
-    15,
-    20,
-    28,
-    32,
-  )
-  sensorData.value.soilMoisture.status = getSensorStatus(
-    sensorData.value.soilMoisture.value,
-    30,
-    40,
-    75,
-    85,
-  )
-  sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 5.5, 7.5, 8)
-  sensorData.value.airTemperature.status = getSensorStatus(
-    sensorData.value.airTemperature.value,
-    15,
-    20,
-    30,
-    35,
-  )
-  sensorData.value.airHumidity.status = getSensorStatus(
-    sensorData.value.airHumidity.value,
-    30,
-    40,
-    80,
-    90,
-  )
+  setTimeout(() => {
+    sensorData.value.soilTemperature.value = parseFloat(
+      (sensorData.value.soilTemperature.value + (Math.random() * 0.6 - 0.3)).toFixed(1),
+    )
+    sensorData.value.soilMoisture.value = parseFloat(
+      (sensorData.value.soilMoisture.value + (Math.random() * 2 - 1)).toFixed(1),
+    )
+    sensorData.value.soilPH.value = parseFloat(
+      (sensorData.value.soilPH.value + (Math.random() * 0.2 - 0.1)).toFixed(1),
+    )
+    sensorData.value.airTemperature.value = parseFloat(
+      (sensorData.value.airTemperature.value + (Math.random() * 0.8 - 0.4)).toFixed(1),
+    )
+    sensorData.value.airHumidity.value = parseFloat(
+      (sensorData.value.airHumidity.value + (Math.random() * 3 - 1.5)).toFixed(1),
+    )
+    sensorData.value.lightIntensity.value = parseFloat(
+      (sensorData.value.lightIntensity.value + (Math.random() * 50 - 25)).toFixed(0),
+    )
 
-  lastUpdate.value = ref(
-    `Today, ${new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    })}`,
-  )
+    sensorData.value.soilTemperature.status = getSensorStatus(
+      sensorData.value.soilTemperature.value,
+      15,
+      32,
+      20,
+      28,
+    )
+    sensorData.value.soilMoisture.status = getSensorStatus(
+      sensorData.value.soilMoisture.value,
+      30,
+      85,
+      40,
+      75,
+    )
+    sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 8, 5.5, 7.5)
+    sensorData.value.airTemperature.status = getSensorStatus(
+      sensorData.value.airTemperature.value,
+      15,
+      35,
+      20,
+      30,
+    )
+    sensorData.value.airHumidity.status = getSensorStatus(
+      sensorData.value.airHumidity.value,
+      30,
+      90,
+      40,
+      80,
+    )
 
-  Object.keys(historicalData.value).forEach((key) => {
-    const data = historicalData.value[key]
-    data.shift()
-    const now = new Date()
-    data.push({
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      value: sensorData.value[key].value,
+    lastUpdate.value = formatCurrentTime({ second: '2-digit' })
+
+    Object.keys(historicalData.value).forEach((key) => {
+      const data = historicalData.value[key]
+      const now = new Date()
+
+      let timeLabel: string
+      if (trendTimeframe.value === '24h') {
+        timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        data.shift()
+        data.push({
+          time: timeLabel,
+          value: sensorData.value[key].value,
+        })
+      } else {
+        if (trendTimeframe.value === '7d') {
+          timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        } else {
+          timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        }
+
+        const existingIndex = data.findIndex((item) => item.time === timeLabel)
+
+        if (existingIndex !== -1) {
+          data[existingIndex].value = sensorData.value[key].value
+        } else {
+          data.shift()
+          data.push({
+            time: timeLabel,
+            value: sensorData.value[key].value,
+          })
+        }
+      }
     })
-  })
-}
 
-function getSensorStatus(
-  value: number,
-  criticalLow: number,
-  warningLow: number,
-  warningHigh: number,
-  criticalHigh: number,
-) {
-  if (value <= criticalLow || value >= criticalHigh) return 'critical'
-  if (value <= warningLow || value >= warningHigh) return 'warning'
-  return 'normal'
+    isRefreshing.value = false
+  }, 1000)
 }
 
 const plantHealthScore = computed(() => {
-  const soilTempScore = getParameterScore(sensorData.value.soilTemperature.value, 22, 26, 15, 32)
-  const soilMoistureScore = getParameterScore(sensorData.value.soilMoisture.value, 60, 70, 30, 85)
-  const soilPHScore = getParameterScore(sensorData.value.soilPH.value, 6.5, 7.0, 5.0, 8.0)
-  const airTempScore = getParameterScore(sensorData.value.airTemperature.value, 24, 28, 15, 35)
-  const airHumidityScore = getParameterScore(sensorData.value.airHumidity.value, 65, 75, 30, 90)
+  const soilTempScore = calculateParameterScore(
+    sensorData.value.soilTemperature.value,
+    22,
+    26,
+    15,
+    32,
+  )
+  const soilMoistureScore = calculateParameterScore(
+    sensorData.value.soilMoisture.value,
+    60,
+    70,
+    30,
+    85,
+  )
+  const soilPHScore = calculateParameterScore(sensorData.value.soilPH.value, 6.5, 7.0, 5.0, 8.0)
+  const airTempScore = calculateParameterScore(
+    sensorData.value.airTemperature.value,
+    24,
+    28,
+    15,
+    35,
+  )
+  const airHumidityScore = calculateParameterScore(
+    sensorData.value.airHumidity.value,
+    65,
+    75,
+    30,
+    90,
+  )
 
   const totalScore =
     soilTempScore * 0.2 +
@@ -200,65 +231,13 @@ const plantHealthScore = computed(() => {
   return Math.round(totalScore)
 })
 
-function getParameterScore(
-  value: number,
-  optimalMin: number,
-  optimalMax: number,
-  absMin: number,
-  absMax: number,
-) {
-  if (value >= optimalMin && value <= optimalMax) return 100
-
-  if (value < optimalMin) {
-    return Math.round(((value - absMin) / (optimalMin - absMin)) * 80)
-  } else {
-    return Math.round(((absMax - value) / (absMax - optimalMax)) * 80)
-  }
-}
-
 const growthPrediction = computed(() => {
-  if (plantHealthScore.value >= 90) return 'Excellent'
-  if (plantHealthScore.value >= 75) return 'Good'
-  if (plantHealthScore.value >= 60) return 'Fair'
-  if (plantHealthScore.value >= 40) return 'Poor'
-  return 'Critical'
-})
-
-const growthPredictionColor = computed(() => {
-  if (plantHealthScore.value >= 90) return 'text-green-600 dark:text-green-400'
-  if (plantHealthScore.value >= 75) return 'text-green-500 dark:text-green-500'
-  if (plantHealthScore.value >= 60) return 'text-amber-500 dark:text-amber-400'
-  if (plantHealthScore.value >= 40) return 'text-amber-600 dark:text-amber-500'
-  return 'text-red-600 dark:text-red-400'
+  return getGrowthPrediction(plantHealthScore.value)
 })
 
 const systemStatus = computed(() => {
   const statuses = Object.values(sensorData.value).map((item) => item.status)
-  if (statuses.includes('critical')) return 'critical'
-  if (statuses.includes('warning')) return 'warning'
-  return 'normal'
-})
-
-const sensorDataArray = computed(() => {
-  return [
-    { type: 'soil_moisture', ...sensorData.value.soilMoisture },
-    { type: 'soil_ph', ...sensorData.value.soilPH },
-    { type: 'air_temperature', ...sensorData.value.airTemperature },
-    { type: 'soil_temperature', ...sensorData.value.soilTemperature },
-    { type: 'air_humidity', ...sensorData.value.airHumidity },
-    { type: 'light_intensity', ...sensorData.value.lightIntensity },
-  ]
-})
-
-const systemStatusText = computed(() => {
-  switch (systemStatus.value) {
-    case 'critical':
-      return 'Critical Issues'
-    case 'warning':
-      return 'Needs Attention'
-    default:
-      return 'All Systems Normal'
-  }
+  return getSystemStatus(statuses)
 })
 
 onMounted(() => {
@@ -268,54 +247,89 @@ onMounted(() => {
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <!-- Enhanced Dashboard Header with improved responsive text sizes -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-          Dashboard
-        </h1>
-        <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-1">
-          Real-time monitoring dashboard for plant growth optimization
-        </p>
-        <div class="flex items-center mt-2">
-          <span
-            class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium"
-            :class="{
-              'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300':
-                systemStatus === 'normal',
-              'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300':
-                systemStatus === 'warning',
-              'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300':
-                systemStatus === 'critical',
-            }"
-          >
-            <span
-              class="mdi mr-1"
-              :class="{
-                'mdi-check-circle': systemStatus === 'normal',
-                'mdi-alert-circle': systemStatus === 'warning',
-                'mdi-alert-octagon': systemStatus === 'critical',
-              }"
-            ></span>
-            {{ systemStatusText }}
-          </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400 ml-3"
-            >Last updated: {{ lastUpdate }}</span
-          >
-        </div>
-      </div>
+    <!-- Title Banner -->
+    <div
+      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
+    >
+      <div class="h-1.5 w-full bg-gradient-to-r from-purple-400 to-purple-600"></div>
+      <div class="p-4 sm:p-6">
+        <!-- Header Content -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <!-- Title and Description -->
+          <div class="flex items-start sm:items-center w-full md:w-auto">
+            <div
+              class="bg-purple-100 dark:bg-purple-900/30 py-2 px-3 sm:px-3 sm:py-2 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
+            >
+              <span
+                class="mdi mdi-view-dashboard text-purple-600 dark:text-purple-400 text-xl sm:text-2xl"
+              ></span>
+            </div>
+            <div class="flex-grow">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
+                Dashboard
+              </h1>
+              <p
+                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
+              >
+                Real-time monitoring dashboard for plant growth optimization
+              </p>
+              <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-0.5 sm:mt-1">
+                Last updated: {{ lastUpdate }}
+              </div>
+            </div>
+          </div>
 
-      <!-- Quick Actions Bar with improved responsive spacing -->
-      <div class="mt-4 md:mt-0 flex flex-wrap gap-1 sm:gap-2">
-        <button
-          v-for="action in quickActions"
-          :key="action.name"
-          @click="action.action"
-          class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-        >
-          <span class="mdi" :class="`mdi-${action.icon}`"></span>
-          <span class="ml-1 sm:ml-1.5 hidden sm:inline">{{ action.name }}</span>
-        </button>
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
+            <!-- Mobile: Icon-only buttons on very small screens -->
+            <template v-if="windowWidth < 400">
+              <button
+                v-for="action in quickActions"
+                :key="action.name"
+                @click="action.action"
+                class="flex items-center justify-center p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
+                :class="{
+                  'opacity-50 cursor-not-allowed': action.name === 'Refresh Data' && isRefreshing,
+                }"
+                :disabled="action.name === 'Refresh Data' && isRefreshing"
+                :title="action.name"
+              >
+                <span
+                  class="mdi text-lg"
+                  :class="{
+                    'mdi-loading mdi-spin': action.name === 'Refresh Data' && isRefreshing,
+                    ['mdi-' + action.icon]: !(action.name === 'Refresh Data' && isRefreshing),
+                  }"
+                ></span>
+              </button>
+            </template>
+
+            <!-- Tablet/Desktop: Full buttons with text -->
+            <template v-else>
+              <button
+                v-for="action in quickActions"
+                :key="action.name"
+                @click="action.action"
+                class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
+                :class="{
+                  'opacity-50 cursor-not-allowed': action.name === 'Refresh Data' && isRefreshing,
+                }"
+                :disabled="action.name === 'Refresh Data' && isRefreshing"
+              >
+                <span
+                  class="mdi mr-1.5"
+                  :class="{
+                    'mdi-loading mdi-spin': action.name === 'Refresh Data' && isRefreshing,
+                    ['mdi-' + action.icon]: !(action.name === 'Refresh Data' && isRefreshing),
+                  }"
+                ></span>
+                <span class="whitespace-nowrap">{{
+                  action.name === 'Refresh Data' && isRefreshing ? 'Refreshing...' : action.name
+                }}</span>
+              </button>
+            </template>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -442,250 +456,21 @@ onMounted(() => {
 
     <!-- Sensor Cards Grid with improved spacing and animations -->
     <div class="mb-6 sm:mb-8">
-      <div
-        class="bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg w-full"
-      >
-        <div class="h-1 sm:h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-500"></div>
-        <div class="p-3 sm:p-4 md:p-6">
-          <div
-            class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4"
-          >
-            <div class="flex items-center min-w-0">
-              <div
-                class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0"
-              >
-                <span
-                  class="mdi mdi-gauge text-primary-600 dark:text-primary-400 text-base sm:text-lg md:text-xl"
-                ></span>
-              </div>
-              <h2
-                class="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-200 truncate"
-              >
-                Sensor Readings
-              </h2>
-            </div>
-
-            <div
-              class="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 self-end sm:self-auto flex-shrink-0"
-            >
-              <button
-                @click="toggleViewMode"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 text-xs sm:text-sm"
-              >
-                <span
-                  class="mdi mr-1 sm:mr-2 text-gray-600 dark:text-gray-300"
-                  :class="{
-                    'mdi-view-grid-outline': viewMode === 'grid',
-                    'mdi-view-sequential-outline': viewMode === 'compact',
-                  }"
-                ></span>
-                <span class="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                  {{ viewMode === 'grid' ? 'Grid View' : 'Compact View' }}
-                </span>
-              </button>
-
-              <button
-                @click="updateData"
-                class="flex items-center px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors duration-200 text-xs sm:text-sm"
-              >
-                <span class="mdi mdi-refresh mr-1 sm:mr-2 flex-shrink-0"></span>
-                <span class="font-medium whitespace-nowrap">Refresh</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Grid View with improved responsive design -->
-          <div
-            v-if="viewMode === 'grid'"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 animate-fade-in"
-          >
-            <SensorCard
-              title="Soil Temperature"
-              :value="sensorData.soilTemperature.value"
-              :unit="sensorData.soilTemperature.unit"
-              :status="sensorData.soilTemperature.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-thermometer"
-            />
-
-            <SensorCard
-              title="Soil Moisture"
-              :value="sensorData.soilMoisture.value"
-              :unit="sensorData.soilMoisture.unit"
-              :status="sensorData.soilMoisture.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-water-percent"
-            />
-
-            <SensorCard
-              title="Soil pH"
-              :value="sensorData.soilPH.value"
-              :unit="sensorData.soilPH.unit"
-              :status="sensorData.soilPH.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-test-tube"
-            />
-
-            <SensorCard
-              title="Air Temperature"
-              :value="sensorData.airTemperature.value"
-              :unit="sensorData.airTemperature.unit"
-              :status="sensorData.airTemperature.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-thermometer-lines"
-            />
-
-            <SensorCard
-              title="Air Humidity"
-              :value="sensorData.airHumidity.value"
-              :unit="sensorData.airHumidity.unit"
-              :status="sensorData.airHumidity.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-water-outline"
-            />
-
-            <SensorCard
-              title="Light Intensity"
-              :value="sensorData.lightIntensity.value"
-              :unit="sensorData.lightIntensity.unit"
-              :status="sensorData.lightIntensity.status as 'normal' | 'warning' | 'critical'"
-              icon="mdi-white-balance-sunny"
-            />
-          </div>
-
-          <!-- Compact View with improved list design -->
-          <div v-else class="space-y-3 sm:space-y-4 animate-fade-in">
-            <div
-              v-for="(sensor, key) in sensorData"
-              :key="key"
-              class="bg-white dark:bg-gray-800 rounded-xl border overflow-hidden transition-all duration-300 hover:shadow-md flex flex-col sm:flex-row w-full max-w-full"
-              :class="{
-                'border-green-200 dark:border-green-700': sensor.status === 'normal',
-                'border-yellow-200 dark:border-yellow-700': sensor.status === 'warning',
-                'border-red-200 dark:border-red-700': sensor.status === 'critical',
-              }"
-            >
-              <!-- Status indicator bar at left for larger screens -->
-              <div
-                class="hidden sm:block w-1.5 sm:w-2 flex-shrink-0"
-                :class="{
-                  'bg-green-500 dark:bg-green-600': sensor.status === 'normal',
-                  'bg-yellow-500 dark:bg-yellow-600': sensor.status === 'warning',
-                  'bg-red-500 dark:bg-red-600': sensor.status === 'critical',
-                }"
-              ></div>
-
-              <!-- Status indicator bar at top for mobile -->
-              <div
-                class="h-1 sm:h-1.5 sm:hidden w-full"
-                :class="{
-                  'bg-green-500 dark:bg-green-600': sensor.status === 'normal',
-                  'bg-yellow-500 dark:bg-yellow-600': sensor.status === 'warning',
-                  'bg-red-500 dark:bg-red-600': sensor.status === 'critical',
-                }"
-              ></div>
-
-              <div
-                class="p-3 sm:p-4 md:p-5 flex-grow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0"
-              >
-                <!-- Sensor info -->
-                <div class="flex items-center min-w-0">
-                  <span
-                    class="mdi text-lg sm:text-xl mr-2 sm:mr-3 bg-primary-50 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg text-primary-500 dark:text-primary-400 flex-shrink-0"
-                    :class="{
-                      'mdi-thermometer': key === 'soilTemperature' || key === 'airTemperature',
-                      'mdi-water-percent': key === 'soilMoisture',
-                      'mdi-test-tube': key === 'soilPH',
-                      'mdi-water-outline': key === 'airHumidity',
-                      'mdi-white-balance-sunny': key === 'lightIntensity',
-                    }"
-                  ></span>
-                  <div class="min-w-0">
-                    <h3
-                      class="font-medium text-gray-800 dark:text-gray-200 mb-0.5 sm:mb-1 text-sm sm:text-base truncate"
-                    >
-                      {{
-                        key === 'soilTemperature'
-                          ? 'Soil Temperature'
-                          : key === 'soilMoisture'
-                            ? 'Soil Moisture'
-                            : key === 'soilPH'
-                              ? 'Soil pH'
-                              : key === 'airTemperature'
-                                ? 'Air Temperature'
-                                : key === 'airHumidity'
-                                  ? 'Air Humidity'
-                                  : key === 'lightIntensity'
-                                    ? 'Light Intensity'
-                                    : key
-                      }}
-                    </h3>
-                    <div class="flex items-center">
-                      <span
-                        class="mdi text-xs sm:text-sm mr-1 flex-shrink-0"
-                        :class="{
-                          'mdi-check-circle text-green-500 dark:text-green-400':
-                            sensor.status === 'normal',
-                          'mdi-alert text-yellow-500 dark:text-yellow-400':
-                            sensor.status === 'warning',
-                          'mdi-alert-circle text-red-500 dark:text-red-400':
-                            sensor.status === 'critical',
-                        }"
-                      ></span>
-                      <span
-                        class="text-xs font-medium truncate"
-                        :class="{
-                          'text-green-700 dark:text-green-300': sensor.status === 'normal',
-                          'text-yellow-700 dark:text-yellow-300': sensor.status === 'warning',
-                          'text-red-700 dark:text-red-300': sensor.status === 'critical',
-                        }"
-                      >
-                        {{ sensor.status.charAt(0).toUpperCase() + sensor.status.slice(1) }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Value display -->
-                <div class="flex items-baseline flex-shrink-0">
-                  <span
-                    class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mr-1 sm:mr-2 whitespace-nowrap"
-                  >
-                    {{ sensor.value }}
-                  </span>
-                  <span
-                    class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap"
-                    >{{ sensor.unit }}</span
-                  >
-                </div>
-
-                <!-- Quick actions -->
-                <div class="flex space-x-1 sm:space-x-2 md:space-x-3 flex-shrink-0">
-                  <button
-                    class="p-1 sm:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    title="View Details"
-                  >
-                    <span class="mdi mdi-information-outline text-base sm:text-lg"></span>
-                  </button>
-                  <button
-                    class="p-1 sm:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    title="View Chart"
-                  >
-                    <span class="mdi mdi-chart-line text-base sm:text-lg"></span>
-                  </button>
-                  <button
-                    class="p-1 sm:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    title="View History"
-                  >
-                    <span class="mdi mdi-history text-base sm:text-lg"></span>
-                  </button>
-                  <button
-                    class="p-1 sm:p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    title="More Options"
-                  >
-                    <span class="mdi mdi-dots-vertical text-base sm:text-lg"></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Sensor Readings Component -->
+      <SensorReadingsTable
+        v-if="windowWidth >= 1024"
+        :sensor-data="sensorData"
+        :on-sensor-click="openSensorDetails"
+        @refresh="updateData"
+        @download="console.log('Download functionality removed')"
+      />
+      <SensorReadingsGrid
+        v-else
+        :sensor-data="sensorData"
+        :on-sensor-click="openSensorDetails"
+        @refresh="updateData"
+        @download="console.log('Download functionality removed')"
+      />
     </div>
 
     <!-- Sensor Trends Section with improved styling -->
@@ -717,21 +502,38 @@ onMounted(() => {
               class="flex items-center space-x-1 sm:space-x-2 self-end sm:self-auto flex-shrink-0"
             >
               <button
+                @click="updateHistoricalData('24h')"
                 class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200"
                 :class="{
-                  'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300': true,
-                  'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700': false,
+                  'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300':
+                    trendTimeframe === '24h',
+                  'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700':
+                    trendTimeframe !== '24h',
                 }"
               >
                 24h
               </button>
               <button
-                class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="updateHistoricalData('7d')"
+                class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200"
+                :class="{
+                  'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300':
+                    trendTimeframe === '7d',
+                  'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700':
+                    trendTimeframe !== '7d',
+                }"
               >
                 7d
               </button>
               <button
-                class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="updateHistoricalData('30d')"
+                class="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200"
+                :class="{
+                  'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300':
+                    trendTimeframe === '30d',
+                  'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700':
+                    trendTimeframe !== '30d',
+                }"
               >
                 30d
               </button>
@@ -789,6 +591,8 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Download Modal removed -->
   </div>
 </template>
 

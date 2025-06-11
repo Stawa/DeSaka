@@ -1,578 +1,562 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import SensorCard from '@/components/SensorCard.vue'
-import SensorChart from '@/components/SensorChart.vue'
+import SensorChart from '../components/SensorChart.vue'
+import SoilHealthDashboard from '../components/SoilHealthDashboard.vue'
+import {
+  formatCurrentTime,
+  generateTimeBasedData,
+  getSensorStatus,
+  calculateParameterScore,
+} from '@/scripts'
+
+type DataPoint = { time: string; value: number }
 
 const soilData = ref({
   temperature: {
-    value: 22.5,
+    value: 24.5,
     unit: '°C',
-    status: 'normal',
-    trend: 'stable',
     min: 15,
-    max: 30,
-    history: [] as { time: string; value: number }[],
+    max: 35,
+    status: 'optimal',
+    trend: 'stable',
+    history: [] as DataPoint[],
   },
   moisture: {
     value: 65,
     unit: '%',
-    status: 'normal',
-    trend: 'increasing',
-    min: 40,
-    max: 80,
-    history: [] as { time: string; value: number }[],
+    min: 30,
+    max: 85,
+    status: 'optimal',
+    trend: 'up',
+    history: [] as DataPoint[],
   },
   ph: {
     value: 6.8,
-    unit: 'pH',
-    status: 'normal',
-    trend: 'stable',
+    unit: '',
     min: 5.5,
     max: 7.5,
-    history: [] as { time: string; value: number }[],
+    status: 'optimal',
+    trend: 'stable',
+    history: [] as DataPoint[],
   },
   nutrients: {
     nitrogen: {
       value: 42,
       unit: 'ppm',
-      status: 'normal',
-      trend: 'stable',
       min: 20,
       max: 80,
+      status: 'optimal',
+      trend: 'up',
+      history: [] as DataPoint[],
     },
     phosphorus: {
       value: 35,
       unit: 'ppm',
-      status: 'normal',
-      trend: 'decreasing',
       min: 20,
       max: 60,
+      status: 'optimal',
+      trend: 'stable',
+      history: [] as DataPoint[],
     },
     potassium: {
       value: 180,
       unit: 'ppm',
-      status: 'normal',
-      trend: 'stable',
       min: 125,
       max: 250,
+      status: 'optimal',
+      trend: 'down',
+      history: [] as DataPoint[],
     },
   },
   conductivity: {
     value: 1.2,
     unit: 'mS/cm',
-    status: 'normal',
-    trend: 'stable',
     min: 0.8,
     max: 1.5,
-    history: [] as { time: string; value: number }[],
+    status: 'optimal',
+    trend: 'stable',
+    history: [] as DataPoint[],
   },
 })
 
-const lastUpdated = ref(new Date().toLocaleString())
+const lastUpdated = ref(formatCurrentTime())
 
-function generateHistoricalData(min: number, max: number, count: number = 24) {
-  const data = []
+const isRefreshing = ref(false)
+const timeFrame = ref('24h')
+
+function refreshData() {
+  isRefreshing.value = true
+  setTimeout(() => {
+    soilData.value.nutrients.nitrogen.value = parseFloat(
+      (soilData.value.nutrients.nitrogen.value + (Math.random() * 4 - 2)).toFixed(1),
+    )
+    soilData.value.nutrients.nitrogen.trend =
+      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
+
+    soilData.value.nutrients.phosphorus.value = parseFloat(
+      (soilData.value.nutrients.phosphorus.value + (Math.random() * 3 - 1.5)).toFixed(1),
+    )
+    soilData.value.nutrients.phosphorus.trend =
+      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
+
+    soilData.value.nutrients.potassium.value = parseFloat(
+      (soilData.value.nutrients.potassium.value + (Math.random() * 10 - 5)).toFixed(1),
+    )
+    soilData.value.nutrients.potassium.trend =
+      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
+
+    updateHistoricalData()
+    updateSensorStatuses()
+
+    lastUpdated.value = formatCurrentTime()
+
+    isRefreshing.value = false
+  }, 1000)
+}
+
+function generateHistoricalData() {
+  const now = new Date()
+  const points = timeFrame.value === '24h' ? 24 : timeFrame.value === '7d' ? 28 : 30
+  const interval = timeFrame.value === '24h' ? 60 : timeFrame.value === '7d' ? 360 : 1440
+
+  soilData.value.temperature.history = createTimeBasedData(points, interval, 20, 28, now)
+  soilData.value.moisture.history = createTimeBasedData(points, interval, 55, 75, now)
+  soilData.value.ph.history = createTimeBasedData(points, interval, 6.2, 7.2, now)
+  soilData.value.conductivity.history = createTimeBasedData(points, interval, 1.0, 1.4, now)
+}
+
+function updateHistoricalData() {
   const now = new Date()
 
-  for (let i = count - 1; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-    const value = min + Math.random() * (max - min)
-    data.push({
-      time: time.getHours() + ':00',
-      value: parseFloat(value.toFixed(1)),
-    })
-  }
+  let timeLabel: string
+  if (timeFrame.value === '24h') {
+    timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  return data
+    soilData.value.temperature.history.push({
+      time: timeLabel,
+      value: soilData.value.temperature.value,
+    })
+    soilData.value.moisture.history.push({
+      time: timeLabel,
+      value: soilData.value.moisture.value,
+    })
+    soilData.value.ph.history.push({
+      time: timeLabel,
+      value: soilData.value.ph.value,
+    })
+    soilData.value.conductivity.history.push({
+      time: timeLabel,
+      value: soilData.value.conductivity.value,
+    })
+
+    const maxPoints = 24
+    if (soilData.value.temperature.history.length > maxPoints) {
+      soilData.value.temperature.history.shift()
+      soilData.value.moisture.history.shift()
+      soilData.value.ph.history.shift()
+      soilData.value.conductivity.history.shift()
+    }
+  } else {
+    if (timeFrame.value === '7d') {
+      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    } else {
+      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    }
+
+    const tempIndex = soilData.value.temperature.history.findIndex(
+      (item) => item.time === timeLabel,
+    )
+    const moistIndex = soilData.value.moisture.history.findIndex((item) => item.time === timeLabel)
+    const phIndex = soilData.value.ph.history.findIndex((item) => item.time === timeLabel)
+    const condIndex = soilData.value.conductivity.history.findIndex(
+      (item) => item.time === timeLabel,
+    )
+
+    if (tempIndex !== -1) {
+      soilData.value.temperature.history[tempIndex].value = soilData.value.temperature.value
+    } else {
+      soilData.value.temperature.history.push({
+        time: timeLabel,
+        value: soilData.value.temperature.value,
+      })
+      if (soilData.value.temperature.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
+        soilData.value.temperature.history.shift()
+      }
+    }
+
+    if (moistIndex !== -1) {
+      soilData.value.moisture.history[moistIndex].value = soilData.value.moisture.value
+    } else {
+      soilData.value.moisture.history.push({
+        time: timeLabel,
+        value: soilData.value.moisture.value,
+      })
+      if (soilData.value.moisture.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
+        soilData.value.moisture.history.shift()
+      }
+    }
+
+    if (phIndex !== -1) {
+      soilData.value.ph.history[phIndex].value = soilData.value.ph.value
+    } else {
+      soilData.value.ph.history.push({
+        time: timeLabel,
+        value: soilData.value.ph.value,
+      })
+      if (soilData.value.ph.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
+        soilData.value.ph.history.shift()
+      }
+    }
+
+    if (condIndex !== -1) {
+      soilData.value.conductivity.history[condIndex].value = soilData.value.conductivity.value
+    } else {
+      soilData.value.conductivity.history.push({
+        time: timeLabel,
+        value: soilData.value.conductivity.value,
+      })
+      if (soilData.value.conductivity.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
+        soilData.value.conductivity.history.shift()
+      }
+    }
+  }
+}
+
+function createTimeBasedData(
+  points: number,
+  intervalMinutes: number,
+  min: number,
+  max: number,
+  endTime: Date,
+): DataPoint[] {
+  return generateTimeBasedData(points, intervalMinutes, min, max, endTime, timeFrame.value)
+}
+
+function changeTimeFrame(frame: string) {
+  timeFrame.value = frame
+  generateHistoricalData()
 }
 
 onMounted(() => {
-  soilData.value.temperature.history = generateHistoricalData(18, 26)
-  soilData.value.moisture.history = generateHistoricalData(45, 75)
-  soilData.value.ph.history = generateHistoricalData(6.0, 7.2)
-  soilData.value.conductivity.history = generateHistoricalData(0.9, 1.4)
+  generateHistoricalData()
+  updateSensorStatuses()
 })
 
-function getStatus(value: number, min: number, max: number) {
-  if (value < min) return 'critical'
-  if (value > max) return 'critical'
-  if (value < min + (max - min) * 0.2 || value > max - (max - min) * 0.2) return 'warning'
-  return 'normal'
-}
-
 function updateSensorStatuses() {
-  soilData.value.temperature.status = getStatus(
+  soilData.value.temperature.status = getSensorStatus(
     soilData.value.temperature.value,
     soilData.value.temperature.min,
     soilData.value.temperature.max,
+    20,
+    28,
   )
 
-  soilData.value.moisture.status = getStatus(
+  soilData.value.moisture.status = getSensorStatus(
     soilData.value.moisture.value,
     soilData.value.moisture.min,
     soilData.value.moisture.max,
+    50,
+    75,
   )
 
-  soilData.value.ph.status = getStatus(
+  soilData.value.ph.status = getSensorStatus(
     soilData.value.ph.value,
     soilData.value.ph.min,
     soilData.value.ph.max,
+    6.0,
+    7.0,
   )
 
-  soilData.value.conductivity.status = getStatus(
+  soilData.value.conductivity.status = getSensorStatus(
     soilData.value.conductivity.value,
     soilData.value.conductivity.min,
     soilData.value.conductivity.max,
+    1.0,
+    1.4,
+  )
+
+  soilData.value.nutrients.nitrogen.status = getSensorStatus(
+    soilData.value.nutrients.nitrogen.value,
+    soilData.value.nutrients.nitrogen.min,
+    soilData.value.nutrients.nitrogen.max,
+    30,
+    60,
+  )
+
+  soilData.value.nutrients.phosphorus.status = getSensorStatus(
+    soilData.value.nutrients.phosphorus.value,
+    soilData.value.nutrients.phosphorus.min,
+    soilData.value.nutrients.phosphorus.max,
+    25,
+    50,
+  )
+
+  soilData.value.nutrients.potassium.status = getSensorStatus(
+    soilData.value.nutrients.potassium.value,
+    soilData.value.nutrients.potassium.min,
+    soilData.value.nutrients.potassium.max,
+    150,
+    220,
   )
 }
 
-// Compute overall soil health score based on all parameters
 const soilHealthScore = computed(() => {
   const tempScore = calculateParameterScore(
     soilData.value.temperature.value,
     soilData.value.temperature.min,
     soilData.value.temperature.max,
+    20,
+    28,
   )
   const moistureScore = calculateParameterScore(
     soilData.value.moisture.value,
     soilData.value.moisture.min,
     soilData.value.moisture.max,
+    50,
+    75,
   )
   const phScore = calculateParameterScore(
     soilData.value.ph.value,
     soilData.value.ph.min,
     soilData.value.ph.max,
+    6.0,
+    7.0,
   )
   const conductivityScore = calculateParameterScore(
     soilData.value.conductivity.value,
     soilData.value.conductivity.min,
     soilData.value.conductivity.max,
+    1.0,
+    1.4,
+  )
+  const nitrogenScore = calculateParameterScore(
+    soilData.value.nutrients.nitrogen.value,
+    soilData.value.nutrients.nitrogen.min,
+    soilData.value.nutrients.nitrogen.max,
+    30,
+    60,
+  )
+  const phosphorusScore = calculateParameterScore(
+    soilData.value.nutrients.phosphorus.value,
+    soilData.value.nutrients.phosphorus.min,
+    soilData.value.nutrients.phosphorus.max,
+    25,
+    50,
+  )
+  const potassiumScore = calculateParameterScore(
+    soilData.value.nutrients.potassium.value,
+    soilData.value.nutrients.potassium.min,
+    soilData.value.nutrients.potassium.max,
+    150,
+    220,
   )
 
-  // Calculate average score
-  const avgScore = Math.round((tempScore + moistureScore + phScore + conductivityScore) / 4)
-  return Math.min(Math.max(avgScore, 0), 100) // Ensure score is between 0-100
+  const score =
+    tempScore * 0.15 +
+    moistureScore * 0.2 +
+    phScore * 0.15 +
+    conductivityScore * 0.1 +
+    nitrogenScore * 0.15 +
+    phosphorusScore * 0.1 +
+    potassiumScore * 0.15
+
+  return Math.round(score)
 })
-
-function calculateParameterScore(value: number, min: number, max: number): number {
-  // Calculate how far the value is from the ideal middle point
-  const middle = (min + max) / 2
-  const range = max - min
-  const deviation = Math.abs(value - middle)
-
-  // Convert to a 0-100 score where 100 is perfect (at middle) and 0 is at or beyond min/max
-  return Math.round(100 - (deviation / (range / 2)) * 100)
-}
-
-// Determine health status text and color
-const healthStatus = computed(() => {
-  if (soilHealthScore.value >= 80) return { text: 'Excellent', color: 'text-green-500' }
-  if (soilHealthScore.value >= 60) return { text: 'Good', color: 'text-green-400' }
-  if (soilHealthScore.value >= 40) return { text: 'Fair', color: 'text-yellow-500' }
-  if (soilHealthScore.value >= 20) return { text: 'Poor', color: 'text-orange-500' }
-  return { text: 'Critical', color: 'text-red-500' }
-})
-
-updateSensorStatuses()
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Soil Monitoring</h1>
-        <p class="text-gray-600 dark:text-gray-300 mb-1">
-          Comprehensive soil health monitoring and analysis
-        </p>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Last updated: {{ lastUpdated }}</p>
-      </div>
-
-      <div class="mt-4 md:mt-0 flex space-x-2">
-        <button
-          class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center shadow-sm"
-        >
-          <span class="mdi mdi-refresh mr-2"></span>
-          Refresh Data
-        </button>
-        <button
-          class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center shadow-sm"
-        >
-          <span class="mdi mdi-download mr-2"></span>
-          Export
-        </button>
-      </div>
-    </div>
-
-    <!-- Soil Health Overview Card -->
+    <!-- Title Banner -->
     <div
-      class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md overflow-hidden mb-8 border border-gray-100 dark:border-gray-700"
+      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
     >
-      <div class="p-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div class="mb-4 md:mb-0">
-            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2 flex items-center">
-              <span class="mdi mdi-sprout text-green-500 mr-2 text-2xl"></span>
-              Soil Health Overview
-            </h2>
-            <p class="text-gray-600 dark:text-gray-300">Overall soil condition assessment</p>
-          </div>
-
-          <div
-            class="flex items-center bg-white dark:bg-gray-700 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-600"
-          >
-            <div class="mr-4">
-              <div class="text-4xl font-bold mb-1" :class="healthStatus.color">
-                {{ soilHealthScore }}
-              </div>
-              <div class="text-sm font-medium" :class="healthStatus.color">
-                {{ healthStatus.text }}
-              </div>
+      <div class="h-1.5 w-full bg-gradient-to-r from-green-400 to-green-600"></div>
+      <div class="p-4 sm:p-6">
+        <!-- Header Content -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <!-- Title and Description -->
+          <div class="flex items-start sm:items-center w-full md:w-auto">
+            <div
+              class="bg-green-100 dark:bg-green-900/30 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
+            >
+              <span
+                class="mdi mdi-shovel text-green-600 dark:text-green-400 text-xl sm:text-2xl"
+              ></span>
             </div>
-
-            <div class="relative h-20 w-20">
-              <svg class="h-20 w-20 transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  class="text-gray-200 dark:text-gray-600"
-                  stroke-width="10"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                />
-                <circle
-                  :class="healthStatus.color.replace('text', 'stroke')"
-                  stroke-width="10"
-                  :stroke-dasharray="`${soilHealthScore * 2.51}, 251`"
-                  stroke-linecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                />
-              </svg>
-              <div
-                class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 dark:text-gray-300"
+            <div class="flex-grow">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
+                Soil Analysis Dashboard
+              </h1>
+              <p
+                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
               >
-                Score
+                Comprehensive soil health monitoring and analysis
+              </p>
+              <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-0.5 sm:mt-1">
+                Last updated: {{ lastUpdated }}
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4">
-        <div class="flex flex-wrap gap-4 justify-between">
-          <button
-            class="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <span class="mdi mdi-information-outline mr-1"></span>
-            View Details
-          </button>
-          <button
-            class="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <span class="mdi mdi-history mr-1"></span>
-            View History
-          </button>
-          <button
-            class="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <span class="mdi mdi-alert-circle-outline mr-1"></span>
-            Set Alerts
-          </button>
-          <button
-            class="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <span class="mdi mdi-tune mr-1"></span>
-            Adjust Parameters
-          </button>
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
+            <button
+              @click="refreshData"
+              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
+              :class="{ 'opacity-50 cursor-not-allowed': isRefreshing }"
+              :disabled="isRefreshing"
+            >
+              <span
+                class="mdi mr-1.5"
+                :class="isRefreshing ? 'mdi-loading mdi-spin' : 'mdi-refresh'"
+              ></span>
+              <span class="whitespace-nowrap">{{
+                isRefreshing ? 'Refreshing...' : 'Refresh Data'
+              }}</span>
+            </button>
+
+            <button
+              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
+            >
+              <span class="mdi mdi-download mr-1.5"></span>
+              <span class="whitespace-nowrap">Export</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Soil Sensor Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-      <SensorCard
-        title="Soil Temperature"
-        :value="soilData.temperature.value"
-        :unit="soilData.temperature.unit"
-        :status="soilData.temperature.status as 'normal' | 'warning' | 'critical'"
-        :trend="soilData.temperature.trend"
-        icon="thermometer"
-      />
-
-      <SensorCard
-        title="Soil Moisture"
-        :value="soilData.moisture.value"
-        :unit="soilData.moisture.unit"
-        :status="soilData.moisture.status as 'normal' | 'warning' | 'critical'"
-        :trend="soilData.moisture.trend"
-        icon="water"
-      />
-
-      <SensorCard
-        title="Soil pH"
-        :value="soilData.ph.value"
-        :unit="soilData.ph.unit"
-        :status="soilData.ph.status as 'normal' | 'warning' | 'critical'"
-        :trend="soilData.ph.trend"
-        icon="flask"
-      />
-
-      <SensorCard
-        title="Soil Conductivity"
-        :value="soilData.conductivity.value"
-        :unit="soilData.conductivity.unit"
-        :status="soilData.conductivity.status as 'normal' | 'warning' | 'critical'"
-        :trend="soilData.conductivity.trend"
-        icon="flash"
-      />
-    </div>
-
-    <!-- Nutrient Levels Section -->
-    <div class="mb-8">
-      <div class="flex items-center mb-4">
-        <div class="bg-primary-100 dark:bg-primary-900/30 p-1.5 rounded-lg mr-2">
-          <span class="mdi mdi-leaf text-primary-600 dark:text-primary-400"></span>
-        </div>
-        <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Nutrient Levels</h2>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div
-          class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
-        >
-          <div class="h-1 w-full bg-blue-500"></div>
-          <div class="p-5">
-            <div class="flex justify-between items-start mb-4">
-              <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center">
-                <span class="mdi mdi-molecule text-blue-500 mr-2"></span>
-                Nitrogen (N)
-              </h3>
-              <div class="bg-blue-100 dark:bg-blue-900/30 rounded-full py-1 px-2">
-                <span class="mdi mdi-check-circle text-blue-600 dark:text-blue-400"></span>
-              </div>
-            </div>
-
-            <div class="flex items-center">
-              <div class="w-full">
-                <div class="flex items-baseline">
-                  <span class="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                    {{ soilData.nutrients.nitrogen.value }}
-                  </span>
-                  <span class="ml-1 text-gray-500 dark:text-gray-400 font-medium">
-                    {{ soilData.nutrients.nitrogen.unit }}
-                  </span>
-                </div>
-
-                <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                  <div
-                    class="bg-blue-500 h-2.5 rounded-full"
-                    :style="{
-                      width: `${(soilData.nutrients.nitrogen.value / soilData.nutrients.nitrogen.max) * 100}%`,
-                    }"
-                  ></div>
-                </div>
-
-                <div class="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{{ soilData.nutrients.nitrogen.min }}</span>
-                  <span>{{ soilData.nutrients.nitrogen.max }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gray-50 px-4 py-3 border-t flex justify-between items-center dark:bg-gray-800/50 dark:border-gray-700"
-          >
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{
-              soilData.nutrients.nitrogen.trend
-            }}</span>
-            <div class="flex space-x-2">
-              <button
-                class="text-gray-500 hover:text-blue-600 focus:outline-none dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-              >
-                <span class="mdi mdi-information-outline"></span>
-              </button>
-              <button
-                class="text-gray-500 hover:text-blue-600 focus:outline-none dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-              >
-                <span class="mdi mdi-history"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
-        >
-          <div class="h-1 w-full bg-purple-500"></div>
-          <div class="p-5">
-            <div class="flex justify-between items-start mb-4">
-              <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center">
-                <span class="mdi mdi-molecule text-purple-500 mr-2"></span>
-                Phosphorus (P)
-              </h3>
-              <div class="bg-purple-100 dark:bg-purple-900/30 rounded-full py-1 px-2">
-                <span class="mdi mdi-check-circle text-purple-600 dark:text-purple-400"></span>
-              </div>
-            </div>
-
-            <div class="flex items-center">
-              <div class="w-full">
-                <div class="flex items-baseline">
-                  <span class="text-4xl font-bold text-purple-600 dark:text-purple-400">
-                    {{ soilData.nutrients.phosphorus.value }}
-                  </span>
-                  <span class="ml-1 text-gray-500 dark:text-gray-400 font-medium">
-                    {{ soilData.nutrients.phosphorus.unit }}
-                  </span>
-                </div>
-
-                <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                  <div
-                    class="bg-purple-500 h-2.5 rounded-full"
-                    :style="{
-                      width: `${(soilData.nutrients.phosphorus.value / soilData.nutrients.phosphorus.max) * 100}%`,
-                    }"
-                  ></div>
-                </div>
-
-                <div class="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{{ soilData.nutrients.phosphorus.min }}</span>
-                  <span>{{ soilData.nutrients.phosphorus.max }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gray-50 px-4 py-3 border-t flex justify-between items-center dark:bg-gray-800/50 dark:border-gray-700"
-          >
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{
-              soilData.nutrients.phosphorus.trend
-            }}</span>
-            <div class="flex space-x-2">
-              <button
-                class="text-gray-500 hover:text-purple-600 focus:outline-none dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
-              >
-                <span class="mdi mdi-information-outline"></span>
-              </button>
-              <button
-                class="text-gray-500 hover:text-purple-600 focus:outline-none dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
-              >
-                <span class="mdi mdi-history"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
-        >
-          <div class="h-1 w-full bg-yellow-500"></div>
-          <div class="p-5">
-            <div class="flex justify-between items-start mb-4">
-              <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center">
-                <span class="mdi mdi-molecule text-yellow-500 mr-2"></span>
-                Potassium (K)
-              </h3>
-              <div class="bg-yellow-100 dark:bg-yellow-900/30 rounded-full py-1 px-2">
-                <span class="mdi mdi-check-circle text-yellow-600 dark:text-yellow-400"></span>
-              </div>
-            </div>
-
-            <div class="flex items-center">
-              <div class="w-full">
-                <div class="flex items-baseline">
-                  <span class="text-4xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {{ soilData.nutrients.potassium.value }}
-                  </span>
-                  <span class="ml-1 text-gray-500 dark:text-gray-400 font-medium">
-                    {{ soilData.nutrients.potassium.unit }}
-                  </span>
-                </div>
-
-                <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                  <div
-                    class="bg-yellow-500 h-2.5 rounded-full"
-                    :style="{
-                      width: `${(soilData.nutrients.potassium.value / soilData.nutrients.potassium.max) * 100}%`,
-                    }"
-                  ></div>
-                </div>
-
-                <div class="flex justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{{ soilData.nutrients.potassium.min }}</span>
-                  <span>{{ soilData.nutrients.potassium.max }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gray-50 px-4 py-3 border-t flex justify-between items-center dark:bg-gray-800/50 dark:border-gray-700"
-          >
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{
-              soilData.nutrients.potassium.trend
-            }}</span>
-            <div class="flex space-x-2">
-              <button
-                class="text-gray-500 hover:text-yellow-600 focus:outline-none dark:text-gray-400 dark:hover:text-yellow-400 transition-colors"
-              >
-                <span class="mdi mdi-information-outline"></span>
-              </button>
-              <button
-                class="text-gray-500 hover:text-yellow-600 focus:outline-none dark:text-gray-400 dark:hover:text-yellow-400 transition-colors"
-              >
-                <span class="mdi mdi-history"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Dashboard Overview -->
+    <SoilHealthDashboard :soil-data="soilData" :health-score="soilHealthScore" />
 
     <!-- Soil Trends Section -->
-    <div>
-      <div class="flex items-center mb-4">
-        <div class="bg-primary-100 dark:bg-primary-900/30 p-1.5 rounded-lg mr-2">
-          <span class="mdi mdi-chart-line text-primary-600 dark:text-primary-400"></span>
+    <div
+      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 dashboard-section"
+    >
+      <div class="h-1.5 w-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
+      <div class="p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+          <div class="flex items-center mb-3 sm:mb-0">
+            <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+              <span
+                class="mdi mdi-chart-timeline-variant text-blue-600 dark:text-blue-400 text-xl"
+              ></span>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Soil Trends</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Historical data analysis for soil parameters
+              </p>
+            </div>
+          </div>
+
+          <!-- Time Period Selector -->
+          <div
+            class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-1 self-start sm:self-auto"
+          >
+            <button
+              @click="changeTimeFrame('24h')"
+              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="
+                timeFrame === '24h'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              "
+            >
+              24h
+            </button>
+            <button
+              @click="changeTimeFrame('7d')"
+              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="
+                timeFrame === '7d'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              "
+            >
+              7d
+            </button>
+            <button
+              @click="changeTimeFrame('30d')"
+              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="
+                timeFrame === '30d'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              "
+            >
+              30d
+            </button>
+          </div>
         </div>
-        <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Soil Trends</h2>
-      </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SensorChart
-          title="Soil Temperature Trend"
-          :data="soilData.temperature.history"
-          valueLabel="Temperature"
-          chartColor="#e05d44"
-        />
-
-        <SensorChart
-          title="Soil Moisture Trend"
-          :data="soilData.moisture.history"
-          valueLabel="Moisture"
-          chartColor="#3b82f6"
-        />
-
-        <SensorChart
-          title="Soil pH Trend"
-          :data="soilData.ph.history"
-          valueLabel="pH Level"
-          chartColor="#8b5cf6"
-        />
-
-        <SensorChart
-          title="Soil Conductivity Trend"
-          :data="soilData.conductivity.history"
-          valueLabel="Conductivity"
-          chartColor="#f59e0b"
-        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SensorChart
+            title="Temperature Trends"
+            :data="soilData.temperature.history"
+            valueLabel="Temperature (°C)"
+            chartColor="#E97451"
+          />
+          <SensorChart
+            title="Moisture Trends"
+            :data="soilData.moisture.history"
+            valueLabel="Moisture (%)"
+            chartColor="#3B82F6"
+          />
+          <SensorChart
+            title="pH Level Trends"
+            :data="soilData.ph.history"
+            valueLabel="pH Level"
+            chartColor="#8B5CF6"
+          />
+          <SensorChart
+            title="Conductivity Trends"
+            :data="soilData.conductivity.history"
+            valueLabel="Conductivity (mS/cm)"
+            chartColor="#10B981"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Transition for dark mode */
+.dark-mode-transition {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* Dashboard section styling */
+.dashboard-section {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.dashboard-section:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+</style>

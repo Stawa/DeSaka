@@ -4,7 +4,7 @@ export function useToast() {
   const toast = ref({
     show: false,
     message: '',
-    type: 'success', // success, error, info, warning
+    type: 'success',
     timeout: 3000,
   })
 

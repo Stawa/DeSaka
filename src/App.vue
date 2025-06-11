@@ -2,9 +2,10 @@
 import { RouterView } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 import AppSidebar from './components/AppSidebar.vue'
-import Toast from './components/Toast.vue'
-import { ref, watch, onMounted } from 'vue'
+import Toast from './components/ToastNotification.vue'
+import { ref, watch, onMounted, onErrorCaptured } from 'vue'
 import { usePreferredDark } from '@vueuse/core'
+import { navigateToErrorPage } from './utils/errorHandler'
 
 const isSidebarOpen = ref(false)
 const isSidebarCollapsed = ref(false)
@@ -13,7 +14,6 @@ const isDarkMode = ref(false)
 const prefersDark = usePreferredDark()
 
 onMounted(() => {
-  // Load theme preference
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
     isDarkMode.value = savedTheme === 'dark'
@@ -22,7 +22,6 @@ onMounted(() => {
   }
   applyTheme()
 
-  // Load sidebar collapse state
   const savedSidebarState = localStorage.getItem('sidebarCollapsed')
   if (savedSidebarState) {
     isSidebarCollapsed.value = savedSidebarState === 'true'
@@ -51,6 +50,12 @@ const applyTheme = () => {
     document.documentElement.classList.remove('dark')
   }
 }
+
+onErrorCaptured((error, instance, info) => {
+  console.error('Error captured in App.vue:', error, info)
+  navigateToErrorPage('500', 'Application Error', error?.message || 'An unexpected error occurred')
+  return false
+})
 
 watch(prefersDark, (newValue) => {
   if (localStorage.getItem('theme') === null) {
@@ -81,7 +86,9 @@ watch(prefersDark, (newValue) => {
         class="flex-1 overflow-y-auto p-4 md:p-6 text-black dark:text-white transition-all duration-300"
         :class="{ 'md:ml-0': isSidebarCollapsed }"
       >
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" />
+        </RouterView>
       </main>
     </div>
 

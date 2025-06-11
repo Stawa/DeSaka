@@ -1,7 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref } from 'vue'
 
-// Props for the combined component
 const props = defineProps({
   sensorData: {
     type: Object,
@@ -21,7 +20,6 @@ const props = defineProps({
   },
 })
 
-// Sample sensor data for StatusOverview (can be replaced with actual data)
 const statusSensorData = [
   { id: 1, name: 'Soil Moisture Sensor', status: 'normal' },
   { id: 2, name: 'Temperature Sensor', status: 'warning' },
@@ -33,7 +31,6 @@ const statusSensorData = [
   { id: 8, name: 'CO2 Sensor', status: 'normal' },
 ]
 
-// Status counts for the overview section
 const statusCounts = computed(() => {
   return {
     normal: statusSensorData.filter((sensor) => sensor.status === 'normal').length,
@@ -42,20 +39,15 @@ const statusCounts = computed(() => {
   }
 })
 
-// Key metrics for system health
 const keyMetrics = [
   { name: 'System Uptime', value: '99.8%', status: 'normal' },
   { name: 'Response Time', value: '120ms', status: 'normal' },
   { name: 'Error Rate', value: '0.5%', status: 'warning' },
 ]
 
-// For hover effects on status cards
-const isHoveredCard = ref(null)
+const isHoveredCard = ref<string | null>(null)
+const activeTab = ref('status')
 
-// For mobile/tablet view tab switching
-const activeTab = ref('status') // 'status' or 'health'
-
-// Computed properties for plant health section
 const soilMoisture = computed(() => {
   return props.sensorData.soilMoisture
 })
@@ -68,8 +60,7 @@ const airTemperature = computed(() => {
   return props.sensorData.airTemperature
 })
 
-// Helper function to get status color
-const getStatusColor = (status) => {
+const getStatusColor = (status: string) => {
   switch (status) {
     case 'normal':
       return 'text-green-500 dark:text-green-400'
@@ -82,7 +73,6 @@ const getStatusColor = (status) => {
   }
 }
 
-// Computed properties for health score colors
 const healthScoreColor = computed(() => {
   if (props.plantHealthScore >= 80) return 'text-green-500 dark:text-green-400'
   if (props.plantHealthScore >= 60) return 'text-yellow-500 dark:text-yellow-400'
@@ -101,14 +91,12 @@ const healthScoreSvgColor = computed(() => {
   return '#ef4444'
 })
 
-// Detect window width for responsive design
-const isDesktop = ref(window.innerWidth >= 1024) // lg breakpoint
+const isDesktop = ref(window.innerWidth >= 1024)
 
 const updateWindowWidth = () => {
   isDesktop.value = window.innerWidth >= 1024
 }
 
-// Add and remove event listener
 onMounted(() => {
   window.addEventListener('resize', updateWindowWidth)
 })
@@ -498,13 +486,9 @@ onUnmounted(() => {
                   class="px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
                   :class="{
                     'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Excellent',
-                    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Good',
+                      growthPrediction === 'Excellent' || growthPrediction === 'Good',
                     'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Fair',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Poor',
+                      growthPrediction === 'Fair' || growthPrediction === 'Poor',
                     'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300':
                       growthPrediction === 'Critical',
                   }"
@@ -824,13 +808,9 @@ onUnmounted(() => {
                   class="px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
                   :class="{
                     'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Excellent',
-                    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Good',
+                      growthPrediction === 'Excellent' || growthPrediction === 'Good',
                     'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Fair',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Poor',
+                      growthPrediction === 'Fair' || growthPrediction === 'Poor',
                     'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300':
                       growthPrediction === 'Critical',
                   }"
