@@ -377,17 +377,60 @@ const filteredData = computed(() => {
       
       result[sensorId] = historicalData.value[sensorId].filter((point) => {
         try {
-          const timestamp = new Date(point.timestamp).getTime();
+          // Try multiple approaches to parse the timestamp
+          let timestamp: number;
+          let parsedDate: Date;
+          
+          // First try direct parsing
+          parsedDate = new Date(point.timestamp);
+          timestamp = parsedDate.getTime();
+          
+          // If that fails, try some common formats
+          if (isNaN(timestamp)) {
+            // Try to handle YYYY-MM-DD format
+            if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              parsedDate = new Date(point.timestamp + 'T12:00:00Z');
+              timestamp = parsedDate.getTime();
+            }
+            // Try to handle MM/DD/YYYY format
+            else if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+              const parts = point.timestamp.split('/');
+              parsedDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]), 12, 0, 0);
+              timestamp = parsedDate.getTime();
+            }
+            // Try to handle MM/DD HH:MM format (current year assumed)
+            else if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{1,2}\/\d{1,2} \d{1,2}:\d{2}$/)) {
+              const currentYear = new Date().getFullYear();
+              const datePart = point.timestamp.split(' ')[0];
+              const timePart = point.timestamp.split(' ')[1];
+              const dateParts = datePart.split('/');
+              const timeParts = timePart.split(':');
+              
+              parsedDate = new Date(
+                currentYear,
+                parseInt(dateParts[0]) - 1,
+                parseInt(dateParts[1]),
+                parseInt(timeParts[0]),
+                parseInt(timeParts[1]),
+                0
+              );
+              timestamp = parsedDate.getTime();
+            }
+          }
+          
           const isInRange = !isNaN(timestamp) && timestamp >= startDate && timestamp <= endDate;
           
           // Debug why points are being filtered out
           if (!isInRange && sensorId === 'soil_temperature') {
             console.log(`Point filtered out for ${sensorId}:`, {
               rawTimestamp: point.timestamp,
+              parsedDate: parsedDate ? parsedDate.toISOString() : 'Invalid Date',
               parsedTime: timestamp,
               isNaN: isNaN(timestamp),
               beforeStart: timestamp < startDate,
               afterEnd: timestamp > endDate,
+              startDate: new Date(startDate).toISOString(),
+              endDate: new Date(endDate).toISOString(),
               value: point.value
             });
           }
