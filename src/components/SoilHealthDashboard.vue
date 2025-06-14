@@ -315,15 +315,6 @@ const healthStatus = computed(() => {
                 :trend="soilData.ph.trend"
                 icon="flask"
               />
-
-              <SensorCard
-                title="Soil Conductivity"
-                :value="soilData.conductivity.value"
-                :unit="soilData.conductivity.unit"
-                :status="soilData.conductivity.status"
-                :trend="soilData.conductivity.trend"
-                icon="flash"
-              />
             </div>
           </div>
         </div>

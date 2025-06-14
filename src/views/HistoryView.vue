@@ -9,22 +9,9 @@ import { useApi } from '@/composables/useApi'
 const { fetchFiles, fetchFileById } = useApi()
 
 const activeTab = ref('date-range')
-const setActiveTab = (tab: string) => {
-  activeTab.value = tab
-}
-
 const screenWidth = ref(0)
-const updateScreenWidth = () => {
-  screenWidth.value = window.innerWidth
-}
-
 const chartLayout = ref(window.innerWidth >= 768 ? 'grid' : 'list')
-
-onMounted(() => {
-  updateScreenWidth()
-  window.addEventListener('resize', updateScreenWidth)
-  fetchHistoricalData()
-})
+const showExportModal = ref(false)
 
 const dateRange = ref({
   start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -42,11 +29,8 @@ const availableSensors = [
   { id: 'soil_temperature', name: 'Soil Temperature', unit: '°C', color: '#e05d44' },
   { id: 'soil_moisture', name: 'Soil Moisture', unit: '%', color: '#3b82f6' },
   { id: 'soil_ph', name: 'Soil pH', unit: 'pH', color: '#8b5cf6' },
-  { id: 'soil_conductivity', name: 'Soil Conductivity', unit: 'mS/cm', color: '#f59e0b' },
   { id: 'air_temperature', name: 'Air Temperature', unit: '°C', color: '#ef4444' },
   { id: 'air_humidity', name: 'Air Humidity', unit: '%', color: '#0ea5e9' },
-  { id: 'air_co2', name: 'CO₂ Level', unit: 'ppm', color: '#10b981' },
-  { id: 'air_tvoc', name: 'TVOC Level', unit: 'ppb', color: '#6366f1' },
   { id: 'light_intensity', name: 'Light Intensity', unit: 'lux', color: '#f59e0b' },
 ]
 
@@ -64,181 +48,216 @@ const isLoading = ref(false)
 const apiError = ref<string | null>(null)
 const availableFiles = ref<Array<{ id: string; name: string; modifiedTime: string }>>([])
 
-async function fetchHistoricalData() {
+const sensorMapping: Record<string, string> = {
+  ph: 'soil_ph',
+  conductivity: 'soil_conductivity',
+  air_temperature: 'air_temperature',
+  co2: 'air_co2',
+  tvoc: 'air_tvoc',
+  light: 'light_intensity',
+  soil_temperature: 'soil_temperature',
+}
+
+const mockValueRanges = {
+  soil_temperature: { base: 18, range: 8 },
+  soil_moisture: { base: 45, range: 30 },
+  soil_ph: { base: 6, range: 1.2 },
+  soil_conductivity: { base: 0.9, range: 0.5 },
+  air_temperature: { base: 20, range: 6 },
+  air_humidity: { base: 35, range: 20 },
+  air_co2: { base: 500, range: 450 },
+  air_tvoc: { base: 100, range: 200 },
+  light_intensity: { base: 250, range: 550 },
+}
+
+const setActiveTab = (tab: string) => {
+  activeTab.value = tab
+}
+
+const updateScreenWidth = () => {
+  screenWidth.value = window.innerWidth
+}
+
+const standardizeTimestamp = (timestamp: string, sensorId: string): string => {
+  if (sensorId === 'soil_temperature' || sensorId === 'soil_moisture') {
+    return handleSoilSensorTimestamp(timestamp)
+  }
+  return handleRegularTimestamp(timestamp)
+}
+
+const handleSoilSensorTimestamp = (timestamp: string): string => {
+  if (!isNaN(Number(timestamp))) {
+    const date = new Date(Number(timestamp))
+    return !isNaN(date.getTime()) ? date.toISOString() : timestamp
+  }
+
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp)
+    if (!isNaN(date.getTime())) return date.toISOString()
+
+    if (timestamp.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const date = new Date(timestamp + 'T12:00:00Z')
+      return !isNaN(date.getTime()) ? date.toISOString() : timestamp
+    }
+
+    if (timestamp.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      const parts = timestamp.split('/')
+      const date = new Date(
+        parseInt(parts[2]),
+        parseInt(parts[0]) - 1,
+        parseInt(parts[1]),
+        12,
+        0,
+        0,
+      )
+      return !isNaN(date.getTime()) ? date.toISOString() : timestamp
+    }
+  }
+
+  return timestamp
+}
+
+const handleRegularTimestamp = (timestamp: string): string => {
+  try {
+    if (!timestamp.includes('T') || !timestamp.includes('Z')) {
+      const date = new Date(timestamp)
+      return !isNaN(date.getTime()) ? date.toISOString() : timestamp
+    }
+    return timestamp
+  } catch (error) {
+    console.error('Error standardizing timestamp:', timestamp, error)
+    return timestamp
+  }
+}
+
+const determineFileType = (fileData: any, fileName: string): string => {
+  const hasHumidity = Object.keys(fileData).includes('humidity')
+  const hasMoisture = Object.keys(fileData).includes('moisture')
+  const hasTemperature = Object.keys(fileData).includes('temperature')
+
+  if (hasHumidity) return 'air'
+  if (hasMoisture) return 'soil'
+
+  if (hasTemperature) {
+    if (fileName.toLowerCase().includes('soil')) return 'soil'
+    if (fileName.toLowerCase().includes('air')) return 'air'
+  }
+
+  if (fileName.toLowerCase().includes('soil')) return 'soil'
+  if (fileName.toLowerCase().includes('air')) return 'air'
+
+  return hasTemperature ? 'soil' : 'unknown'
+}
+
+const mapSensorId = (apiSensorKey: string, fileType: string): string => {
+  if (apiSensorKey === 'temperature') {
+    return fileType === 'air' ? 'air_temperature' : 'soil_temperature'
+  }
+  if (apiSensorKey === 'moisture') return 'soil_moisture'
+  if (apiSensorKey === 'humidity') return 'air_humidity'
+
+  return sensorMapping[apiSensorKey] || apiSensorKey
+}
+
+const processSensorData = (fileData: any, apiSensorKey: string, sensorId: string): DataPoint[] => {
+  if (!fileData[apiSensorKey]?.history || !Array.isArray(fileData[apiSensorKey].history)) {
+    return []
+  }
+
+  return fileData[apiSensorKey].history.map((point: { time: string; value: number }) => ({
+    timestamp: standardizeTimestamp(point.time, sensorId),
+    value: typeof point.value === 'number' ? point.value : parseFloat(point.value),
+  }))
+}
+
+const mergeAndSortSensorData = (existingData: DataPoint[], newData: DataPoint[]): DataPoint[] => {
+  const merged = [...existingData, ...newData]
+  return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+}
+
+const processFileData = async (filesResponse: any): Promise<SensorData> => {
+  const sortedFiles = [...filesResponse.files].sort(
+    (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
+  )
+
+  const data: SensorData = {}
+  selectedSensors.value.forEach((sensorId) => {
+    data[sensorId] = []
+  })
+
+  const fetchPromises = sortedFiles.map((file) => fetchFileById(file.id))
+  const fileDataArray = await Promise.all(fetchPromises)
+
+  fileDataArray.forEach((fileData, index) => {
+    const fileName = sortedFiles[index]?.name || 'unknown'
+    const fileType = determineFileType(fileData, fileName)
+
+    Object.keys(fileData).forEach((apiSensorKey) => {
+      const sensorId = mapSensorId(apiSensorKey, fileType)
+
+      if (selectedSensors.value.includes(sensorId)) {
+        const sensorData = processSensorData(fileData, apiSensorKey, sensorId)
+
+        if (sensorData.length > 0) {
+          data[sensorId] = data[sensorId]
+            ? mergeAndSortSensorData(data[sensorId], sensorData)
+            : sensorData
+        }
+      }
+    })
+  })
+
+  return data
+}
+
+const generateMockDataPoint = (sensorId: string, timestamp: string): DataPoint => {
+  const config = mockValueRanges[sensorId as keyof typeof mockValueRanges] || {
+    base: 0,
+    range: 100,
+  }
+  const value = config.base + Math.random() * config.range
+
+  return {
+    timestamp,
+    value: parseFloat(value.toFixed(1)),
+  }
+}
+
+const generateMockData = () => {
+  console.warn('Using mock data as fallback')
+  const data: SensorData = {}
+  const now = new Date()
+  const startDate = new Date(dateRange.value.start)
+  const daysDiff = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+
+  availableSensors.forEach((sensor) => {
+    data[sensor.id] = []
+
+    for (let i = 0; i <= daysDiff; i++) {
+      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000)
+      const dateStr = date.toISOString().split('T')[0]
+
+      for (let hour = 0; hour < 24; hour++) {
+        const timestamp = `${dateStr}T${hour.toString().padStart(2, '0')}:00:00`
+        data[sensor.id].push(generateMockDataPoint(sensor.id, timestamp))
+      }
+    }
+  })
+
+  historicalData.value = data
+}
+
+const fetchHistoricalData = async () => {
   isLoading.value = true
   apiError.value = null
 
   try {
     const filesResponse = await fetchFiles()
-    if (filesResponse && filesResponse.files) {
+    if (filesResponse?.files) {
       availableFiles.value = filesResponse.files
 
       if (availableFiles.value.length > 0) {
-        const sortedFiles = [...availableFiles.value].sort(
-          (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
-        )
-        const data: SensorData = {}
-        const sensorMapping: Record<string, string> = {
-          // These will be determined dynamically based on file context
-          // temperature: handled dynamically based on file type
-          // moisture: handled dynamically based on file type
-          // humidity: handled dynamically based on file type
-          ph: 'soil_ph',
-          conductivity: 'soil_conductivity',
-          air_temperature: 'air_temperature',
-          co2: 'air_co2',
-          tvoc: 'air_tvoc',
-          light: 'light_intensity',
-          soil_temperature: 'soil_temperature',
-        }
-        const fetchPromises = sortedFiles.map((file) => fetchFileById(file.id))
-        const fileDataArray = await Promise.all(fetchPromises)
-
-        // Debug the entire fileDataArray to understand its structure
-        console.log('All file data:', fileDataArray.map((data, i) => ({
-          fileName: sortedFiles[i]?.name,
-          keys: Object.keys(data)
-        })));
-        
-        // Initialize historicalData with empty arrays for each sensor
-        selectedSensors.value.forEach(sensorId => {
-          if (!data[sensorId]) {
-            data[sensorId] = [];
-          }
-        });
-        
-        fileDataArray.forEach((fileData, index) => {
-          // Get the file name for better debugging
-          const fileName = sortedFiles[index]?.name || 'unknown';
-          
-          // Determine file type based on content and file name
-          // Check for specific keys that identify each file type
-          const hasHumidity = Object.keys(fileData).includes('humidity');
-          const hasMoisture = Object.keys(fileData).includes('moisture');
-          const hasTemperature = Object.keys(fileData).includes('temperature');
-          
-          // If it has humidity, it's an air file; if it has moisture, it's a soil file
-          // If neither is present, try to determine based on other factors
-          let fileType = 'unknown';
-          
-          if (hasHumidity) {
-            fileType = 'air';
-          } else if (hasMoisture) {
-            fileType = 'soil';
-          } else if (hasTemperature) {
-            // If it only has temperature, determine by file name
-            if (fileName.toLowerCase().includes('soil')) {
-              fileType = 'soil';
-            } else if (fileName.toLowerCase().includes('air')) {
-              fileType = 'air';
-            } else {
-              // If we can't determine from the file name, check the structure
-              // of the temperature data to make a best guess
-              fileType = 'unknown';
-            }
-          }
-          
-          // If we still don't know, make a final guess based on file name
-          if (fileType === 'unknown') {
-            if (fileName.toLowerCase().includes('soil')) {
-              fileType = 'soil';
-            } else if (fileName.toLowerCase().includes('air')) {
-              fileType = 'air';
-            } else {
-              // Default to a type based on what data we have
-              fileType = hasTemperature ? 'soil' : 'unknown';
-            }
-          }
-          
-          console.log('File type determined:', fileType, 'for file:', fileName, 'with keys:', Object.keys(fileData));
-          
-          Object.keys(fileData).forEach((apiSensorKey) => {
-            // Dynamically determine the correct sensor ID based on file type and API key
-            let sensorId;
-            
-            // Handle temperature and moisture/humidity based on file type
-            if (apiSensorKey === 'temperature') {
-              // Explicitly set the sensor ID based on file type
-              if (fileType === 'air') {
-                sensorId = 'air_temperature';
-              } else if (fileType === 'soil') {
-                sensorId = 'soil_temperature';
-              } else {
-                // If file type is unknown, use a default mapping
-                sensorId = 'soil_temperature';
-              }
-            } else if (apiSensorKey === 'moisture') {
-              sensorId = 'soil_moisture';
-            } else if (apiSensorKey === 'humidity') {
-              sensorId = 'air_humidity';
-            } else {
-              // For other keys, use the mapping or the key itself
-              sensorId = sensorMapping[apiSensorKey] || apiSensorKey;
-            }
-            
-            // Debug logging to help diagnose issues
-            console.log('Processing sensor data:', {
-              apiSensorKey,
-              sensorId,
-              fileType,
-              fileName: sortedFiles[index]?.name,
-              hasHistory: fileData[apiSensorKey]?.history ? 'yes' : 'no',
-              historyLength: fileData[apiSensorKey]?.history?.length || 0
-            })
-
-            // Only process if the sensor ID is in our selected sensors
-            if (selectedSensors.value.includes(sensorId) && 
-              fileData[apiSensorKey] &&
-              fileData[apiSensorKey].history &&
-              Array.isArray(fileData[apiSensorKey].history)
-            ) {
-              // Convert the history data to our expected format
-              const sensorData = fileData[apiSensorKey].history.map(
-                (point: { time: string; value: number }) => {
-                  // Ensure timestamp is in a consistent format
-                  let timestamp = point.time;
-                  
-                  // Debug the timestamp format
-                  console.log(`Original timestamp for ${sensorId}:`, timestamp);
-                  
-                  // Try to standardize the timestamp format if needed
-                  try {
-                    // If it's not already an ISO string, try to convert it
-                    if (!timestamp.includes('T') || !timestamp.includes('Z')) {
-                      const date = new Date(timestamp);
-                      if (!isNaN(date.getTime())) {
-                        timestamp = date.toISOString();
-                        console.log(`Converted timestamp to ISO:`, timestamp);
-                      }
-                    }
-                  } catch (error) {
-                    console.error(`Error standardizing timestamp for ${sensorId}:`, timestamp, error);
-                  }
-                  
-                  return {
-                    timestamp: timestamp,
-                    value: typeof point.value === 'number' ? point.value : parseFloat(point.value),
-                  };
-                }
-              )
-
-              // Add the data to our historicalData object
-              if (data[sensorId]) {
-                data[sensorId] = [...data[sensorId], ...sensorData]
-                // Sort by timestamp
-                data[sensorId].sort(
-                  (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-                )
-              } else {
-                data[sensorId] = sensorData
-              }
-              
-              // Debug the data we've added
-              console.log(`Added ${sensorData.length} data points to ${sensorId}, total now: ${data[sensorId].length}`)
-            }
-          })
-        })
-
+        const data = await processFileData(filesResponse)
         historicalData.value = data
       }
     }
@@ -251,199 +270,102 @@ async function fetchHistoricalData() {
   }
 }
 
-function generateMockData() {
-  console.warn('Using mock data as fallback')
-  const data: SensorData = {}
-  const now = new Date()
-  const startDate = new Date(dateRange.value.start)
+const getDateRange = () => {
+  try {
+    const startDateObj = new Date(dateRange.value.start)
+    startDateObj.setHours(0, 0, 0, 0)
+    const startDate = startDateObj.getTime()
 
-  const daysDiff = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    const endDateObj = new Date(dateRange.value.end)
+    endDateObj.setHours(23, 59, 59, 999)
+    const endDate = endDateObj.getTime()
 
-  availableSensors.forEach((sensor) => {
-    data[sensor.id] = []
+    if (isNaN(startDate) || isNaN(endDate)) {
+      throw new Error('Invalid date range')
+    }
 
-    for (let i = 0; i <= daysDiff; i++) {
-      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000)
-      const dateStr = date.toISOString().split('T')[0]
+    return { startDate, endDate }
+  } catch (error) {
+    console.error('Error parsing date range:', error)
+    const now = new Date()
+    const endDate = now.getTime()
+    const startDate = now.getTime() - 30 * 24 * 60 * 60 * 1000
+    return { startDate, endDate }
+  }
+}
 
-      for (let hour = 0; hour < 24; hour++) {
-        const timestamp = `${dateStr}T${hour.toString().padStart(2, '0')}:00:00`
+const parseTimestamp = (timestamp: string): number => {
+  let parsedDate = new Date(timestamp)
+  let timestampMs = parsedDate.getTime()
 
-        let value = 0
-        switch (sensor.id) {
-          case 'soil_temperature':
-            value = 18 + Math.random() * 8
-            break
-          case 'soil_moisture':
-            value = 45 + Math.random() * 30
-            break
-          case 'soil_ph':
-            value = 6 + Math.random() * 1.2
-            break
-          case 'soil_conductivity':
-            value = 0.9 + Math.random() * 0.5
-            break
-          case 'air_temperature':
-            value = 20 + Math.random() * 6
-            break
-          case 'air_humidity':
-            value = 35 + Math.random() * 20
-            break
-          case 'air_co2':
-            value = 500 + Math.random() * 450
-            break
-          case 'air_tvoc':
-            value = 100 + Math.random() * 200
-            break
-          case 'light_intensity':
-            value = 250 + Math.random() * 550
-            break
-        }
+  if (isNaN(timestampMs)) {
+    if (typeof timestamp === 'string') {
+      if (timestamp.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        parsedDate = new Date(timestamp + 'T12:00:00Z')
+        timestampMs = parsedDate.getTime()
+      } else if (timestamp.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        const parts = timestamp.split('/')
+        parsedDate = new Date(
+          parseInt(parts[2]),
+          parseInt(parts[0]) - 1,
+          parseInt(parts[1]),
+          12,
+          0,
+          0,
+        )
+        timestampMs = parsedDate.getTime()
+      } else if (timestamp.match(/^\d{1,2}\/\d{1,2} \d{1,2}:\d{2}$/)) {
+        const currentYear = new Date().getFullYear()
+        const [datePart, timePart] = timestamp.split(' ')
+        const [month, day] = datePart.split('/')
+        const [hour, minute] = timePart.split(':')
 
-        data[sensor.id].push({
-          timestamp,
-          value: parseFloat(value.toFixed(1)),
-        })
+        parsedDate = new Date(
+          currentYear,
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute),
+          0,
+        )
+        timestampMs = parsedDate.getTime()
       }
     }
-  })
+  }
 
-  historicalData.value = data
+  return timestampMs
+}
+
+const isPointInDateRange = (
+  point: DataPoint,
+  startDate: number,
+  endDate: number,
+  sensorId: string,
+): boolean => {
+  try {
+    const timestamp = parseTimestamp(point.timestamp)
+    return !isNaN(timestamp) && timestamp >= startDate && timestamp <= endDate
+  } catch (error) {
+    console.error(`Error filtering point for ${sensorId}:`, point, error)
+    return false
+  }
 }
 
 const filteredData = computed(() => {
   const result: SensorData = {}
-  
-  // Parse dates and ensure they're valid
-  let startDate: number, endDate: number
-  try {
-    // Ensure we have a valid date format by using YYYY-MM-DD
-    const startDateStr = dateRange.value.start;
-    const endDateStr = dateRange.value.end;
-    
-    // Create date objects at the start of the day for start date
-    const startDateObj = new Date(startDateStr);
-    startDateObj.setHours(0, 0, 0, 0);
-    startDate = startDateObj.getTime();
-    
-    // Create date object at the end of the day for end date
-    const endDateObj = new Date(endDateStr);
-    endDateObj.setHours(23, 59, 59, 999);
-    endDate = endDateObj.getTime();
-    
-    // Debug date range
-    console.log('Date range filtering:', {
-      startStr: startDateStr,
-      endStr: endDateStr,
-      startObj: startDateObj.toISOString(),
-      endObj: endDateObj.toISOString(),
-      startTime: startDate,
-      endTime: endDate
-    });
-    
-    // Validate dates
-    if (isNaN(startDate) || isNaN(endDate)) {
-      console.error('Invalid date range:', dateRange.value);
-      // Use a very wide date range as fallback
-      const now = new Date();
-      endDate = now.getTime();
-      startDate = now.getTime() - 30 * 24 * 60 * 60 * 1000; // 30 days ago
-    }
-  } catch (error) {
-    console.error('Error parsing date range:', error);
-    // Use a very wide date range as fallback
-    const now = new Date();
-    endDate = now.getTime();
-    startDate = now.getTime() - 30 * 24 * 60 * 60 * 1000; // 30 days ago
-  }
+  const { startDate, endDate } = getDateRange()
 
-  // Filter data based on date range
   Object.keys(historicalData.value).forEach((sensorId) => {
-    // Initialize with empty array even if no data passes the filter
     result[sensorId] = []
-    
-    if (historicalData.value[sensorId] && historicalData.value[sensorId].length > 0) {
-      // Log a sample of the data points to debug timestamp format
-      if (historicalData.value[sensorId].length > 0) {
-        const samplePoint = historicalData.value[sensorId][0];
-        console.log(`Sample point for ${sensorId}:`, {
-          rawTimestamp: samplePoint.timestamp,
-          parsedDate: new Date(samplePoint.timestamp).toISOString(),
-          parsedTime: new Date(samplePoint.timestamp).getTime(),
-          startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString()
-        });
+
+    if (historicalData.value[sensorId]?.length > 0) {
+      if (sensorId === 'soil_temperature' || sensorId === 'soil_moisture') {
+        result[sensorId] = [...historicalData.value[sensorId]]
+      } else {
+        result[sensorId] = historicalData.value[sensorId].filter((point) =>
+          isPointInDateRange(point, startDate, endDate, sensorId),
+        )
       }
-      
-      result[sensorId] = historicalData.value[sensorId].filter((point) => {
-        try {
-          // Try multiple approaches to parse the timestamp
-          let timestamp: number;
-          let parsedDate: Date;
-          
-          // First try direct parsing
-          parsedDate = new Date(point.timestamp);
-          timestamp = parsedDate.getTime();
-          
-          // If that fails, try some common formats
-          if (isNaN(timestamp)) {
-            // Try to handle YYYY-MM-DD format
-            if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{4}-\d{2}-\d{2}$/)) {
-              parsedDate = new Date(point.timestamp + 'T12:00:00Z');
-              timestamp = parsedDate.getTime();
-            }
-            // Try to handle MM/DD/YYYY format
-            else if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-              const parts = point.timestamp.split('/');
-              parsedDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]), 12, 0, 0);
-              timestamp = parsedDate.getTime();
-            }
-            // Try to handle MM/DD HH:MM format (current year assumed)
-            else if (typeof point.timestamp === 'string' && point.timestamp.match(/^\d{1,2}\/\d{1,2} \d{1,2}:\d{2}$/)) {
-              const currentYear = new Date().getFullYear();
-              const datePart = point.timestamp.split(' ')[0];
-              const timePart = point.timestamp.split(' ')[1];
-              const dateParts = datePart.split('/');
-              const timeParts = timePart.split(':');
-              
-              parsedDate = new Date(
-                currentYear,
-                parseInt(dateParts[0]) - 1,
-                parseInt(dateParts[1]),
-                parseInt(timeParts[0]),
-                parseInt(timeParts[1]),
-                0
-              );
-              timestamp = parsedDate.getTime();
-            }
-          }
-          
-          const isInRange = !isNaN(timestamp) && timestamp >= startDate && timestamp <= endDate;
-          
-          // Debug why points are being filtered out
-          if (!isInRange && sensorId === 'soil_temperature') {
-            console.log(`Point filtered out for ${sensorId}:`, {
-              rawTimestamp: point.timestamp,
-              parsedDate: parsedDate ? parsedDate.toISOString() : 'Invalid Date',
-              parsedTime: timestamp,
-              isNaN: isNaN(timestamp),
-              beforeStart: timestamp < startDate,
-              afterEnd: timestamp > endDate,
-              startDate: new Date(startDate).toISOString(),
-              endDate: new Date(endDate).toISOString(),
-              value: point.value
-            });
-          }
-          
-          return isInRange;
-        } catch (error) {
-          console.error(`Error filtering point for ${sensorId}:`, point, error);
-          return false;
-        }
-      })
-      
-      // Debug filtering results
-      console.log(`Filtered ${sensorId}: ${historicalData.value[sensorId].length} → ${result[sensorId].length} points`)
     } else {
       console.warn(`No historical data for ${sensorId} to filter`)
     }
@@ -452,83 +374,108 @@ const filteredData = computed(() => {
   return result
 })
 
+const formatChartTime = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp)
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', timestamp)
+      return 'Invalid date'
+    }
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} ${date.getHours()}:00`
+  } catch (error) {
+    console.error('Error processing chart point:', error)
+    return 'Error'
+  }
+}
+
+const processChartPoint = (point: DataPoint) => {
+  const time = formatChartTime(point.timestamp)
+  const value = typeof point.value === 'number' ? point.value : parseFloat(point.value) || 0
+
+  return { time, value }
+}
+
+const getChartDataForSensor = (sensorId: string) => {
+  const dataSource =
+    filteredData.value[sensorId]?.length > 0
+      ? filteredData.value[sensorId]
+      : (sensorId === 'soil_temperature' || sensorId === 'soil_moisture') &&
+          historicalData.value[sensorId]?.length > 0
+        ? historicalData.value[sensorId]
+        : []
+
+  if (dataSource.length === 0) {
+    if (historicalData.value[sensorId]?.length > 0) {
+      console.warn(
+        `Sensor ${sensorId} has ${historicalData.value[sensorId].length} points in historicalData but none in filteredData`,
+      )
+    }
+    return []
+  }
+
+  return dataSource
+    .map((point) => processChartPoint(point))
+    .filter((point) => point.time !== 'Invalid date' && point.time !== 'Error')
+}
+
 const chartData = computed(() => {
   const result: { [key: string]: { time: string; value: number }[] } = {}
 
-  // Debug: Log available sensors in filteredData and historicalData
-  console.log('Available sensors in filteredData:', Object.keys(filteredData.value))
-  console.log('Available sensors in historicalData:', Object.keys(historicalData.value))
-  console.log('Selected sensors:', selectedSensors.value)
-  
-  // Check if filteredData is empty but historicalData has data
-  if (Object.keys(filteredData.value).length === 0 && Object.keys(historicalData.value).length > 0) {
+  if (
+    Object.keys(filteredData.value).length === 0 &&
+    Object.keys(historicalData.value).length > 0
+  ) {
     console.warn('filteredData is empty but historicalData has data. Check date range filtering.')
   }
-  
+
   selectedSensors.value.forEach((sensorId) => {
-    if (filteredData.value[sensorId] && filteredData.value[sensorId].length > 0) {
-      // Debug: Log data points count for this sensor
-      console.log(`Sensor ${sensorId} has ${filteredData.value[sensorId].length} data points`)
-      
-      result[sensorId] = filteredData.value[sensorId].map((point) => {
-        const date = new Date(point.timestamp)
-        return {
-          time: `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`,
-          value: typeof point.value === 'number' ? point.value : parseFloat(point.value),
-        }
-      })
-    } else {
-      // Debug: Log missing sensor data
-      console.warn(`No data found for sensor: ${sensorId}`)
-      
-      // Check if this sensor exists in historicalData but not in filteredData
-      if (historicalData.value[sensorId] && historicalData.value[sensorId].length > 0) {
-        console.warn(`Sensor ${sensorId} has ${historicalData.value[sensorId].length} points in historicalData but none in filteredData`)
-      }
-    }
+    result[sensorId] = getChartDataForSensor(sensorId)
   })
 
   return result
 })
 
-function getSensorById(id: string) {
+const getSensorById = (id: string) => {
   return availableSensors.find((sensor) => sensor.id === id)
 }
 
-function setDateRange(range: string) {
+const getDateRangeForPeriod = (range: string) => {
   const now = new Date()
   let start = new Date()
-  let timeframe = '24h'
 
-  switch (range) {
-    case 'day':
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      timeframe = '24h'
-      break
-    case 'week':
-      start = new Date(now)
-      start.setDate(now.getDate() - 6)
-      timeframe = '7d'
-      break
-    case 'month':
-      start = new Date(now)
-      start.setDate(now.getDate() - 29)
-      timeframe = '30d'
-      break
-    case 'year':
-      start = new Date(now)
-      start.setFullYear(now.getFullYear() - 1)
-      timeframe = '30d'
-      break
+  const dateRanges = {
+    day: () => new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    week: () => {
+      const date = new Date(now)
+      date.setDate(now.getDate() - 6)
+      return date
+    },
+    month: () => {
+      const date = new Date(now)
+      date.setDate(now.getDate() - 29)
+      return date
+    },
+    year: () => {
+      const date = new Date(now)
+      date.setFullYear(now.getFullYear() - 1)
+      return date
+    },
   }
-  dateRange.value = {
+
+  start = dateRanges[range as keyof typeof dateRanges]?.() || new Date()
+
+  return {
     start: start.toISOString().split('T')[0],
     end: now.toISOString().split('T')[0],
   }
+}
+
+const setDateRange = (range: string) => {
+  dateRange.value = getDateRangeForPeriod(range)
   fetchHistoricalData()
 }
 
-function toggleSensor(sensorId: string) {
+const toggleSensor = (sensorId: string) => {
   const index = selectedSensors.value.indexOf(sensorId)
   if (index === -1) {
     selectedSensors.value.push(sensorId)
@@ -537,9 +484,7 @@ function toggleSensor(sensorId: string) {
   }
 }
 
-const showExportModal = ref(false)
-
-function handleExport(exportOptions: any) {
+const prepareExportData = () => {
   const exportData: Record<string, Array<{ timestamp: string; value: number }>> = {}
   const sensorInfo: Record<string, { name: string; unit: string }> = {}
 
@@ -568,8 +513,19 @@ function handleExport(exportOptions: any) {
     sensorInfo[sensorId] = sensorInfoData
   })
 
+  return { exportData, sensorInfo }
+}
+
+const handleExport = (exportOptions: any) => {
+  const { exportData, sensorInfo } = prepareExportData()
   handleDataExport(exportOptions, exportData, sensorInfo)
 }
+
+onMounted(() => {
+  updateScreenWidth()
+  window.addEventListener('resize', updateScreenWidth)
+  fetchHistoricalData()
+})
 </script>
 
 <template>
@@ -1007,12 +963,10 @@ function handleExport(exportOptions: any) {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Default (light mode): no inversion */
 input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0);
 }
 
-/* Dark mode: invert icon color to white */
 .dark input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }

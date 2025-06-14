@@ -107,12 +107,7 @@ function handleExport(exportOptions: any) {
       selected: true,
     },
     { name: 'ph', label: 'Soil pH', unit: soilData.value.ph.unit, selected: true },
-    {
-      name: 'conductivity',
-      label: 'Soil Conductivity',
-      unit: soilData.value.conductivity.unit,
-      selected: true,
-    },
+
     {
       name: 'nutrients.nitrogen',
       label: 'Nitrogen',
@@ -474,12 +469,6 @@ const soilHealthScore = computed(() => {
             :data="soilData.ph.history"
             valueLabel="Soil pH Level"
             chartColor="#8B5CF6"
-          />
-          <SensorChart
-            title="Conductivity Trends"
-            :data="soilData.conductivity.history"
-            valueLabel="Soil Conductivity (mS/cm)"
-            chartColor="#10B981"
           />
         </div>
       </div>

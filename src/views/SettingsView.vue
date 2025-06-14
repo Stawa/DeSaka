@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useApi } from '@/composables/useApi'
 
 const activeTab = ref('general')
 const setActiveTab = (tab: string) => {
@@ -8,9 +9,14 @@ const setActiveTab = (tab: string) => {
 }
 
 const { showToast } = useToast()
+const { fetchFileById, updateFileById } = useApi()
 const settingsModified = ref(false)
+const isLoadingSettings = ref(false)
+const isSavingSettings = ref(false)
+const isResettingSettings = ref(false)
 
-// New refs for tag input functionality
+const SETTINGS_FILE_ID = '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu'
+
 const newEmailTag = ref('')
 const newPhoneTag = ref('')
 
@@ -26,8 +32,8 @@ const originalSettings = {
     emailEnabled: false,
     smsEnabled: false,
     pushEnabled: true,
-    emails: [], // Changed from single email to array of emails
-    phones: [], // Changed from single phone to array of phones
+    emails: [],
+    phones: [],
   },
   thresholds: {
     soilTemperature: {
@@ -47,6 +53,62 @@ const originalSettings = {
 
 const settings = ref(JSON.parse(JSON.stringify(originalSettings)))
 
+onMounted(async () => {
+  await loadSettingsFromDrive()
+})
+
+async function loadSettingsFromDrive() {
+  try {
+    isLoadingSettings.value = true
+    console.log('[loadSettingsFromDrive] Fetching settings from Google Drive')
+
+    const response = await fetchFileById(SETTINGS_FILE_ID)
+    console.log('[loadSettingsFromDrive] Response:', response)
+
+    if (response && Object.keys(response).length > 0) {
+      const mergedSettings = { ...originalSettings }
+
+      for (const key in response) {
+        if (key in mergedSettings) {
+          mergedSettings[key as keyof typeof mergedSettings] =
+            response[key as keyof typeof response]
+        }
+      }
+
+      settings.value = JSON.parse(JSON.stringify(mergedSettings))
+      Object.assign(originalSettings, JSON.parse(JSON.stringify(mergedSettings)))
+      console.log('[loadSettingsFromDrive] Settings loaded and merged with defaults')
+      showToast('Settings loaded from Google Drive', 'success')
+    } else {
+      console.log('[loadSettingsFromDrive] No settings found, using defaults')
+      showToast('No saved settings found, using defaults', 'info')
+    }
+  } catch (err) {
+    console.error('Error loading settings from Google Drive:', err)
+    showToast('Failed to load settings from Google Drive', 'error')
+  } finally {
+    isLoadingSettings.value = false
+  }
+}
+
+async function saveSettingsToDrive() {
+  try {
+    isSavingSettings.value = true
+    const plainSettings = JSON.parse(JSON.stringify(settings.value))
+    console.log('[saveSettingsToDrive] Sending settings:', plainSettings)
+
+    await updateFileById(SETTINGS_FILE_ID, plainSettings, false)
+    showToast('Settings saved to Google Drive', 'success')
+    return true
+  } catch (err) {
+    console.error('Error saving settings to Google Drive:', err)
+    showToast('Failed to save settings to Google Drive', 'error')
+    return false
+  } finally {
+    isSavingSettings.value = false
+  }
+}
+
 watch(
   settings,
   () => {
@@ -55,7 +117,6 @@ watch(
   { deep: true },
 )
 
-// Function to add email tag
 const addEmailTag = () => {
   if (!newEmailTag.value) return
 
@@ -68,7 +129,6 @@ const addEmailTag = () => {
   }
 }
 
-// Function to remove email tag
 const removeEmailTag = (email: string) => {
   const index = settings.value.notifications.emails.indexOf(email)
   if (index !== -1) {
@@ -76,7 +136,6 @@ const removeEmailTag = (email: string) => {
   }
 }
 
-// Function to add phone tag
 const addPhoneTag = () => {
   if (!newPhoneTag.value) return
 
@@ -89,7 +148,6 @@ const addPhoneTag = () => {
   }
 }
 
-// Function to remove phone tag
 const removePhoneTag = (phone: string) => {
   const index = settings.value.notifications.phones.indexOf(phone)
   if (index !== -1) {
@@ -97,7 +155,6 @@ const removePhoneTag = (phone: string) => {
   }
 }
 
-// Function to handle key press in tag inputs
 const handleTagKeydown = (event: KeyboardEvent, type: 'email' | 'phone') => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
@@ -151,23 +208,39 @@ const formValid = computed(() => {
   return emailsValid.value && phonesValid.value
 })
 
-const saveSettings = () => {
+const saveSettings = async () => {
   if (!formValid.value) {
     showToast('Please correct the validation errors before saving', 'error')
     return
   }
 
-  console.log('Saving settings:', settings.value)
-  Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
-  settingsModified.value = false
+  console.log('[saveSettings] Current settings:', settings.value)
 
-  showToast('Settings saved successfully', 'success')
+  const savedToDrive = await saveSettingsToDrive()
+
+  if (savedToDrive) {
+    Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
+    settingsModified.value = false
+  }
 }
 
-const resetSettings = () => {
+const resetSettings = async () => {
   if (confirm('Are you sure you want to reset all settings to default values?')) {
-    settings.value = JSON.parse(JSON.stringify(originalSettings))
-    showToast('Settings reset to defaults', 'info')
+    try {
+      isResettingSettings.value = true
+      // Reset to default values
+      settings.value = JSON.parse(JSON.stringify(originalSettings))
+
+      // Save reset settings to Google Drive
+      await saveSettingsToDrive()
+
+      showToast('Settings reset to defaults', 'info')
+    } catch (err) {
+      console.error('Error resetting settings:', err)
+      showToast('Failed to reset settings', 'error')
+    } finally {
+      isResettingSettings.value = false
+    }
   }
 }
 
@@ -183,7 +256,19 @@ const cancelChanges = () => {
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-6">
+  <div class="container mx-auto px-4 py-8 relative">
+    <div
+      v-if="isLoadingSettings"
+      class="absolute inset-0 bg-white/70 dark:bg-gray-900/70 flex items-center justify-center z-10"
+    >
+      <div class="text-center">
+        <div
+          class="mdi mdi-loading mdi-spin text-4xl text-primary-600 dark:text-primary-500 mb-2"
+        ></div>
+        <p class="text-gray-700 dark:text-gray-300">Loading settings...</p>
+      </div>
+    </div>
+
     <!-- Page Header -->
     <div
       class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
@@ -875,10 +960,13 @@ const cancelChanges = () => {
       <div class="flex items-center space-x-3 w-full sm:w-auto">
         <button
           @click="resetSettings"
+          :disabled="isResettingSettings"
           class="w-full sm:w-auto px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+          :class="{ 'opacity-50 cursor-not-allowed': isResettingSettings }"
         >
-          <span class="mdi mdi-refresh mr-2"></span>
-          Reset
+          <span v-if="isResettingSettings" class="mdi mdi-loading mdi-spin mr-2"></span>
+          <span v-else class="mdi mdi-refresh mr-2"></span>
+          {{ isResettingSettings ? 'Resetting...' : 'Reset' }}
         </button>
         <button
           v-if="settingsModified"
@@ -900,12 +988,13 @@ const cancelChanges = () => {
         </div>
         <button
           @click="saveSettings"
-          :disabled="!formValid"
+          :disabled="!formValid || isSavingSettings"
           class="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          :class="{ 'opacity-50 cursor-not-allowed': !formValid }"
+          :class="{ 'opacity-50 cursor-not-allowed': !formValid || isSavingSettings }"
         >
-          <span class="mdi mdi-content-save mr-2"></span>
-          Save Settings
+          <span v-if="isSavingSettings" class="mdi mdi-loading mdi-spin mr-2"></span>
+          <span v-else class="mdi mdi-content-save mr-2"></span>
+          {{ isSavingSettings ? 'Saving...' : 'Save Settings' }}
         </button>
       </div>
     </div>

@@ -240,8 +240,10 @@ const toggleChartType = () => {
   chartType.value = chartType.value === 'line' ? 'bar' : 'line'
   nextTick(() => {
     if (chartRef.value) {
-      const chart = chartRef.value as unknown as { update: () => void }
-      chart.update()
+      const chart = chartRef.value.chart
+      if (chart) {
+        ;(chart as unknown as { update: () => void }).update()
+      }
     }
   })
 }

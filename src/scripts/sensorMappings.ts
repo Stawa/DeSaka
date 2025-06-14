@@ -36,11 +36,8 @@ export const sensorLabelMap: Record<string, string> = {
   soil_temperature: 'Soil Temperature',
   soil_moisture: 'Soil Moisture',
   soil_ph: 'Soil pH',
-  soil_conductivity: 'Soil Conductivity',
   air_temperature: 'Air Temperature',
   air_humidity: 'Air Humidity',
-  air_co2: 'CO₂ Level',
-  air_tvoc: 'TVOC Level',
   light_intensity: 'Light Intensity',
 }
 

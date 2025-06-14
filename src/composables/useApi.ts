@@ -232,12 +232,58 @@ export function useApi() {
     }
   }
 
+  /**
+   * Update or append content to a file by its ID
+   * @param fileId - The ID of the file to update
+   * @param content - The content to write (will be stringified)
+   * @param append - Whether to append to existing data or fully replace it
+   * @returns Promise with API response
+   */
+  async function updateFileById(fileId: string, content: any, append = false) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const url = append
+        ? `${API_BASE_URL}/gdrive/file/${fileId}`
+        : `${API_BASE_URL}/gdrive/file/${fileId}/overwrite`
+
+      const method = append ? 'POST' : 'PUT'
+
+      return await fetchWithCors(url, {
+        method,
+        body: JSON.stringify(content),
+      })
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      console.error(`Error ${append ? 'appending to' : 'replacing'} file ${fileId}:`, err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Append new time-value entries to specific sensor histories in a file
+   * @param fileId - The ID of the file to update
+   * @param sensorData - Object with sensor keys and {time, value} entries to append
+   * @returns Promise with API response
+   */
+  async function appendSensorData(
+    fileId: string,
+    sensorData: Record<string, { time: string; value: number }>,
+  ) {
+    return updateFileById(fileId, sensorData, true)
+  }
+
   return {
     isLoading,
     error,
     fetchSensorData,
     fetchFiles,
     fetchFileById,
+    updateFileById,
+    appendSensorData,
     refreshData,
     sendWhatsAppMessage,
     sendGmailMessage,
