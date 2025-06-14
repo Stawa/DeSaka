@@ -10,6 +10,10 @@ const setActiveTab = (tab: string) => {
 const { showToast } = useToast()
 const settingsModified = ref(false)
 
+// New refs for tag input functionality
+const newEmailTag = ref('')
+const newPhoneTag = ref('')
+
 const originalSettings = {
   general: {
     dataRefreshInterval: 5,
@@ -22,8 +26,8 @@ const originalSettings = {
     emailEnabled: false,
     smsEnabled: false,
     pushEnabled: true,
-    email: '',
-    phone: '',
+    emails: [], // Changed from single email to array of emails
+    phones: [], // Changed from single phone to array of phones
   },
   thresholds: {
     soilTemperature: {
@@ -51,6 +55,60 @@ watch(
   { deep: true },
 )
 
+// Function to add email tag
+const addEmailTag = () => {
+  if (!newEmailTag.value) return
+
+  const email = newEmailTag.value.trim()
+  if (email && !settings.value.notifications.emails.includes(email) && validateEmail(email)) {
+    settings.value.notifications.emails.push(email)
+    newEmailTag.value = ''
+  } else if (!validateEmail(email)) {
+    showToast('Please enter a valid email address', 'error')
+  }
+}
+
+// Function to remove email tag
+const removeEmailTag = (email: string) => {
+  const index = settings.value.notifications.emails.indexOf(email)
+  if (index !== -1) {
+    settings.value.notifications.emails.splice(index, 1)
+  }
+}
+
+// Function to add phone tag
+const addPhoneTag = () => {
+  if (!newPhoneTag.value) return
+
+  const phone = newPhoneTag.value.trim()
+  if (phone && !settings.value.notifications.phones.includes(phone) && validatePhone(phone)) {
+    settings.value.notifications.phones.push(phone)
+    newPhoneTag.value = ''
+  } else if (!validatePhone(phone)) {
+    showToast('Please enter a valid phone number', 'error')
+  }
+}
+
+// Function to remove phone tag
+const removePhoneTag = (phone: string) => {
+  const index = settings.value.notifications.phones.indexOf(phone)
+  if (index !== -1) {
+    settings.value.notifications.phones.splice(index, 1)
+  }
+}
+
+// Function to handle key press in tag inputs
+const handleTagKeydown = (event: KeyboardEvent, type: 'email' | 'phone') => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    if (type === 'email') {
+      addEmailTag()
+    } else {
+      addPhoneTag()
+    }
+  }
+}
+
 const timezoneOptions = [
   { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
   { value: 'EST', label: 'EST (Eastern Standard Time)' },
@@ -71,20 +129,26 @@ const timeFormatOptions = [
   { value: '24h', label: '24-hour' },
 ]
 
-const emailValid = computed(() => {
-  if (!settings.value.notifications.email) return true
+const validateEmail = (email: string) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(settings.value.notifications.email)
+  return emailRegex.test(email)
+}
+
+const validatePhone = (phone: string) => {
+  const phoneRegex = /^\+?\d{10,15}$/
+  return phoneRegex.test(phone)
+}
+
+const emailsValid = computed(() => {
+  return settings.value.notifications.emails.every((email: string) => validateEmail(email))
 })
 
-const phoneValid = computed(() => {
-  if (!settings.value.notifications.phone) return true
-  const phoneRegex = /^\+?\d{10,15}$/
-  return phoneRegex.test(settings.value.notifications.phone)
+const phonesValid = computed(() => {
+  return settings.value.notifications.phones.every((phone: string) => validatePhone(phone))
 })
 
 const formValid = computed(() => {
-  return emailValid.value && phoneValid.value
+  return emailsValid.value && phonesValid.value
 })
 
 const saveSettings = () => {
@@ -404,28 +468,59 @@ const cancelChanges = () => {
                   for="notification-email"
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Notification Email Address
+                  Notification Email Addresses
                 </label>
-                <input
-                  id="notification-email"
-                  v-model="settings.notifications.email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
-                  :class="{
-                    'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
-                      emailValid,
-                    'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
-                      !emailValid,
-                  }"
-                />
+                <div class="relative">
+                  <input
+                    id="notification-email"
+                    v-model="newEmailTag"
+                    @keydown="handleTagKeydown($event, 'email')"
+                    type="email"
+                    placeholder="Enter email and press Enter or Space"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
+                    :class="{
+                      'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
+                        validateEmail(newEmailTag) || !newEmailTag,
+                      'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
+                        !validateEmail(newEmailTag) && newEmailTag,
+                    }"
+                  />
+                  <button
+                    @click="addEmailTag"
+                    type="button"
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    <span class="mdi mdi-plus-circle text-lg"></span>
+                  </button>
+                </div>
                 <p
-                  v-if="!emailValid"
+                  v-if="newEmailTag && !validateEmail(newEmailTag)"
                   class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
                 >
                   <span class="mdi mdi-alert-circle mr-1"></span>
                   Please enter a valid email address
                 </p>
+
+                <!-- Email Tags -->
+                <div
+                  v-if="settings.notifications.emails.length > 0"
+                  class="mt-3 flex flex-wrap gap-2"
+                >
+                  <div
+                    v-for="(email, index) in settings.notifications.emails"
+                    :key="index"
+                    class="inline-flex items-center bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-3 py-1 rounded-full text-sm"
+                  >
+                    <span class="mr-1">{{ email }}</span>
+                    <button
+                      @click="removeEmailTag(email)"
+                      type="button"
+                      class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 focus:outline-none"
+                    >
+                      <span class="mdi mdi-close-circle text-sm"></span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -466,28 +561,59 @@ const cancelChanges = () => {
                   for="phone-number-input"
                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Phone Number
+                  Phone Numbers
                 </label>
-                <input
-                  id="phone-number-input"
-                  v-model="settings.notifications.phone"
-                  type="tel"
-                  placeholder="+1234567890"
-                  class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
-                  :class="{
-                    'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
-                      phoneValid,
-                    'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
-                      !phoneValid,
-                  }"
-                />
+                <div class="relative">
+                  <input
+                    id="phone-number-input"
+                    v-model="newPhoneTag"
+                    @keydown="handleTagKeydown($event, 'phone')"
+                    type="tel"
+                    placeholder="Enter phone number and press Enter or Space"
+                    class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
+                    :class="{
+                      'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
+                        validatePhone(newPhoneTag) || !newPhoneTag,
+                      'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
+                        !validatePhone(newPhoneTag) && newPhoneTag,
+                    }"
+                  />
+                  <button
+                    @click="addPhoneTag"
+                    type="button"
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    <span class="mdi mdi-plus-circle text-lg"></span>
+                  </button>
+                </div>
                 <p
-                  v-if="!phoneValid"
+                  v-if="newPhoneTag && !validatePhone(newPhoneTag)"
                   class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
                 >
                   <span class="mdi mdi-alert-circle mr-1"></span>
                   Please enter a valid phone number (10-15 digits, can start with +)
                 </p>
+
+                <!-- Phone Tags -->
+                <div
+                  v-if="settings.notifications.phones.length > 0"
+                  class="mt-3 flex flex-wrap gap-2"
+                >
+                  <div
+                    v-for="(phone, index) in settings.notifications.phones"
+                    :key="index"
+                    class="inline-flex items-center bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-3 py-1 rounded-full text-sm"
+                  >
+                    <span class="mr-1">{{ phone }}</span>
+                    <button
+                      @click="removePhoneTag(phone)"
+                      type="button"
+                      class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 focus:outline-none"
+                    >
+                      <span class="mdi mdi-close-circle text-sm"></span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

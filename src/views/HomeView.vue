@@ -4,8 +4,10 @@ import SensorChart from '../components/SensorChart.vue'
 import PlantStatusDashboard from '../components/PlantStatusDashboard.vue'
 import SensorReadingsGrid from '../components/SensorReadingsGrid.vue'
 import SensorReadingsTable from '../components/SensorReadingsTable.vue'
+import DataExportModal from '@/components/DataExportModal.vue'
+import { handleDataExport } from '@/utils/exportUtils'
+import { useApi } from '@/composables/useApi'
 import {
-  generateMockData,
   getSensorStatus,
   calculateParameterScore,
   getGrowthPrediction,
@@ -17,12 +19,15 @@ const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
 
+const showExportModal = ref(false)
+
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
 }
 
 onMounted(() => {
   window.addEventListener('resize', updateWindowWidth)
+  updateData()
 })
 
 onUnmounted(() => {
@@ -60,21 +65,143 @@ const sensorData = ref<SensorDataType>({
 })
 
 const historicalData = ref<HistoricalDataType>({
-  soilTemperature: generateMockData(24, 20, 30, trendTimeframe.value),
-  soilMoisture: generateMockData(24, 50, 80, trendTimeframe.value),
-  soilPH: generateMockData(24, 6, 7.5, trendTimeframe.value),
-  airTemperature: generateMockData(24, 25, 35, trendTimeframe.value),
-  airHumidity: generateMockData(24, 60, 90, trendTimeframe.value),
+  soilTemperature: [],
+  soilMoisture: [],
+  soilPH: [],
+  airTemperature: [],
+  airHumidity: [],
 })
 
-function updateHistoricalData(timeframe: string) {
+const { fetchSensorData, refreshData: apiRefreshData, fetchFileById } = useApi()
+
+async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
-  historicalData.value = {
-    soilTemperature: generateMockData(24, 20, 30, timeframe),
-    soilMoisture: generateMockData(24, 50, 80, timeframe),
-    soilPH: generateMockData(24, 6, 7.5, timeframe),
-    airTemperature: generateMockData(24, 25, 35, timeframe),
-    airHumidity: generateMockData(24, 60, 90, timeframe),
+  isRefreshing.value = true
+
+  try {
+    try {
+      const soilFileId = '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG'
+      const airFileId = '1F38HpxfKYZRj2tk0JZanTajVIEK2izkO'
+
+      const soilResponse = await fetchFileById(soilFileId)
+      const airResponse = await fetchFileById(airFileId)
+
+      if (soilResponse && soilResponse.temperature && soilResponse.temperature.history) {
+        historicalData.value.soilTemperature = soilResponse.temperature.history.map(
+          (item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }),
+        )
+      }
+
+      if (soilResponse && soilResponse.moisture && soilResponse.moisture.history) {
+        historicalData.value.soilMoisture = soilResponse.moisture.history.map((item: any) => ({
+          time: new Date(item.time).toLocaleString(),
+          value: item.value,
+        }))
+      }
+
+      if (airResponse && airResponse.temperature && airResponse.temperature.history) {
+        historicalData.value.airTemperature = airResponse.temperature.history.map((item: any) => ({
+          time: new Date(item.time).toLocaleString(),
+          value: item.value,
+        }))
+      }
+
+      if (airResponse && airResponse.humidity && airResponse.humidity.history) {
+        historicalData.value.airHumidity = airResponse.humidity.history.map((item: any) => ({
+          time: new Date(item.time).toLocaleString(),
+          value: item.value,
+        }))
+      }
+
+      updateCurrentSensorValues(soilResponse, airResponse)
+      return
+    } catch (fileErr) {
+      console.warn(
+        'Could not fetch from file endpoints, falling back to sensors endpoint:',
+        fileErr,
+      )
+    }
+
+    const endDate = new Date().toISOString().split('T')[0]
+    let startDate = new Date()
+
+    if (timeframe === '7d') {
+      startDate.setDate(startDate.getDate() - 7)
+    } else if (timeframe === '30d') {
+      startDate.setDate(startDate.getDate() - 30)
+    } else {
+      startDate.setDate(startDate.getDate() - 1)
+    }
+
+    const startDateStr = startDate.toISOString().split('T')[0]
+
+    const soilParams = {
+      startDate: startDateStr,
+      endDate: endDate,
+      sensors: ['soil_temperature', 'soil_moisture', 'soil_ph'],
+    }
+
+    const airParams = {
+      startDate: startDateStr,
+      endDate: endDate,
+      sensors: ['air_temperature', 'air_humidity'],
+    }
+
+    const soilResponse = await apiRefreshData(
+      (data) => {
+        if (data && data.soil_temperature && data.soil_temperature.history) {
+          historicalData.value.soilTemperature = data.soil_temperature.history.map((item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }))
+        }
+
+        if (data && data.soil_moisture && data.soil_moisture.history) {
+          historicalData.value.soilMoisture = data.soil_moisture.history.map((item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }))
+        }
+
+        if (data && data.soil_ph && data.soil_ph.history) {
+          historicalData.value.soilPH = data.soil_ph.history.map((item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }))
+        }
+      },
+      fetchSensorData,
+      soilParams,
+    )
+
+    const airResponse = await apiRefreshData(
+      (data) => {
+        if (data && data.air_temperature && data.air_temperature.history) {
+          historicalData.value.airTemperature = data.air_temperature.history.map((item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }))
+        }
+
+        if (data && data.air_humidity && data.air_humidity.history) {
+          historicalData.value.airHumidity = data.air_humidity.history.map((item: any) => ({
+            time: new Date(item.time).toLocaleString(),
+            value: item.value,
+          }))
+        }
+      },
+      fetchSensorData,
+      airParams,
+    )
+
+    updateCurrentSensorValues(soilResponse, airResponse)
+  } catch (err) {
+    console.error('Error fetching sensor data:', err)
+  } finally {
+    isRefreshing.value = false
   }
 }
 
@@ -84,12 +211,26 @@ function openSensorDetails(sensorId: string) {
   console.log(`Opening details for sensor: ${sensorId}`)
 }
 
+async function updateData() {
+  isRefreshing.value = true
+  try {
+    await updateHistoricalData(trendTimeframe.value)
+    lastUpdate.value = formatCurrentTime({ second: '2-digit' })
+  } catch (err) {
+    console.error('Error updating data:', err)
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
 const quickActions = [
   { name: 'Refresh Data', icon: 'refresh', action: updateData },
   {
     name: 'Export Data',
     icon: 'download-outline',
-    action: () => alert('Export functionality would be implemented here'),
+    action: function () {
+      showExportModal.value = true
+    },
   },
   {
     name: 'System Check',
@@ -98,96 +239,97 @@ const quickActions = [
   },
 ]
 
-function updateData() {
-  isRefreshing.value = true
+function handleExport(exportOptions: any) {
+  handleDataExport(exportOptions)
+}
 
-  setTimeout(() => {
-    sensorData.value.soilTemperature.value = parseFloat(
-      (sensorData.value.soilTemperature.value + (Math.random() * 0.6 - 0.3)).toFixed(1),
-    )
-    sensorData.value.soilMoisture.value = parseFloat(
-      (sensorData.value.soilMoisture.value + (Math.random() * 2 - 1)).toFixed(1),
-    )
-    sensorData.value.soilPH.value = parseFloat(
-      (sensorData.value.soilPH.value + (Math.random() * 0.2 - 0.1)).toFixed(1),
-    )
-    sensorData.value.airTemperature.value = parseFloat(
-      (sensorData.value.airTemperature.value + (Math.random() * 0.8 - 0.4)).toFixed(1),
-    )
-    sensorData.value.airHumidity.value = parseFloat(
-      (sensorData.value.airHumidity.value + (Math.random() * 3 - 1.5)).toFixed(1),
-    )
-    sensorData.value.lightIntensity.value = parseFloat(
-      (sensorData.value.lightIntensity.value + (Math.random() * 50 - 25)).toFixed(0),
-    )
+function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
+  const isFileApiFormat =
+    soilResponse?.temperature !== undefined || airResponse?.temperature !== undefined
 
-    sensorData.value.soilTemperature.status = getSensorStatus(
-      sensorData.value.soilTemperature.value,
-      15,
-      32,
-      20,
-      28,
-    )
-    sensorData.value.soilMoisture.status = getSensorStatus(
-      sensorData.value.soilMoisture.value,
-      30,
-      85,
-      40,
-      75,
-    )
-    sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 8, 5.5, 7.5)
-    sensorData.value.airTemperature.status = getSensorStatus(
-      sensorData.value.airTemperature.value,
-      15,
-      35,
-      20,
-      30,
-    )
-    sensorData.value.airHumidity.status = getSensorStatus(
-      sensorData.value.airHumidity.value,
-      30,
-      90,
-      40,
-      80,
-    )
+  if (isFileApiFormat && soilResponse?.temperature?.history?.length > 0) {
+    const latestReading =
+      soilResponse.temperature.history[soilResponse.temperature.history.length - 1]
+    sensorData.value.soilTemperature.value = latestReading.value
+    sensorData.value.soilTemperature.unit = soilResponse.temperature.unit || '°C'
+  } else if (soilResponse?.soil_temperature?.history?.length > 0) {
+    const latestReading =
+      soilResponse.soil_temperature.history[soilResponse.soil_temperature.history.length - 1]
+    sensorData.value.soilTemperature.value = latestReading.value
+    sensorData.value.soilTemperature.unit = soilResponse.soil_temperature.unit || '°C'
+  }
 
-    lastUpdate.value = formatCurrentTime({ second: '2-digit' })
+  if (isFileApiFormat && soilResponse?.moisture?.history?.length > 0) {
+    const latestReading = soilResponse.moisture.history[soilResponse.moisture.history.length - 1]
+    sensorData.value.soilMoisture.value = latestReading.value
+    sensorData.value.soilMoisture.unit = soilResponse.moisture.unit || '%'
+  } else if (soilResponse?.soil_moisture?.history?.length > 0) {
+    const latestReading =
+      soilResponse.soil_moisture.history[soilResponse.soil_moisture.history.length - 1]
+    sensorData.value.soilMoisture.value = latestReading.value
+    sensorData.value.soilMoisture.unit = soilResponse.soil_moisture.unit || '%'
+  }
 
-    Object.keys(historicalData.value).forEach((key) => {
-      const data = historicalData.value[key]
-      const now = new Date()
+  if (soilResponse?.soil_ph?.history?.length > 0) {
+    const latestReading = soilResponse.soil_ph.history[soilResponse.soil_ph.history.length - 1]
+    sensorData.value.soilPH.value = latestReading.value
+    sensorData.value.soilPH.unit = soilResponse.soil_ph.unit || 'pH'
+  }
 
-      let timeLabel: string
-      if (trendTimeframe.value === '24h') {
-        timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        data.shift()
-        data.push({
-          time: timeLabel,
-          value: sensorData.value[key].value,
-        })
-      } else {
-        if (trendTimeframe.value === '7d') {
-          timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-        } else {
-          timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-        }
+  if (isFileApiFormat && airResponse?.temperature?.history?.length > 0) {
+    const latestReading =
+      airResponse.temperature.history[airResponse.temperature.history.length - 1]
+    sensorData.value.airTemperature.value = latestReading.value
+    sensorData.value.airTemperature.unit = airResponse.temperature.unit || '°C'
+  } else if (airResponse?.air_temperature?.history?.length > 0) {
+    const latestReading =
+      airResponse.air_temperature.history[airResponse.air_temperature.history.length - 1]
+    sensorData.value.airTemperature.value = latestReading.value
+    sensorData.value.airTemperature.unit = airResponse.air_temperature.unit || '°C'
+  }
 
-        const existingIndex = data.findIndex((item) => item.time === timeLabel)
+  if (isFileApiFormat && airResponse?.humidity?.history?.length > 0) {
+    const latestReading = airResponse.humidity.history[airResponse.humidity.history.length - 1]
+    sensorData.value.airHumidity.value = latestReading.value
+    sensorData.value.airHumidity.unit = airResponse.humidity.unit || '%'
+  } else if (airResponse?.air_humidity?.history?.length > 0) {
+    const latestReading =
+      airResponse.air_humidity.history[airResponse.air_humidity.history.length - 1]
+    sensorData.value.airHumidity.value = latestReading.value
+    sensorData.value.airHumidity.unit = airResponse.air_humidity.unit || '%'
+  }
 
-        if (existingIndex !== -1) {
-          data[existingIndex].value = sensorData.value[key].value
-        } else {
-          data.shift()
-          data.push({
-            time: timeLabel,
-            value: sensorData.value[key].value,
-          })
-        }
-      }
-    })
+  sensorData.value.soilTemperature.status = getSensorStatus(
+    sensorData.value.soilTemperature.value,
+    15,
+    32,
+    20,
+    28,
+  )
+  sensorData.value.soilMoisture.status = getSensorStatus(
+    sensorData.value.soilMoisture.value,
+    30,
+    85,
+    40,
+    75,
+  )
+  sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 8, 5.5, 7.5)
+  sensorData.value.airTemperature.status = getSensorStatus(
+    sensorData.value.airTemperature.value,
+    15,
+    35,
+    20,
+    30,
+  )
+  sensorData.value.airHumidity.status = getSensorStatus(
+    sensorData.value.airHumidity.value,
+    30,
+    90,
+    40,
+    80,
+  )
 
-    isRefreshing.value = false
-  }, 1000)
+  lastUpdate.value = formatCurrentTime({ second: '2-digit' })
 }
 
 const plantHealthScore = computed(() => {
@@ -238,10 +380,6 @@ const growthPrediction = computed(() => {
 const systemStatus = computed(() => {
   const statuses = Object.values(sensorData.value).map((item) => item.status)
   return getSystemStatus(statuses)
-})
-
-onMounted(() => {
-  setInterval(updateData, 5000)
 })
 </script>
 
@@ -551,7 +689,7 @@ onMounted(() => {
                 color="#6366f1"
                 :height="windowWidth < 640 ? 180 : 200"
                 title="Soil Temperature"
-                valueLabel="Temperature (°C)"
+                valueLabel="Soil Temperature (°C)"
               />
             </div>
 
@@ -562,7 +700,7 @@ onMounted(() => {
                 color="#3b82f6"
                 :height="windowWidth < 640 ? 180 : 200"
                 title="Soil Moisture"
-                valueLabel="Moisture (%)"
+                valueLabel="Soil Moisture (%)"
               />
             </div>
 
@@ -573,7 +711,7 @@ onMounted(() => {
                 color="#8b5cf6"
                 :height="windowWidth < 640 ? 180 : 200"
                 title="Soil pH"
-                valueLabel="pH Level"
+                valueLabel="Soil pH Level"
               />
             </div>
 
@@ -584,7 +722,7 @@ onMounted(() => {
                 color="#06b6d4"
                 :height="windowWidth < 640 ? 180 : 200"
                 title="Air Temperature"
-                valueLabel="Temperature (°C)"
+                valueLabel="Air Temperature (°C)"
               />
             </div>
           </div>
@@ -592,7 +730,22 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Download Modal removed -->
+    <!-- Export Data Modal -->
+    <DataExportModal
+      :show="showExportModal"
+      title="Export Dashboard Data"
+      description="Select the sensors, date range, and format for your dashboard data export."
+      data-type="dashboard"
+      :available-sensors="[
+        { id: 'soilTemperature', name: 'Soil Temperature', unit: sensorData.soilTemperature.unit },
+        { id: 'soilMoisture', name: 'Soil Moisture', unit: sensorData.soilMoisture.unit },
+        { id: 'soilPH', name: 'Soil pH', unit: sensorData.soilPH.unit },
+        { id: 'airTemperature', name: 'Air Temperature', unit: sensorData.airTemperature.unit },
+        { id: 'airHumidity', name: 'Air Humidity', unit: sensorData.airHumidity.unit },
+      ]"
+      @close="showExportModal = false"
+      @export="handleExport"
+    />
   </div>
 </template>
 

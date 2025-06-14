@@ -2,12 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import SensorChart from '../components/SensorChart.vue'
 import SoilHealthDashboard from '../components/SoilHealthDashboard.vue'
+import DataExportModal from '@/components/DataExportModal.vue'
+import { formatCurrentTime, calculateParameterScore } from '@/scripts'
+import { handleDataExport } from '@/utils/exportUtils'
+import { useApi } from '@/composables/useApi'
 import {
-  formatCurrentTime,
-  generateTimeBasedData,
-  getSensorStatus,
-  calculateParameterScore,
-} from '@/scripts'
+  getDateRangeFromTimeframe,
+  updateSensorDataFromResponse,
+  updateSensorStatus,
+  updateSensorTrend,
+  formatSensorDataForExport,
+} from '@/scripts/sensorDataUtils'
 
 type DataPoint = { time: string; value: number }
 
@@ -80,224 +85,184 @@ const soilData = ref({
 })
 
 const lastUpdated = ref(formatCurrentTime())
-
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
+const showExportModal = ref(false)
+const error = ref<string | null>(null)
 
-function refreshData() {
+const { fetchSensorData, refreshData: apiRefreshData, fetchFileById } = useApi()
+
+function handleExport(exportOptions: any) {
+  const sensorsList = [
+    {
+      name: 'temperature',
+      label: 'Soil Temperature',
+      unit: soilData.value.temperature.unit,
+      selected: true,
+    },
+    {
+      name: 'moisture',
+      label: 'Soil Moisture',
+      unit: soilData.value.moisture.unit,
+      selected: true,
+    },
+    { name: 'ph', label: 'Soil pH', unit: soilData.value.ph.unit, selected: true },
+    {
+      name: 'conductivity',
+      label: 'Soil Conductivity',
+      unit: soilData.value.conductivity.unit,
+      selected: true,
+    },
+    {
+      name: 'nutrients.nitrogen',
+      label: 'Nitrogen',
+      unit: soilData.value.nutrients.nitrogen.unit,
+      selected: true,
+    },
+    {
+      name: 'nutrients.phosphorus',
+      label: 'Phosphorus',
+      unit: soilData.value.nutrients.phosphorus.unit,
+      selected: true,
+    },
+    {
+      name: 'nutrients.potassium',
+      label: 'Potassium',
+      unit: soilData.value.nutrients.potassium.unit,
+      selected: true,
+    },
+  ]
+
+  const exportData: Record<string, Array<{ timestamp: string; value: number }>> = {}
+  const sensorInfo: Record<string, { name: string; unit: string }> = {}
+
+  sensorsList
+    .filter((sensor) => sensor.selected)
+    .forEach((sensor) => {
+      const sensorPath = sensor.name.split('.')
+      let sensorData: any = soilData.value
+
+      for (const path of sensorPath) {
+        sensorData = sensorData[path]
+      }
+
+      const formattedData = formatSensorDataForExport(sensorData, sensor.label)
+
+      exportData[sensor.name] = formattedData.exportData
+      sensorInfo[sensor.name] = formattedData.sensorInfo
+    })
+
+  handleDataExport(exportOptions, exportData, sensorInfo)
+}
+
+async function refreshData() {
   isRefreshing.value = true
-  setTimeout(() => {
-    soilData.value.nutrients.nitrogen.value = parseFloat(
-      (soilData.value.nutrients.nitrogen.value + (Math.random() * 4 - 2)).toFixed(1),
+  error.value = null
+
+  try {
+    try {
+      const soilFileId = '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG'
+      const soilResponse = await fetchFileById(soilFileId)
+
+      updateSoilData(soilResponse)
+      updateSensorStatuses()
+      updateSensorTrends()
+
+      lastUpdated.value = formatCurrentTime()
+      return
+    } catch (fileErr) {
+      console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
+    }
+
+    const { startDate, endDate } = getDateRangeFromTimeframe(timeFrame.value)
+    const startDateStr = new Date(startDate).toISOString().split('T')[0]
+    const endDateStr = new Date(endDate).toISOString().split('T')[0]
+
+    const params = {
+      startDate: startDateStr,
+      endDate: endDateStr,
+      sensors: [
+        'soil_temperature',
+        'soil_moisture',
+        'soil_ph',
+        'soil_conductivity',
+        'soil_nitrogen',
+        'soil_phosphorus',
+        'soil_potassium',
+      ],
+    }
+
+    await apiRefreshData(
+      (soilResponse) => {
+        updateSoilData(soilResponse)
+        updateSensorStatuses()
+        updateSensorTrends()
+        lastUpdated.value = formatCurrentTime()
+      },
+      fetchSensorData,
+      params,
     )
-    soilData.value.nutrients.nitrogen.trend =
-      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
-
-    soilData.value.nutrients.phosphorus.value = parseFloat(
-      (soilData.value.nutrients.phosphorus.value + (Math.random() * 3 - 1.5)).toFixed(1),
-    )
-    soilData.value.nutrients.phosphorus.trend =
-      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
-
-    soilData.value.nutrients.potassium.value = parseFloat(
-      (soilData.value.nutrients.potassium.value + (Math.random() * 10 - 5)).toFixed(1),
-    )
-    soilData.value.nutrients.potassium.trend =
-      Math.random() > 0.5 ? (Math.random() > 0.5 ? 'up' : 'down') : 'stable'
-
-    updateHistoricalData()
-    updateSensorStatuses()
-
-    lastUpdated.value = formatCurrentTime()
-
+  } catch (err) {
+    console.error('Error refreshing soil data:', err)
+    error.value = 'Failed to fetch soil data. Please try again later.'
+  } finally {
     isRefreshing.value = false
-  }, 1000)
-}
-
-function generateHistoricalData() {
-  const now = new Date()
-  const points = timeFrame.value === '24h' ? 24 : timeFrame.value === '7d' ? 28 : 30
-  const interval = timeFrame.value === '24h' ? 60 : timeFrame.value === '7d' ? 360 : 1440
-
-  soilData.value.temperature.history = createTimeBasedData(points, interval, 20, 28, now)
-  soilData.value.moisture.history = createTimeBasedData(points, interval, 55, 75, now)
-  soilData.value.ph.history = createTimeBasedData(points, interval, 6.2, 7.2, now)
-  soilData.value.conductivity.history = createTimeBasedData(points, interval, 1.0, 1.4, now)
-}
-
-function updateHistoricalData() {
-  const now = new Date()
-
-  let timeLabel: string
-  if (timeFrame.value === '24h') {
-    timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-    soilData.value.temperature.history.push({
-      time: timeLabel,
-      value: soilData.value.temperature.value,
-    })
-    soilData.value.moisture.history.push({
-      time: timeLabel,
-      value: soilData.value.moisture.value,
-    })
-    soilData.value.ph.history.push({
-      time: timeLabel,
-      value: soilData.value.ph.value,
-    })
-    soilData.value.conductivity.history.push({
-      time: timeLabel,
-      value: soilData.value.conductivity.value,
-    })
-
-    const maxPoints = 24
-    if (soilData.value.temperature.history.length > maxPoints) {
-      soilData.value.temperature.history.shift()
-      soilData.value.moisture.history.shift()
-      soilData.value.ph.history.shift()
-      soilData.value.conductivity.history.shift()
-    }
-  } else {
-    if (timeFrame.value === '7d') {
-      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    } else {
-      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    }
-
-    const tempIndex = soilData.value.temperature.history.findIndex(
-      (item) => item.time === timeLabel,
-    )
-    const moistIndex = soilData.value.moisture.history.findIndex((item) => item.time === timeLabel)
-    const phIndex = soilData.value.ph.history.findIndex((item) => item.time === timeLabel)
-    const condIndex = soilData.value.conductivity.history.findIndex(
-      (item) => item.time === timeLabel,
-    )
-
-    if (tempIndex !== -1) {
-      soilData.value.temperature.history[tempIndex].value = soilData.value.temperature.value
-    } else {
-      soilData.value.temperature.history.push({
-        time: timeLabel,
-        value: soilData.value.temperature.value,
-      })
-      if (soilData.value.temperature.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        soilData.value.temperature.history.shift()
-      }
-    }
-
-    if (moistIndex !== -1) {
-      soilData.value.moisture.history[moistIndex].value = soilData.value.moisture.value
-    } else {
-      soilData.value.moisture.history.push({
-        time: timeLabel,
-        value: soilData.value.moisture.value,
-      })
-      if (soilData.value.moisture.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        soilData.value.moisture.history.shift()
-      }
-    }
-
-    if (phIndex !== -1) {
-      soilData.value.ph.history[phIndex].value = soilData.value.ph.value
-    } else {
-      soilData.value.ph.history.push({
-        time: timeLabel,
-        value: soilData.value.ph.value,
-      })
-      if (soilData.value.ph.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        soilData.value.ph.history.shift()
-      }
-    }
-
-    if (condIndex !== -1) {
-      soilData.value.conductivity.history[condIndex].value = soilData.value.conductivity.value
-    } else {
-      soilData.value.conductivity.history.push({
-        time: timeLabel,
-        value: soilData.value.conductivity.value,
-      })
-      if (soilData.value.conductivity.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        soilData.value.conductivity.history.shift()
-      }
-    }
   }
 }
 
-function createTimeBasedData(
-  points: number,
-  intervalMinutes: number,
-  min: number,
-  max: number,
-  endTime: Date,
-): DataPoint[] {
-  return generateTimeBasedData(points, intervalMinutes, min, max, endTime, timeFrame.value)
+function changeTimeFrame(newTimeFrame: string) {
+  if (timeFrame.value !== newTimeFrame) {
+    timeFrame.value = newTimeFrame
+    refreshData()
+  }
 }
 
-function changeTimeFrame(frame: string) {
-  timeFrame.value = frame
-  generateHistoricalData()
+function updateSensorTrends() {
+  updateSensorTrend(soilData.value.temperature)
+  updateSensorTrend(soilData.value.moisture)
+  updateSensorTrend(soilData.value.ph)
+  updateSensorTrend(soilData.value.conductivity)
+  updateSensorTrend(soilData.value.nutrients.nitrogen)
+  updateSensorTrend(soilData.value.nutrients.phosphorus)
+  updateSensorTrend(soilData.value.nutrients.potassium)
+}
+
+function updateSoilData(response: any) {
+  if (!response) return
+
+  const isFileApiFormat = response.temperature !== undefined || response.moisture !== undefined
+
+  const sensorMappings = [
+    { sensor: soilData.value.temperature, apiKey: 'soil_temperature', fileKey: 'temperature' },
+    { sensor: soilData.value.moisture, apiKey: 'soil_moisture', fileKey: 'moisture' },
+    { sensor: soilData.value.ph, apiKey: 'soil_ph', fileKey: 'ph' },
+    { sensor: soilData.value.conductivity, apiKey: 'soil_conductivity', fileKey: 'conductivity' },
+    { sensor: soilData.value.nutrients.nitrogen, apiKey: 'soil_nitrogen', fileKey: 'nitrogen' },
+    {
+      sensor: soilData.value.nutrients.phosphorus,
+      apiKey: 'soil_phosphorus',
+      fileKey: 'phosphorus',
+    },
+    { sensor: soilData.value.nutrients.potassium, apiKey: 'soil_potassium', fileKey: 'potassium' },
+  ]
+
+  sensorMappings.forEach((mapping) => {
+    updateSensorDataFromResponse(mapping.sensor, response, mapping.apiKey, mapping.fileKey)
+  })
 }
 
 onMounted(() => {
-  generateHistoricalData()
-  updateSensorStatuses()
+  refreshData()
 })
 
 function updateSensorStatuses() {
-  soilData.value.temperature.status = getSensorStatus(
-    soilData.value.temperature.value,
-    soilData.value.temperature.min,
-    soilData.value.temperature.max,
-    20,
-    28,
-  )
-
-  soilData.value.moisture.status = getSensorStatus(
-    soilData.value.moisture.value,
-    soilData.value.moisture.min,
-    soilData.value.moisture.max,
-    50,
-    75,
-  )
-
-  soilData.value.ph.status = getSensorStatus(
-    soilData.value.ph.value,
-    soilData.value.ph.min,
-    soilData.value.ph.max,
-    6.0,
-    7.0,
-  )
-
-  soilData.value.conductivity.status = getSensorStatus(
-    soilData.value.conductivity.value,
-    soilData.value.conductivity.min,
-    soilData.value.conductivity.max,
-    1.0,
-    1.4,
-  )
-
-  soilData.value.nutrients.nitrogen.status = getSensorStatus(
-    soilData.value.nutrients.nitrogen.value,
-    soilData.value.nutrients.nitrogen.min,
-    soilData.value.nutrients.nitrogen.max,
-    30,
-    60,
-  )
-
-  soilData.value.nutrients.phosphorus.status = getSensorStatus(
-    soilData.value.nutrients.phosphorus.value,
-    soilData.value.nutrients.phosphorus.min,
-    soilData.value.nutrients.phosphorus.max,
-    25,
-    50,
-  )
-
-  soilData.value.nutrients.potassium.status = getSensorStatus(
-    soilData.value.nutrients.potassium.value,
-    soilData.value.nutrients.potassium.min,
-    soilData.value.nutrients.potassium.max,
-    150,
-    220,
-  )
+  updateSensorStatus(soilData.value.temperature, 20, 28)
+  updateSensorStatus(soilData.value.moisture, 50, 75)
+  updateSensorStatus(soilData.value.ph, 6.0, 7.0)
+  updateSensorStatus(soilData.value.conductivity, 1.0, 1.4)
+  updateSensorStatus(soilData.value.nutrients.nitrogen, 30, 60)
+  updateSensorStatus(soilData.value.nutrients.phosphorus, 25, 50)
+  updateSensorStatus(soilData.value.nutrients.potassium, 150, 220)
 }
 
 const soilHealthScore = computed(() => {
@@ -416,6 +381,7 @@ const soilHealthScore = computed(() => {
             </button>
 
             <button
+              @click="showExportModal = true"
               class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
             >
               <span class="mdi mdi-download mr-1.5"></span>
@@ -494,31 +460,50 @@ const soilHealthScore = computed(() => {
           <SensorChart
             title="Temperature Trends"
             :data="soilData.temperature.history"
-            valueLabel="Temperature (°C)"
+            valueLabel="Soil Temperature (°C)"
             chartColor="#E97451"
           />
           <SensorChart
             title="Moisture Trends"
             :data="soilData.moisture.history"
-            valueLabel="Moisture (%)"
+            valueLabel="Soil Moisture (%)"
             chartColor="#3B82F6"
           />
           <SensorChart
             title="pH Level Trends"
             :data="soilData.ph.history"
-            valueLabel="pH Level"
+            valueLabel="Soil pH Level"
             chartColor="#8B5CF6"
           />
           <SensorChart
             title="Conductivity Trends"
             :data="soilData.conductivity.history"
-            valueLabel="Conductivity (mS/cm)"
+            valueLabel="Soil Conductivity (mS/cm)"
             chartColor="#10B981"
           />
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Export Data Modal -->
+  <DataExportModal
+    :show="showExportModal"
+    title="Export Soil Data"
+    description="Select the parameters, date range, and format for your soil data export."
+    data-type="soil"
+    :available-sensors="[
+      { id: 'temperature', name: 'Soil Temperature', unit: soilData.temperature.unit },
+      { id: 'moisture', name: 'Soil Moisture', unit: soilData.moisture.unit },
+      { id: 'ph', name: 'Soil pH', unit: soilData.ph.unit },
+      { id: 'nutrients.nitrogen', name: 'Nitrogen', unit: soilData.nutrients.nitrogen.unit },
+      { id: 'nutrients.phosphorus', name: 'Phosphorus', unit: soilData.nutrients.phosphorus.unit },
+      { id: 'nutrients.potassium', name: 'Potassium', unit: soilData.nutrients.potassium.unit },
+      { id: 'conductivity', name: 'Conductivity', unit: soilData.conductivity.unit },
+    ]"
+    @close="showExportModal = false"
+    @export="handleExport"
+  />
 </template>
 
 <style scoped>

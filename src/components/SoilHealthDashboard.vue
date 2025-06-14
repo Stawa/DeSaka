@@ -190,6 +190,7 @@ const healthStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((soilData.temperature.value - soilData.temperature.min) / (soilData.temperature.max - soilData.temperature.min)) * 100}%`,
+                        maxWidth: '100%',
                       }"
                     ></div>
                   </div>
@@ -220,6 +221,7 @@ const healthStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((soilData.moisture.value - soilData.moisture.min) / (soilData.moisture.max - soilData.moisture.min)) * 100}%`,
+                        maxWidth: `100%`,
                       }"
                     ></div>
                   </div>
@@ -250,6 +252,7 @@ const healthStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((soilData.ph.value - soilData.ph.min) / (soilData.ph.max - soilData.ph.min)) * 100}%`,
+                        maxWidth: `100%`,
                       }"
                     ></div>
                   </div>

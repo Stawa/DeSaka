@@ -190,6 +190,7 @@ const qualityStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((airData.temperature.value - airData.temperature.min) / (airData.temperature.max - airData.temperature.min)) * 100}%`,
+                        maxWidth: `100%`,
                       }"
                     ></div>
                   </div>
@@ -220,6 +221,7 @@ const qualityStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((airData.humidity.value - airData.humidity.min) / (airData.humidity.max - airData.humidity.min)) * 100}%`,
+                        maxWidth: `100%`,
                       }"
                     ></div>
                   </div>
@@ -250,6 +252,7 @@ const qualityStatus = computed(() => {
                       }"
                       :style="{
                         width: `${((airData.co2.value - airData.co2.min) / (airData.co2.max - airData.co2.min)) * 100}%`,
+                        maxWidth: `100%`,
                       }"
                     ></div>
                   </div>

@@ -2,12 +2,16 @@
 import { ref, onMounted, computed } from 'vue'
 import SensorChart from '@/components/SensorChart.vue'
 import AirQualityDashboard from '@/components/AirQualityDashboard.vue'
+import DataExportModal from '@/components/DataExportModal.vue'
+import { handleDataExport } from '@/utils/exportUtils'
+import { useApi } from '@/composables/useApi'
 import {
   formatCurrentTime,
-  generateTimeBasedData,
-  getRandomTrend,
-  getSensorStatus,
   calculateParameterScore,
+  getDateRangeFromTimeframe,
+  updateSensorDataFromResponse,
+  updateSensorStatus,
+  formatSensorDataForExport,
 } from '@/scripts'
 
 type DataPoint = { time: string; value: number }
@@ -79,222 +83,135 @@ const airData = ref({
     trend: 'decreasing',
     history: [] as DataPoint[],
   },
+  pm25: {
+    value: 15,
+    unit: 'μg/m³',
+    min: 0,
+    max: 50,
+    optimal_min: 0,
+    optimal_max: 25,
+    status: 'optimal',
+    trend: 'stable',
+    history: [] as DataPoint[],
+  },
+  pm10: {
+    value: 35,
+    unit: 'μg/m³',
+    min: 0,
+    max: 100,
+    optimal_min: 0,
+    optimal_max: 50,
+    status: 'optimal',
+    trend: 'stable',
+    history: [] as DataPoint[],
+  },
 })
 
 const lastUpdated = ref(formatCurrentTime())
-
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
+const showExportModal = ref(false)
 
-function refreshData() {
+const { fetchSensorData, refreshData: apiRefreshData, fetchFileById, isLoading, error } = useApi()
+
+function handleExport(exportOptions: any) {
+  const sensorsList = [
+    { name: 'temperature', label: 'Temperature', unit: '°C', selected: true },
+    { name: 'humidity', label: 'Humidity', unit: '%', selected: true },
+    { name: 'co2', label: 'CO2', unit: 'ppm', selected: true },
+    { name: 'tvoc', label: 'TVOC', unit: 'ppb', selected: true },
+    { name: 'pm25', label: 'PM2.5', unit: 'µg/m³', selected: true },
+    { name: 'pm10', label: 'PM10', unit: 'µg/m³', selected: true },
+  ].filter((sensor) => sensor.selected)
+
+  const exportData: Record<string, Array<{ timestamp: string; value: number }>> = {}
+  const sensorInfo: Record<string, { name: string; unit: string }> = {}
+
+  sensorsList.forEach((sensor) => {
+    const sensorData = airData.value[sensor.name as keyof typeof airData.value]
+    if (sensorData) {
+      const formattedData = formatSensorDataForExport(sensorData, sensor.label)
+      exportData[sensor.name] = formattedData.exportData
+      sensorInfo[sensor.name] = formattedData.sensorInfo
+    }
+  })
+
+  handleDataExport(exportOptions, exportData, sensorInfo)
+}
+
+async function refreshData() {
   isRefreshing.value = true
-  setTimeout(() => {
-    airData.value.temperature.value = parseFloat(
-      (airData.value.temperature.value + (Math.random() * 2 - 1)).toFixed(1),
-    )
-    airData.value.humidity.value = parseFloat(
-      (airData.value.humidity.value + (Math.random() * 5 - 2.5)).toFixed(1),
-    )
-    airData.value.co2.value = parseFloat(
-      (airData.value.co2.value + (Math.random() * 50 - 25)).toFixed(0),
-    )
-    airData.value.tvoc.value = parseFloat(
-      (airData.value.tvoc.value + (Math.random() * 30 - 15)).toFixed(0),
-    )
+  try {
+    try {
+      const airFileId = '1F38HpxfKYZRj2tk0JZanTajVIEK2izkO'
+      const airResponse = await fetchFileById(airFileId)
 
-    airData.value.temperature.trend = getRandomTrend()
-    airData.value.humidity.trend = getRandomTrend()
-    airData.value.co2.trend = getRandomTrend()
-    airData.value.tvoc.trend = getRandomTrend()
+      updateAirData(airResponse)
+      updateSensorStatuses()
 
-    updateHistoricalData()
-    updateSensorStatuses()
+      lastUpdated.value = formatCurrentTime()
+      return
+    } catch (fileErr) {
+      console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
+    }
 
-    lastUpdated.value = formatCurrentTime()
+    const { startDate: startDateStr, endDate } = getDateRangeFromTimeframe(timeFrame.value)
+    const params = {
+      startDate: startDateStr,
+      endDate: endDate,
+      sensors: ['air_temperature', 'air_humidity', 'air_co2', 'air_tvoc', 'air_pm25', 'air_pm10'],
+    }
 
+    await apiRefreshData(
+      (airResponse) => {
+        updateAirData(airResponse)
+        updateSensorStatuses()
+        lastUpdated.value = formatCurrentTime()
+      },
+      fetchSensorData,
+      params,
+    )
+  } catch (err) {
+    console.error('Error refreshing air data:', err)
+  } finally {
     isRefreshing.value = false
-  }, 1000)
-}
-
-function generateHistoricalData() {
-  const now = new Date()
-  const config: Record<string, { points: number; interval: number }> = {
-    '24h': { points: 24, interval: 60 },
-    '7d': { points: 28, interval: 360 },
-    default: { points: 30, interval: 1440 },
-  }
-
-  const { points, interval } = config[timeFrame.value] || config.default
-
-  airData.value.temperature.history = createTimeBasedData(points, interval, 20, 26, now)
-  airData.value.humidity.history = createTimeBasedData(points, interval, 35, 55, now)
-  airData.value.co2.history = createTimeBasedData(points, interval, 500, 950, now)
-  airData.value.tvoc.history = createTimeBasedData(points, interval, 100, 300, now)
-  airData.value.pressure.history = createTimeBasedData(points, interval, 1000, 1025, now)
-  airData.value.light.history = createTimeBasedData(points, interval, 250, 800, now)
-}
-
-function updateHistoricalData() {
-  const now = new Date()
-
-  let timeLabel: string
-  if (timeFrame.value === '24h') {
-    timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-    airData.value.temperature.history.push({
-      time: timeLabel,
-      value: airData.value.temperature.value,
-    })
-    airData.value.humidity.history.push({
-      time: timeLabel,
-      value: airData.value.humidity.value,
-    })
-    airData.value.co2.history.push({
-      time: timeLabel,
-      value: airData.value.co2.value,
-    })
-    airData.value.tvoc.history.push({
-      time: timeLabel,
-      value: airData.value.tvoc.value,
-    })
-
-    const maxPoints = 24
-    if (airData.value.temperature.history.length > maxPoints) {
-      airData.value.temperature.history.shift()
-      airData.value.humidity.history.shift()
-      airData.value.co2.history.shift()
-      airData.value.tvoc.history.shift()
-    }
-  } else {
-    if (timeFrame.value === '7d') {
-      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    } else {
-      timeLabel = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    }
-
-    const tempIndex = airData.value.temperature.history.findIndex((item) => item.time === timeLabel)
-    const humidIndex = airData.value.humidity.history.findIndex((item) => item.time === timeLabel)
-    const co2Index = airData.value.co2.history.findIndex((item) => item.time === timeLabel)
-    const tvocIndex = airData.value.tvoc.history.findIndex((item) => item.time === timeLabel)
-
-    if (tempIndex !== -1) {
-      airData.value.temperature.history[tempIndex].value = airData.value.temperature.value
-    } else {
-      airData.value.temperature.history.push({
-        time: timeLabel,
-        value: airData.value.temperature.value,
-      })
-      if (airData.value.temperature.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        airData.value.temperature.history.shift()
-      }
-    }
-
-    if (humidIndex !== -1) {
-      airData.value.humidity.history[humidIndex].value = airData.value.humidity.value
-    } else {
-      airData.value.humidity.history.push({
-        time: timeLabel,
-        value: airData.value.humidity.value,
-      })
-      if (airData.value.humidity.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        airData.value.humidity.history.shift()
-      }
-    }
-
-    if (co2Index !== -1) {
-      airData.value.co2.history[co2Index].value = airData.value.co2.value
-    } else {
-      airData.value.co2.history.push({
-        time: timeLabel,
-        value: airData.value.co2.value,
-      })
-      if (airData.value.co2.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        airData.value.co2.history.shift()
-      }
-    }
-
-    if (tvocIndex !== -1) {
-      airData.value.tvoc.history[tvocIndex].value = airData.value.tvoc.value
-    } else {
-      airData.value.tvoc.history.push({
-        time: timeLabel,
-        value: airData.value.tvoc.value,
-      })
-      if (airData.value.tvoc.history.length > (timeFrame.value === '7d' ? 28 : 30)) {
-        airData.value.tvoc.history.shift()
-      }
-    }
   }
 }
 
-function createTimeBasedData(
-  points: number,
-  intervalMinutes: number,
-  min: number,
-  max: number,
-  endTime: Date,
-): DataPoint[] {
-  return generateTimeBasedData(points, intervalMinutes, min, max, endTime, timeFrame.value)
+function updateAirData(response: any) {
+  if (!response) return
+
+  const isFileApiFormat = response.temperature !== undefined || response.humidity !== undefined
+
+  updateSensorDataFromResponse(
+    airData.value.temperature,
+    response,
+    'air_temperature',
+    'temperature',
+  )
+  updateSensorDataFromResponse(airData.value.humidity, response, 'air_humidity', 'humidity')
+  updateSensorDataFromResponse(airData.value.co2, response, 'air_co2')
+  updateSensorDataFromResponse(airData.value.tvoc, response, 'air_tvoc')
+  updateSensorDataFromResponse(airData.value.pm25, response, 'air_pm25')
+  updateSensorDataFromResponse(airData.value.pm10, response, 'air_pm10')
 }
 
 function changeTimeFrame(frame: string) {
   timeFrame.value = frame
-  updateHistoricalData()
+  refreshData()
 }
 
 onMounted(() => {
-  generateHistoricalData()
-  updateSensorStatuses()
+  refreshData()
 })
 
 function updateSensorStatuses() {
-  airData.value.temperature.status = getSensorStatus(
-    airData.value.temperature.value,
-    airData.value.temperature.min,
-    airData.value.temperature.max,
-    airData.value.temperature.optimal_min,
-    airData.value.temperature.optimal_max,
-  )
-
-  airData.value.humidity.status = getSensorStatus(
-    airData.value.humidity.value,
-    airData.value.humidity.min,
-    airData.value.humidity.max,
-    airData.value.humidity.optimal_min,
-    airData.value.humidity.optimal_max,
-  )
-
-  airData.value.co2.status = getSensorStatus(
-    airData.value.co2.value,
-    airData.value.co2.min,
-    airData.value.co2.max,
-    airData.value.co2.optimal_min,
-    airData.value.co2.optimal_max,
-  )
-
-  airData.value.tvoc.status = getSensorStatus(
-    airData.value.tvoc.value,
-    airData.value.tvoc.min,
-    airData.value.tvoc.max,
-    airData.value.tvoc.optimal_min,
-    airData.value.tvoc.optimal_max,
-  )
-
-  airData.value.pressure.status = getSensorStatus(
-    airData.value.pressure.value,
-    airData.value.pressure.min,
-    airData.value.pressure.max,
-    airData.value.pressure.optimal_min,
-    airData.value.pressure.optimal_max,
-  )
-
-  airData.value.light.status = getSensorStatus(
-    airData.value.light.value,
-    airData.value.light.min,
-    airData.value.light.max,
-    airData.value.light.optimal_min,
-    airData.value.light.optimal_max,
-  )
+  updateSensorStatus(airData.value.temperature)
+  updateSensorStatus(airData.value.humidity)
+  updateSensorStatus(airData.value.co2)
+  updateSensorStatus(airData.value.tvoc)
+  updateSensorStatus(airData.value.pressure)
+  updateSensorStatus(airData.value.light)
 }
 
 const airQualityIndex = computed(() => {
@@ -388,6 +305,7 @@ const airQualityIndex = computed(() => {
             </button>
 
             <button
+              @click="showExportModal = true"
               class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
             >
               <span class="mdi mdi-download mr-1.5"></span>
@@ -466,31 +384,49 @@ const airQualityIndex = computed(() => {
           <SensorChart
             title="Temperature Trends"
             :data="airData.temperature.history"
-            valueLabel="Temperature (°C)"
+            valueLabel="Air Temperature (°C)"
             chartColor="#E97451"
           />
           <SensorChart
             title="Humidity Trends"
             :data="airData.humidity.history"
-            valueLabel="Humidity (%)"
+            valueLabel="Air Humidity (%)"
             chartColor="#3B82F6"
           />
           <SensorChart
             title="CO₂ Level Trends"
             :data="airData.co2.history"
-            valueLabel="CO₂ (ppm)"
+            valueLabel="Air CO₂ (ppm)"
             chartColor="#8B5CF6"
           />
           <SensorChart
             title="TVOC Level Trends"
             :data="airData.tvoc.history"
-            valueLabel="TVOC (ppb)"
+            valueLabel="Air TVOC (ppb)"
             chartColor="#10B981"
           />
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Export Data Modal -->
+  <DataExportModal
+    :show="showExportModal"
+    title="Export Air Quality Data"
+    description="Select the parameters, date range, and format for your air quality data export."
+    data-type="air"
+    :available-sensors="[
+      { id: 'temperature', name: 'Air Temperature', unit: airData.temperature.unit },
+      { id: 'humidity', name: 'Humidity', unit: airData.humidity.unit },
+      { id: 'co2', name: 'CO2', unit: airData.co2.unit },
+      { id: 'tvoc', name: 'TVOC', unit: airData.tvoc.unit },
+      { id: 'pm25', name: 'PM2.5', unit: airData.pm25.unit },
+      { id: 'pm10', name: 'PM10', unit: airData.pm10.unit },
+    ]"
+    @close="showExportModal = false"
+    @export="handleExport"
+  />
 </template>
 
 <style scoped>

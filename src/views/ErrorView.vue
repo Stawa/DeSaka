@@ -57,9 +57,6 @@ const refresh = () => {
             <h1 class="text-9xl font-extrabold text-gray-200 dark:text-gray-800">
               {{ errorCode }}
             </h1>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span class="mdi mdi-server-off text-6xl text-red-500 dark:text-red-400"></span>
-            </div>
           </div>
         </div>
         <h2 class="mt-6 text-3xl font-bold text-gray-800 dark:text-gray-200">{{ errorMessage }}</h2>
