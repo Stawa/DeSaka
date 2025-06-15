@@ -18,7 +18,6 @@ const isResettingSettings = ref(false)
 const SETTINGS_FILE_ID = '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu'
 
 const newEmailTag = ref('')
-const newPhoneTag = ref('')
 
 const originalSettings = {
   general: {
@@ -33,7 +32,6 @@ const originalSettings = {
     smsEnabled: false,
     pushEnabled: true,
     emails: [],
-    phones: [],
   },
   thresholds: {
     soilTemperature: {
@@ -136,32 +134,11 @@ const removeEmailTag = (email: string) => {
   }
 }
 
-const addPhoneTag = () => {
-  if (!newPhoneTag.value) return
-
-  const phone = newPhoneTag.value.trim()
-  if (phone && !settings.value.notifications.phones.includes(phone) && validatePhone(phone)) {
-    settings.value.notifications.phones.push(phone)
-    newPhoneTag.value = ''
-  } else if (!validatePhone(phone)) {
-    showToast('Please enter a valid phone number', 'error')
-  }
-}
-
-const removePhoneTag = (phone: string) => {
-  const index = settings.value.notifications.phones.indexOf(phone)
-  if (index !== -1) {
-    settings.value.notifications.phones.splice(index, 1)
-  }
-}
-
-const handleTagKeydown = (event: KeyboardEvent, type: 'email' | 'phone') => {
+const handleTagKeydown = (event: KeyboardEvent, type: 'email') => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
     if (type === 'email') {
       addEmailTag()
-    } else {
-      addPhoneTag()
     }
   }
 }
@@ -191,21 +168,12 @@ const validateEmail = (email: string) => {
   return emailRegex.test(email)
 }
 
-const validatePhone = (phone: string) => {
-  const phoneRegex = /^\+?\d{10,15}$/
-  return phoneRegex.test(phone)
-}
-
 const emailsValid = computed(() => {
   return settings.value.notifications.emails.every((email: string) => validateEmail(email))
 })
 
-const phonesValid = computed(() => {
-  return settings.value.notifications.phones.every((phone: string) => validatePhone(phone))
-})
-
 const formValid = computed(() => {
-  return emailsValid.value && phonesValid.value
+  return emailsValid.value
 })
 
 const saveSettings = async () => {
@@ -228,10 +196,8 @@ const resetSettings = async () => {
   if (confirm('Are you sure you want to reset all settings to default values?')) {
     try {
       isResettingSettings.value = true
-      // Reset to default values
       settings.value = JSON.parse(JSON.stringify(originalSettings))
 
-      // Save reset settings to Google Drive
       await saveSettingsToDrive()
 
       showToast('Settings reset to defaults', 'info')
@@ -614,12 +580,14 @@ const cancelChanges = () => {
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <span
-                    class="mdi mdi-message-text-outline text-xl mr-3 text-primary-600 dark:text-primary-400"
+                    class="mdi mdi-whatsapp text-xl mr-3 text-primary-600 dark:text-primary-400"
                   ></span>
                   <div>
-                    <h3 class="font-medium text-gray-800 dark:text-gray-200">SMS Notifications</h3>
+                    <h3 class="font-medium text-gray-800 dark:text-gray-200">
+                      WhatsApp Notifications
+                    </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                      Receive alerts via text message
+                      Receive alerts via WhatsApp
                     </p>
                   </div>
                 </div>
@@ -627,7 +595,7 @@ const cancelChanges = () => {
                   for="sms-notifications-toggle"
                   class="relative inline-flex items-center cursor-pointer"
                 >
-                  <span class="sr-only">Enable SMS notifications</span>
+                  <span class="sr-only">Enable WhatsApp notifications</span>
                   <input
                     id="sms-notifications-toggle"
                     type="checkbox"
@@ -638,67 +606,6 @@ const cancelChanges = () => {
                     class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
                   ></div>
                 </label>
-              </div>
-
-              <!-- Phone Number Input (conditionally displayed) -->
-              <div v-if="settings.notifications.smsEnabled" class="mt-4">
-                <label
-                  for="phone-number-input"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Phone Numbers
-                </label>
-                <div class="relative">
-                  <input
-                    id="phone-number-input"
-                    v-model="newPhoneTag"
-                    @keydown="handleTagKeydown($event, 'phone')"
-                    type="tel"
-                    placeholder="Enter phone number and press Enter or Space"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
-                    :class="{
-                      'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
-                        validatePhone(newPhoneTag) || !newPhoneTag,
-                      'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
-                        !validatePhone(newPhoneTag) && newPhoneTag,
-                    }"
-                  />
-                  <button
-                    @click="addPhoneTag"
-                    type="button"
-                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                  >
-                    <span class="mdi mdi-plus-circle text-lg"></span>
-                  </button>
-                </div>
-                <p
-                  v-if="newPhoneTag && !validatePhone(newPhoneTag)"
-                  class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
-                >
-                  <span class="mdi mdi-alert-circle mr-1"></span>
-                  Please enter a valid phone number (10-15 digits, can start with +)
-                </p>
-
-                <!-- Phone Tags -->
-                <div
-                  v-if="settings.notifications.phones.length > 0"
-                  class="mt-3 flex flex-wrap gap-2"
-                >
-                  <div
-                    v-for="(phone, index) in settings.notifications.phones"
-                    :key="index"
-                    class="inline-flex items-center bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-3 py-1 rounded-full text-sm"
-                  >
-                    <span class="mr-1">{{ phone }}</span>
-                    <button
-                      @click="removePhoneTag(phone)"
-                      type="button"
-                      class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 focus:outline-none"
-                    >
-                      <span class="mdi mdi-close-circle text-sm"></span>
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
 

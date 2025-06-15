@@ -114,7 +114,7 @@ export function useApi() {
     error.value = null
 
     try {
-      return await fetchWithCors(`${API_BASE_URL}/gdrive/files`)
+      return await fetchWithCors(`${API_BASE_URL}/drive/files`)
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error fetching files:', err)
@@ -134,7 +134,7 @@ export function useApi() {
     error.value = null
 
     try {
-      return await fetchWithCors(`${API_BASE_URL}/gdrive/file/${fileId}`)
+      return await fetchWithCors(`${API_BASE_URL}/drive/file/${fileId}`)
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error(`Error fetching file ${fileId}:`, err)
@@ -245,8 +245,8 @@ export function useApi() {
 
     try {
       const url = append
-        ? `${API_BASE_URL}/gdrive/file/${fileId}`
-        : `${API_BASE_URL}/gdrive/file/${fileId}/overwrite`
+        ? `${API_BASE_URL}/drive/file/${fileId}`
+        : `${API_BASE_URL}/drive/file/${fileId}/overwrite`
 
       const method = append ? 'POST' : 'PUT'
 
