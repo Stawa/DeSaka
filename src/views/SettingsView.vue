@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useToast } from '@/composables/useToast'
+import { toast } from 'vue3-toastify'
 import { useApi } from '@/composables/useApi'
+import SettingsPanel from '@/components/settings/SettingsPanel.vue'
+import ThresholdInputGroup from '@/components/settings/ThresholdInputGroup.vue'
+import NotificationChannels from '@/components/settings/NotificationChannels.vue'
+import 'vue3-toastify/dist/index.css'
 
 const activeTab = ref('general')
 const setActiveTab = (tab: string) => {
   activeTab.value = tab
 }
 
-const { showToast } = useToast()
 const { fetchFileById, updateFileById } = useApi()
 const settingsModified = ref(false)
 const isLoadingSettings = ref(false)
@@ -23,8 +26,8 @@ const originalSettings = {
   general: {
     dataRefreshInterval: 5,
     dataRetentionPeriod: 30,
-    timezone: 'UTC',
-    dateFormat: 'MM/DD/YYYY',
+    timezone: 'Asia/Singapore',
+    dateFormat: 'DD-MM-YYYY',
     timeFormat: '12h',
   },
   notifications: {
@@ -46,6 +49,18 @@ const originalSettings = {
       min: 5.5,
       max: 7.5,
     },
+    airTemperature: {
+      min: 18,
+      max: 30,
+    },
+    airHumidity: {
+      min: 30,
+      max: 70,
+    },
+    lightIntensity: {
+      min: 1000,
+      max: 10000,
+    },
   },
 }
 
@@ -64,26 +79,52 @@ async function loadSettingsFromDrive() {
     console.log('[loadSettingsFromDrive] Response:', response)
 
     if (response && Object.keys(response).length > 0) {
-      const mergedSettings = { ...originalSettings }
+      const mergedSettings = JSON.parse(JSON.stringify(originalSettings))
+
+      const deepMerge = (target: any, source: any) => {
+        for (const key in source) {
+          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key] || typeof target[key] !== 'object') {
+              target[key] = {}
+            }
+            deepMerge(target[key], source[key])
+          } else {
+            target[key] = source[key]
+          }
+        }
+        return target
+      }
 
       for (const key in response) {
         if (key in mergedSettings) {
-          mergedSettings[key as keyof typeof mergedSettings] =
-            response[key as keyof typeof response]
+          if (typeof response[key] === 'object' && !Array.isArray(response[key])) {
+            deepMerge(mergedSettings[key as keyof typeof mergedSettings], response[key])
+          } else {
+            mergedSettings[key as keyof typeof mergedSettings] = response[key]
+          }
         }
       }
 
       settings.value = JSON.parse(JSON.stringify(mergedSettings))
       Object.assign(originalSettings, JSON.parse(JSON.stringify(mergedSettings)))
       console.log('[loadSettingsFromDrive] Settings loaded and merged with defaults')
-      showToast('Settings loaded from Google Drive', 'success')
+      toast.success('Settings loaded from Google Drive', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+      })
     } else {
       console.log('[loadSettingsFromDrive] No settings found, using defaults')
-      showToast('No saved settings found, using defaults', 'info')
+      toast.info('No saved settings found, using defaults', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+      })
     }
   } catch (err) {
     console.error('Error loading settings from Google Drive:', err)
-    showToast('Failed to load settings from Google Drive', 'error')
+    toast.error('Failed to load settings from Google Drive', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
   } finally {
     isLoadingSettings.value = false
   }
@@ -96,11 +137,17 @@ async function saveSettingsToDrive() {
     console.log('[saveSettingsToDrive] Sending settings:', plainSettings)
 
     await updateFileById(SETTINGS_FILE_ID, plainSettings, false)
-    showToast('Settings saved to Google Drive', 'success')
+    toast.success('Settings saved to Google Drive', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
     return true
   } catch (err) {
     console.error('Error saving settings to Google Drive:', err)
-    showToast('Failed to save settings to Google Drive', 'error')
+    toast.error('Failed to save settings to Google Drive', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
     return false
   } finally {
     isSavingSettings.value = false
@@ -123,7 +170,10 @@ const addEmailTag = () => {
     settings.value.notifications.emails.push(email)
     newEmailTag.value = ''
   } else if (!validateEmail(email)) {
-    showToast('Please enter a valid email address', 'error')
+    toast.error('Please enter a valid email address', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
   }
 }
 
@@ -143,26 +193,6 @@ const handleTagKeydown = (event: KeyboardEvent, type: 'email') => {
   }
 }
 
-const timezoneOptions = [
-  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-  { value: 'EST', label: 'EST (Eastern Standard Time)' },
-  { value: 'CST', label: 'CST (Central Standard Time)' },
-  { value: 'MST', label: 'MST (Mountain Standard Time)' },
-  { value: 'PST', label: 'PST (Pacific Standard Time)' },
-  { value: 'IST', label: 'IST (Indian Standard Time)' },
-]
-
-const dateFormatOptions = [
-  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
-]
-
-const timeFormatOptions = [
-  { value: '12h', label: '12-hour (AM/PM)' },
-  { value: '24h', label: '24-hour' },
-]
-
 const validateEmail = (email: string) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
@@ -178,7 +208,10 @@ const formValid = computed(() => {
 
 const saveSettings = async () => {
   if (!formValid.value) {
-    showToast('Please correct the validation errors before saving', 'error')
+    toast.error('Please correct the validation errors before saving', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
     return
   }
 
@@ -200,10 +233,16 @@ const resetSettings = async () => {
 
       await saveSettingsToDrive()
 
-      showToast('Settings reset to defaults', 'info')
+      toast.info('Settings reset to defaults', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+      })
     } catch (err) {
       console.error('Error resetting settings:', err)
-      showToast('Failed to reset settings', 'error')
+      toast.error('Failed to reset settings', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+      })
     } finally {
       isResettingSettings.value = false
     }
@@ -215,7 +254,10 @@ const cancelChanges = () => {
     if (confirm('Discard unsaved changes?')) {
       settings.value = JSON.parse(JSON.stringify(originalSettings))
       settingsModified.value = false
-      showToast('Changes discarded', 'info')
+      toast.info('Changes discarded', {
+        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,
+      })
     }
   }
 }
@@ -241,9 +283,7 @@ const cancelChanges = () => {
     >
       <div class="h-1.5 w-full bg-gradient-to-r from-amber-400 to-amber-600"></div>
       <div class="p-4 sm:p-6">
-        <!-- Header Content -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <!-- Title and Description -->
           <div class="flex items-start sm:items-center w-full md:w-auto">
             <div
               class="bg-amber-100 dark:bg-amber-900/30 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
@@ -318,544 +358,107 @@ const cancelChanges = () => {
     <div class="tab-content">
       <!-- General Settings Tab -->
       <div v-if="activeTab === 'general'" class="fade-in">
-        <div
-          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 mb-5 border border-gray-100 dark:border-gray-700"
-        >
-          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-            <span class="mdi mdi-refresh mr-2 text-primary-600 dark:text-primary-400"></span>
-            Data Settings
-          </h2>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-            <!-- Data Refresh Interval -->
-            <div>
-              <label
-                for="data-refresh-interval"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Data Refresh Interval
-              </label>
-              <div class="relative">
-                <input
-                  id="data-refresh-interval"
-                  v-model="settings.general.dataRefreshInterval"
-                  type="number"
-                  min="1"
-                  max="60"
-                  class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
-                />
-                <div
-                  class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                >
-                  minutes
-                </div>
-              </div>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                How often to refresh sensor data (1-60 minutes)
-              </p>
-            </div>
-
-            <!-- Data Retention Period -->
-            <div>
-              <label
-                for="data-retention-period"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Data Retention Period
-              </label>
-              <div class="relative">
-                <input
-                  id="data-retention-period"
-                  v-model="settings.general.dataRetentionPeriod"
-                  type="number"
-                  min="1"
-                  max="365"
-                  class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
-                />
-                <div
-                  class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                >
-                  days
-                </div>
-              </div>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                How long to keep historical data (1-365 days)
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700"
-        >
-          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-            <span class="mdi mdi-clock-outline mr-2 text-primary-600 dark:text-primary-400"></span>
-            Time & Format Settings
-          </h2>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <!-- Timezone -->
-            <div>
-              <label
-                for="timezone-select"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Timezone
-              </label>
-              <select
-                id="timezone-select"
-                v-model="settings.general.timezone"
-                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
-              >
-                <option v-for="option in timezoneOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Select your local timezone for accurate time display
-              </p>
-            </div>
-
-            <!-- Date Format -->
-            <div>
-              <label
-                for="date-format-select"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Date Format
-              </label>
-              <select
-                id="date-format-select"
-                v-model="settings.general.dateFormat"
-                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
-              >
-                <option
-                  v-for="option in dateFormatOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Choose how dates are displayed throughout the application
-              </p>
-            </div>
-
-            <!-- Time Format -->
-            <div>
-              <label
-                for="time-format-select"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Time Format
-              </label>
-              <select
-                id="time-format-select"
-                v-model="settings.general.timeFormat"
-                class="block w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500 transition-colors"
-              >
-                <option
-                  v-for="option in timeFormatOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Choose how time is displayed throughout the application
-              </p>
-            </div>
-          </div>
-        </div>
+        <SettingsPanel v-model:settings="settings.general" />
       </div>
 
       <!-- Notification Settings Tab -->
       <div v-if="activeTab === 'notifications'" class="fade-in">
-        <div
-          class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700"
-        >
-          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-            <span class="mdi mdi-bell-outline mr-2 text-primary-600 dark:text-primary-400"></span>
-            Notification Channels
-          </h2>
-
-          <div class="space-y-4">
-            <!-- Email Notifications -->
-            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <span
-                    class="mdi mdi-email-outline text-xl mr-3 text-primary-600 dark:text-primary-400"
-                  ></span>
-                  <div>
-                    <h3 class="font-medium text-gray-800 dark:text-gray-200">
-                      Email Notifications
-                    </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive alerts via email</p>
-                  </div>
-                </div>
-                <label
-                  for="email-notifications-toggle"
-                  class="relative inline-flex items-center cursor-pointer"
-                >
-                  <span class="sr-only">Enable email notifications</span>
-                  <input
-                    id="email-notifications-toggle"
-                    type="checkbox"
-                    v-model="settings.notifications.emailEnabled"
-                    class="sr-only peer"
-                  />
-                  <div
-                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
-                  ></div>
-                </label>
-              </div>
-
-              <!-- Email Address Input (conditionally displayed) -->
-              <div v-if="settings.notifications.emailEnabled" class="mt-4">
-                <label
-                  for="notification-email"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Notification Email Addresses
-                </label>
-                <div class="relative">
-                  <input
-                    id="notification-email"
-                    v-model="newEmailTag"
-                    @keydown="handleTagKeydown($event, 'email')"
-                    type="email"
-                    placeholder="Enter email and press Enter or Space"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-700 border rounded-lg transition-colors"
-                    :class="{
-                      'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-500 dark:focus:border-primary-500':
-                        validateEmail(newEmailTag) || !newEmailTag,
-                      'border-red-300 dark:border-red-600 focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500':
-                        !validateEmail(newEmailTag) && newEmailTag,
-                    }"
-                  />
-                  <button
-                    @click="addEmailTag"
-                    type="button"
-                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-                  >
-                    <span class="mdi mdi-plus-circle text-lg"></span>
-                  </button>
-                </div>
-                <p
-                  v-if="newEmailTag && !validateEmail(newEmailTag)"
-                  class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center"
-                >
-                  <span class="mdi mdi-alert-circle mr-1"></span>
-                  Please enter a valid email address
-                </p>
-
-                <!-- Email Tags -->
-                <div
-                  v-if="settings.notifications.emails.length > 0"
-                  class="mt-3 flex flex-wrap gap-2"
-                >
-                  <div
-                    v-for="(email, index) in settings.notifications.emails"
-                    :key="index"
-                    class="inline-flex items-center bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-3 py-1 rounded-full text-sm"
-                  >
-                    <span class="mr-1">{{ email }}</span>
-                    <button
-                      @click="removeEmailTag(email)"
-                      type="button"
-                      class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 focus:outline-none"
-                    >
-                      <span class="mdi mdi-close-circle text-sm"></span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SMS Notifications -->
-            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <span
-                    class="mdi mdi-whatsapp text-xl mr-3 text-primary-600 dark:text-primary-400"
-                  ></span>
-                  <div>
-                    <h3 class="font-medium text-gray-800 dark:text-gray-200">
-                      WhatsApp Notifications
-                    </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      Receive alerts via WhatsApp
-                    </p>
-                  </div>
-                </div>
-                <label
-                  for="sms-notifications-toggle"
-                  class="relative inline-flex items-center cursor-pointer"
-                >
-                  <span class="sr-only">Enable WhatsApp notifications</span>
-                  <input
-                    id="sms-notifications-toggle"
-                    type="checkbox"
-                    v-model="settings.notifications.smsEnabled"
-                    class="sr-only peer"
-                  />
-                  <div
-                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
-                  ></div>
-                </label>
-              </div>
-            </div>
-
-            <!-- Push Notifications -->
-            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <span
-                    class="mdi mdi-cellphone-message text-xl mr-3 text-primary-600 dark:text-primary-400"
-                  ></span>
-                  <div>
-                    <h3 class="font-medium text-gray-800 dark:text-gray-200">Push Notifications</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      Receive alerts on your device
-                    </p>
-                  </div>
-                </div>
-                <label
-                  for="push-notifications-toggle"
-                  class="relative inline-flex items-center cursor-pointer"
-                >
-                  <span class="sr-only">Enable push notifications</span>
-                  <input
-                    id="push-notifications-toggle"
-                    type="checkbox"
-                    v-model="settings.notifications.pushEnabled"
-                    class="sr-only peer"
-                  />
-                  <div
-                    class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
-                  ></div>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
+        <NotificationChannels
+          :settings="settings"
+          :newEmailTag="newEmailTag"
+          :addEmailTag="addEmailTag"
+          :removeEmailTag="removeEmailTag"
+          :handleTagKeydown="handleTagKeydown"
+          :validateEmail="validateEmail"
+        />
       </div>
 
       <!-- Alert Thresholds Tab -->
       <div v-if="activeTab === 'thresholds'" class="fade-in">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <!-- Soil Temperature Thresholds -->
-          <div
-            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
-          >
-            <h3
-              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
-            >
-              <span class="mdi mdi-thermometer mr-2 text-amber-600 dark:text-amber-400"></span>
-              Soil Temperature
-            </h3>
+          <ThresholdInputGroup
+            id="soil-temp"
+            title="Soil Temperature"
+            label="temperature"
+            icon="mdi-thermometer"
+            iconColor="text-amber-600 dark:text-amber-400"
+            unit="°C"
+            :min="-10"
+            :max="100"
+            :step="0.1"
+            ringClass="focus:ring-amber-500 focus:border-amber-500 dark:focus:ring-amber-500 dark:focus:border-amber-500"
+            v-model:modelValue="settings.thresholds.soilTemperature"
+          />
 
-            <div class="space-y-4">
-              <!-- Minimum Threshold -->
-              <div>
-                <label
-                  for="soil-temp-min"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Minimum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-temp-min"
-                    v-model="settings.thresholds.soilTemperature.min"
-                    type="number"
-                    step="0.1"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    °C
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when below this temperature
-                </p>
-              </div>
+          <ThresholdInputGroup
+            id="soil-moisture"
+            title="Soil Moisture"
+            label="moisture level"
+            icon="mdi-water"
+            iconColor="text-blue-600 dark:text-blue-400"
+            unit="%"
+            :min="0"
+            :max="100"
+            :step="1"
+            ringClass="focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            v-model:modelValue="settings.thresholds.soilMoisture"
+          />
 
-              <!-- Maximum Threshold -->
-              <div>
-                <label
-                  for="soil-temp-max"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Maximum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-temp-max"
-                    v-model="settings.thresholds.soilTemperature.max"
-                    type="number"
-                    step="0.1"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 dark:focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    °C
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when above this temperature
-                </p>
-              </div>
-            </div>
-          </div>
+          <ThresholdInputGroup
+            id="soil-ph"
+            title="Soil pH"
+            label="pH level"
+            icon="mdi-flask"
+            iconColor="text-green-600 dark:text-green-400"
+            unit="pH"
+            :min="0"
+            :max="14"
+            :step="0.1"
+            ringClass="focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-500 dark:focus:border-green-500"
+            v-model:modelValue="settings.thresholds.soilPH"
+          />
 
-          <!-- Soil Moisture Thresholds -->
-          <div
-            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
-          >
-            <h3
-              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
-            >
-              <span class="mdi mdi-water mr-2 text-blue-600 dark:text-blue-400"></span>
-              Soil Moisture
-            </h3>
+          <ThresholdInputGroup
+            id="air-temp"
+            title="Air Temperature"
+            label="temperature"
+            icon="mdi-thermometer-lines"
+            iconColor="text-red-600 dark:text-red-400"
+            unit="°C"
+            :min="-10"
+            :max="50"
+            :step="0.1"
+            ringClass="focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500"
+            v-model:modelValue="settings.thresholds.airTemperature"
+          />
 
-            <div class="space-y-4">
-              <!-- Minimum Threshold -->
-              <div>
-                <label
-                  for="soil-moisture-min"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Minimum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-moisture-min"
-                    v-model="settings.thresholds.soilMoisture.min"
-                    type="number"
-                    min="0"
-                    max="100"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    %
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when below this moisture level
-                </p>
-              </div>
+          <ThresholdInputGroup
+            id="air-humidity"
+            title="Air Humidity"
+            label="humidity level"
+            icon="mdi-water-percent"
+            iconColor="text-blue-600 dark:text-blue-400"
+            unit="%"
+            :min="0"
+            :max="100"
+            :step="1"
+            ringClass="focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            v-model:modelValue="settings.thresholds.airHumidity"
+          />
 
-              <!-- Maximum Threshold -->
-              <div>
-                <label
-                  for="soil-moisture-max"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Maximum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-moisture-max"
-                    v-model="settings.thresholds.soilMoisture.max"
-                    type="number"
-                    min="0"
-                    max="100"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    %
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when above this moisture level
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Soil pH Thresholds -->
-          <div
-            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700"
-          >
-            <h3
-              class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center"
-            >
-              <span class="mdi mdi-flask mr-2 text-green-600 dark:text-green-400"></span>
-              Soil pH
-            </h3>
-
-            <div class="space-y-4">
-              <!-- Minimum Threshold -->
-              <div>
-                <label
-                  for="soil-ph-min"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Minimum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-ph-min"
-                    v-model="settings.thresholds.soilPH.min"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="14"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-500 dark:focus:border-green-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    pH
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when below this pH level
-                </p>
-              </div>
-
-              <!-- Maximum Threshold -->
-              <div>
-                <label
-                  for="soil-ph-max"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Maximum Threshold
-                </label>
-                <div class="relative">
-                  <input
-                    id="soil-ph-max"
-                    v-model="settings.thresholds.soilPH.max"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="14"
-                    class="block w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:focus:ring-green-500 dark:focus:border-green-500 transition-colors"
-                  />
-                  <div
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500 dark:text-gray-400"
-                  >
-                    pH
-                  </div>
-                </div>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Alert when above this pH level
-                </p>
-              </div>
-            </div>
-          </div>
+          <ThresholdInputGroup
+            id="light-intensity"
+            title="Light Intensity"
+            label="light level"
+            icon="mdi-white-balance-sunny"
+            iconColor="text-yellow-600 dark:text-yellow-400"
+            unit="lux"
+            :min="0"
+            :max="100000"
+            :step="100"
+            ringClass="focus:ring-yellow-500 focus:border-yellow-500 dark:focus:ring-yellow-500 dark:focus:border-yellow-500"
+            v-model:modelValue="settings.thresholds.lightIntensity"
+          />
         </div>
       </div>
     </div>
