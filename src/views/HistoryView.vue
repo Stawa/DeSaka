@@ -880,13 +880,7 @@ onMounted(() => {
             <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
               {{ getSensorById(sensorId)?.unit }}
             </span>
-            <div class="ml-auto flex gap-1">
-              <button
-                class="p-1 px-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title="Download CSV"
-              >
-                <span class="mdi mdi-download text-sm"></span>
-              </button>
+            <div class="ml-auto flex">
               <button
                 class="p-1 px-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="Remove from view"

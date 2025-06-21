@@ -1,822 +1,318 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
-const props = defineProps({
-  sensorData: {
-    type: Object,
-    required: true,
-  },
-  plantHealthScore: {
-    type: Number,
-    required: true,
-  },
-  growthPrediction: {
-    type: String,
-    default: 'Normal',
-  },
-  systemStatus: {
-    type: String,
-    default: 'normal',
-  },
+defineProps({
+  sensorData: { type: Object, required: true },
+  plantHealthScore: { type: Number, required: true },
+  growthPrediction: { type: String, default: 'Normal' },
+  systemStatus: { type: String, default: 'normal' },
 })
 
-const statusSensorData = [
-  { id: 1, name: 'Soil Moisture Sensor', status: 'normal' },
-  { id: 2, name: 'Temperature Sensor', status: 'warning' },
-  { id: 3, name: 'Humidity Sensor', status: 'normal' },
-  { id: 4, name: 'Light Sensor', status: 'normal' },
-  { id: 5, name: 'pH Sensor', status: 'critical' },
-  { id: 6, name: 'Nutrient Sensor', status: 'warning' },
-  { id: 7, name: 'Water Level Sensor', status: 'normal' },
-  { id: 8, name: 'CO2 Sensor', status: 'normal' },
-]
-
-const statusCounts = computed(() => {
-  return {
-    normal: statusSensorData.filter((sensor) => sensor.status === 'normal').length,
-    warning: statusSensorData.filter((sensor) => sensor.status === 'warning').length,
-    critical: statusSensorData.filter((sensor) => sensor.status === 'critical').length,
-  }
-})
-
-const keyMetrics = [
-  { name: 'System Uptime', value: '99.8%', status: 'normal' },
-  { name: 'Response Time', value: '120ms', status: 'normal' },
-  { name: 'Error Rate', value: '0.5%', status: 'warning' },
-]
-
-const isHoveredCard = ref<string | null>(null)
-const activeTab = ref('status')
-
-const soilMoisture = computed(() => {
-  return props.sensorData.soilMoisture
-})
-
-const soilPh = computed(() => {
-  return props.sensorData.soilPH
-})
-
-const airTemperature = computed(() => {
-  return props.sensorData.airTemperature
-})
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'normal':
-      return 'text-green-500 dark:text-green-400'
-    case 'warning':
-      return 'text-yellow-500 dark:text-yellow-400'
-    case 'critical':
-      return 'text-red-500 dark:text-red-400'
-    default:
-      return 'text-gray-500 dark:text-gray-400'
-  }
+const esp32Info: Record<string, string | number> = {
+  chipModel: 'ESP32-WROOM-32',
+  flashSize: '4MB',
+  freeHeap: '180KB',
+  wifiSignal: -45,
+  uptime: '2d 14h 32m',
+  cpuFreq: '240MHz',
+  temperature: '52°C',
 }
 
-const healthScoreColor = computed(() => {
-  if (props.plantHealthScore >= 80) return 'text-green-500 dark:text-green-400'
-  if (props.plantHealthScore >= 60) return 'text-yellow-500 dark:text-yellow-400'
-  return 'text-red-500 dark:text-red-400'
-})
-
-const healthScoreBgColor = computed(() => {
-  if (props.plantHealthScore >= 80) return 'text-green-500 dark:text-green-600'
-  if (props.plantHealthScore >= 60) return 'text-yellow-500 dark:text-yellow-600'
-  return 'text-red-500 dark:text-red-600'
-})
-
-const healthScoreSvgColor = computed(() => {
-  if (props.plantHealthScore >= 80) return '#22c55e'
-  if (props.plantHealthScore >= 60) return '#eab308'
-  return '#ef4444'
-})
-
-const isDesktop = ref(window.innerWidth >= 1024)
-
-const updateWindowWidth = () => {
-  isDesktop.value = window.innerWidth >= 1024
+interface WifiSignal {
+  label: string
+  bars: number
+  color: string
+  icon: string
 }
 
-onMounted(() => {
-  window.addEventListener('resize', updateWindowWidth)
+const wifiStrength = computed<WifiSignal>(() => {
+  const signal = Number(esp32Info.wifiSignal ?? -100)
+  if (signal >= -50)
+    return { label: 'Excellent', bars: 4, color: 'emerald', icon: 'mdi-wifi-strength-4' }
+  if (signal >= -60) return { label: 'Good', bars: 3, color: 'green', icon: 'mdi-wifi-strength-3' }
+  if (signal >= -70) return { label: 'Fair', bars: 2, color: 'yellow', icon: 'mdi-wifi-strength-2' }
+  return { label: 'Poor', bars: 1, color: 'red', icon: 'mdi-wifi-strength-1-alert' }
 })
 
-onUnmounted(() => {
-  window.removeEventListener('resize', updateWindowWidth)
+const infoCards = [
+  {
+    key: 'temperature',
+    label: 'Temperature',
+    subtitle: 'Chip Temp',
+    icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+    iconColor: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    valueClass: 'text-2xl',
+  },
+  {
+    key: 'freeHeap',
+    label: 'Memory',
+    subtitle: 'Free Heap',
+    icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    iconColor: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    valueClass: 'text-2xl',
+  },
+  {
+    key: 'chipModel',
+    label: 'Chip Model',
+    subtitle: 'WROOM-32',
+    icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z',
+    iconColor: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    valueClass: 'text-lg',
+  },
+  {
+    key: 'wifiSignal',
+    label: 'WiFi Signal',
+    subtitle: '',
+    type: 'wifi',
+    iconColor: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    valueClass: 'text-2xl',
+  },
+]
+
+const esp32Sensors = [
+  {
+    id: 1,
+    name: 'Soil Moisture',
+    type: 'Analog',
+    pin: 'A0',
+    status: 'online',
+    value: '45%',
+    lastUpdate: '2s ago',
+  },
+  {
+    id: 2,
+    name: 'Air Temperature',
+    type: 'DHT22',
+    pin: 'D4',
+    status: 'online',
+    value: '24.5°C',
+    lastUpdate: '1s ago',
+  },
+  {
+    id: 3,
+    name: 'Air Humidity',
+    type: 'DHT22',
+    pin: 'D4',
+    status: 'online',
+    value: '62%',
+    lastUpdate: '1s ago',
+  },
+  {
+    id: 4,
+    name: 'Light Intensity',
+    type: 'LDR',
+    pin: 'A1',
+    status: 'online',
+    value: '780 lux',
+    lastUpdate: '3s ago',
+  },
+  {
+    id: 5,
+    name: 'Soil pH',
+    type: 'Analog',
+    pin: 'A2',
+    status: 'offline',
+    value: '--',
+    lastUpdate: '5m ago',
+  },
+  {
+    id: 6,
+    name: 'Soil Temperature',
+    type: 'DS18B20',
+    pin: 'D5',
+    status: 'online',
+    value: '22.1°C',
+    lastUpdate: '2s ago',
+  },
+]
+
+const screenWidth = ref(window.innerWidth)
+
+const updateWidth = () => (screenWidth.value = window.innerWidth)
+
+onMounted(() => window.addEventListener('resize', updateWidth))
+onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
+
+const columnCount = computed(() => {
+  if (screenWidth.value < 640) return 1
+  if (screenWidth.value < 768) return 2
+  if (screenWidth.value < 1280) return 3
+  return 4
+})
+
+const fullRows = computed(() => {
+  const cols = columnCount.value
+  return esp32Sensors.slice(0, Math.floor(esp32Sensors.length / cols) * cols)
+})
+
+const lastRow = computed(() => {
+  const cols = columnCount.value
+  return esp32Sensors.slice(Math.floor(esp32Sensors.length / cols) * cols)
+})
+
+const lastRowClass = computed(() => {
+  const remaining = lastRow.value.length
+  const cols = columnCount.value
+  const offset = Math.floor((cols - remaining) / 2) + 1
+  return `col-start-${offset}`
+})
+
+const currentTime = new Date().toLocaleString('en-US', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true,
 })
 </script>
 
 <template>
   <div
-    class="plant-status-dashboard bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg w-full"
+    class="bg-white dark:bg-gray-900 text-black dark:text-white rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md w-full max-w-full overflow-hidden"
   >
-    <!-- Mobile/Tablet Tab Navigation -->
-    <div class="lg:hidden border-b border-gray-100 dark:border-gray-700">
-      <div class="flex">
-        <button
-          @click="activeTab = 'status'"
-          class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
-          :class="{
-            'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
-              activeTab === 'status',
-            'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
-              activeTab !== 'status',
-          }"
-        >
-          <span class="mdi mdi-chart-line mr-1"></span>
-          Status Overview
-        </button>
-        <button
-          @click="activeTab = 'health'"
-          class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
-          :class="{
-            'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
-              activeTab === 'health',
-            'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
-              activeTab !== 'health',
-          }"
-        >
-          <span class="mdi mdi-sprout mr-1"></span>
-          Plant Health
-        </button>
+    <!-- Header -->
+    <div class="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <span class="text-3xl text-white mdi mdi-cpu-32-bit"></span>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold">ESP32 Monitor</h1>
+          <p class="text-sm text-slate-400">Last 24 Hours • Updated {{ currentTime }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- Desktop Layout: Side by Side -->
-    <div v-if="isDesktop" class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-700">
-      <!-- Status Overview Section -->
-      <div class="status-overview">
-        <!-- Status Overview Header -->
-        <div class="p-3 sm:p-4 md:p-5 border-b border-gray-100 dark:border-gray-700">
-          <div class="flex items-center">
-            <div
-              class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0"
-            >
-              <span
-                class="mdi mdi-chart-line text-primary-600 dark:text-primary-400 text-lg sm:text-xl"
-              ></span>
+    <!-- Main Content -->
+    <div class="px-6 py-6 space-y-8">
+      <!-- System Info -->
+      <div>
+        <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+          System Info
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            v-for="card in infoCards"
+            :key="card.key"
+            class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
+          >
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                :class="card.bgColor"
+                class="w-8 h-8 rounded-lg flex items-center justify-center"
+              >
+                <svg
+                  v-if="card.type !== 'wifi'"
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  :class="card.iconColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    :d="card.icon"
+                  />
+                </svg>
+                <i
+                  v-if="card.type === 'wifi'"
+                  class="mdi text-xl"
+                  :class="[wifiStrength.icon, card.iconColor]"
+                ></i>
+              </div>
+              <span class="text-xs text-slate-400 uppercase tracking-wide">{{ card.label }}</span>
             </div>
-            <h2
-              class="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-200 truncate"
-            >
-              Status Overview
-            </h2>
+            <div :class="['font-bold text-white mb-1', card.valueClass]">
+              {{ card.type === 'wifi' ? esp32Info.wifiSignal + ' dBm' : esp32Info[card.key] }}
+            </div>
+            <div class="text-xs text-slate-500">
+              {{ card.type === 'wifi' ? wifiStrength.label : card.subtitle }}
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Status Overview Content -->
-        <div class="p-3 sm:p-4 md:p-5">
-          <!-- Status Cards -->
-          <div class="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-            <!-- Normal Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'normal'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/40 border border-green-200 dark:border-green-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'normal' }"
-            >
+      <!-- Sensor Info -->
+      <div>
+        <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+          Sensor Info
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Full Rows -->
+          <div
+            v-for="sensor in fullRows"
+            :key="sensor.id"
+            class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
+          >
+            <div class="flex items-center justify-between mb-4">
               <div>
-                <h3
-                  class="text-green-800 dark:text-green-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Normal
-                </h3>
-                <p
-                  class="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400"
-                >
-                  {{ statusCounts.normal }}
-                </p>
-                <p class="text-2xs sm:text-xs text-green-700 dark:text-green-300 opacity-80">
-                  Sensors
-                </p>
+                <h3 class="font-medium text-white text-sm">{{ sensor.name }}</h3>
+                <p class="text-xs text-slate-500">{{ sensor.type }} • {{ sensor.pin }}</p>
               </div>
+              <span
+                :class="
+                  sensor.status === 'online'
+                    ? 'text-green-400 bg-green-400/10'
+                    : 'text-red-400 bg-red-400/10'
+                "
+                class="text-xs font-medium px-2 py-1 rounded-md"
+              >
+                {{ sensor.status.toUpperCase() }}
+              </span>
             </div>
-
-            <!-- Warning Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'warning'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'warning' }"
-            >
-              <div>
-                <h3
-                  class="text-yellow-800 dark:text-yellow-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Warning
-                </h3>
-                <p
-                  class="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400"
-                >
-                  {{ statusCounts.warning }}
-                </p>
-                <p class="text-2xs sm:text-xs text-yellow-700 dark:text-yellow-300 opacity-80">
-                  Sensors
-                </p>
-              </div>
-            </div>
-
-            <!-- Critical Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'critical'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/40 border border-red-200 dark:border-red-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'critical' }"
-            >
-              <div>
-                <h3
-                  class="text-red-800 dark:text-red-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Critical
-                </h3>
-                <p class="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                  {{ statusCounts.critical }}
-                </p>
-                <p class="text-2xs sm:text-xs text-red-700 dark:text-red-300 opacity-80">Sensors</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Key Metrics Section -->
-          <div class="mt-6">
-            <h3 class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 mb-3">
-              Key Metrics
-            </h3>
             <div class="space-y-3">
-              <!-- System Health Progress Bar -->
               <div>
-                <div class="flex justify-between items-center mb-1">
-                  <span class="text-2xs sm:text-xs text-gray-600 dark:text-gray-400"
-                    >System Health</span
-                  >
-                  <span class="text-2xs sm:text-xs font-medium text-green-600 dark:text-green-400"
-                    >63%</span
-                  >
-                </div>
-                <div class="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-green-500 dark:bg-green-600 rounded-full animate-progress"
-                    style="width: 63%"
-                  ></div>
-                </div>
+                <div class="text-2xl font-bold text-white mb-1">{{ sensor.value }}</div>
+                <div class="text-xs text-slate-500">Current Value</div>
               </div>
-
-              <!-- Key Metrics Grid -->
-              <div class="grid grid-cols-3 gap-2 sm:gap-3">
-                <div
-                  v-for="metric in keyMetrics"
-                  :key="metric.name"
-                  class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-                >
-                  <p class="text-2xs sm:text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
-                    {{ metric.name }}
-                  </p>
-                  <p class="text-sm sm:text-base font-bold" :class="getStatusColor(metric.status)">
-                    {{ metric.value }}
-                  </p>
-                </div>
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <span class="text-xs text-slate-500">Last Update</span>
+                <span class="text-xs text-slate-400">{{ sensor.lastUpdate }}</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Plant Health Section -->
-      <div class="plant-health">
-        <!-- Plant Health Header -->
-        <div class="p-3 sm:p-4 md:p-5 border-b border-gray-100 dark:border-gray-700">
-          <div class="flex items-center">
-            <div
-              class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0"
-            >
-              <span
-                class="mdi mdi-sprout text-primary-600 dark:text-primary-400 text-lg sm:text-xl"
-              ></span>
-            </div>
-            <h2
-              class="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-200 truncate"
-            >
-              Plant Health
-            </h2>
-          </div>
-        </div>
-
-        <!-- Plant Health Content -->
-        <div class="p-3 sm:p-4 md:p-5">
-          <!-- Health Score Display -->
+          <!-- Centered Last Row -->
           <div
-            class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 mb-3 flex items-center justify-between"
+            v-if="lastRow.length"
+            class="col-span-full grid grid-cols-subgrid gap-4"
+            :class="lastRowClass"
           >
-            <div class="text-left">
-              <p class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mb-0.5">
-                Overall Health Score
-              </p>
-              <div class="flex items-baseline">
-                <span class="text-base sm:text-lg font-bold mr-1" :class="healthScoreColor">{{
-                  plantHealthScore
-                }}</span>
-                <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">/ 100</span>
-              </div>
-            </div>
-
-            <!-- Health Score Progress Circle -->
-            <div class="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
-              <svg class="w-full h-full" viewBox="0 0 100 100">
-                <!-- Background circle -->
-                <circle
-                  class="stroke-current"
-                  :class="healthScoreBgColor"
-                  stroke-width="10"
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                ></circle>
-                <!-- Progress circle -->
-                <circle
-                  stroke-width="10"
-                  stroke-linecap="round"
-                  stroke-dasharray="251.2"
-                  :stroke-dashoffset="251.2 - (251.2 * plantHealthScore) / 100"
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                  transform="rotate(-90 50 50)"
-                  class="transition-all duration-1000 ease-out"
-                  :stroke="healthScoreSvgColor"
-                ></circle>
-                <!-- Text in center -->
-                <text
-                  x="50"
-                  y="50"
-                  class="text-sm sm:text-base font-bold"
-                  :fill="healthScoreSvgColor"
-                  dominant-baseline="middle"
-                  text-anchor="middle"
-                >
-                  {{ plantHealthScore }}
-                </text>
-              </svg>
-            </div>
-          </div>
-
-          <!-- Key Factors Section -->
-          <div class="space-y-2 sm:space-y-3">
-            <h3 class="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Key Factors
-            </h3>
-
-            <!-- Factors Grid -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-              <!-- Soil Moisture -->
-              <div
-                v-if="soilMoisture"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-water text-blue-500 dark:text-blue-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Soil Moisture</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(soilMoisture.status)"
-                  >
-                    {{ soilMoisture.value }}{{ soilMoisture.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        soilMoisture.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400':
-                        soilMoisture.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        soilMoisture.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-
-              <!-- Soil pH -->
-              <div
-                v-if="soilPh"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-test-tube text-purple-500 dark:text-purple-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Soil pH</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(soilPh.status)"
-                  >
-                    {{ soilPh.value }}{{ soilPh.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        soilPh.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400': soilPh.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        soilPh.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-
-              <!-- Air Temperature -->
-              <div
-                v-if="airTemperature"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-thermometer text-red-500 dark:text-red-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Air Temperature</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(airTemperature.status)"
-                  >
-                    {{ airTemperature.value }}{{ airTemperature.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        airTemperature.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400':
-                        airTemperature.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        airTemperature.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Growth Prediction -->
             <div
-              class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-gray-700"
+              v-for="sensor in lastRow"
+              :key="sensor.id"
+              class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
             >
-              <div class="flex justify-between items-center flex-wrap gap-1 sm:gap-2">
-                <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Growth Prediction</span
-                >
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="font-medium text-white text-sm">{{ sensor.name }}</h3>
+                  <p class="text-xs text-slate-500">{{ sensor.type }} • {{ sensor.pin }}</p>
+                </div>
                 <span
-                  class="px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
-                  :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Excellent' || growthPrediction === 'Good',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Fair' || growthPrediction === 'Poor',
-                    'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300':
-                      growthPrediction === 'Critical',
-                  }"
+                  :class="
+                    sensor.status === 'online'
+                      ? 'text-green-400 bg-green-400/10'
+                      : 'text-red-400 bg-red-400/10'
+                  "
+                  class="text-xs font-medium px-2 py-1 rounded-md"
                 >
-                  {{ growthPrediction }}
+                  {{ sensor.status.toUpperCase() }}
                 </span>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile/Tablet Layout: Tabbed Interface -->
-    <div v-if="!isDesktop" class="p-0">
-      <!-- Status Overview Tab Content -->
-      <div v-if="activeTab === 'status'" class="animate-fade-in">
-        <div class="p-3 sm:p-4 md:p-5">
-          <!-- Status Cards -->
-          <div class="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-            <!-- Normal Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'normal'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/40 border border-green-200 dark:border-green-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'normal' }"
-            >
-              <div>
-                <h3
-                  class="text-green-800 dark:text-green-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Normal
-                </h3>
-                <p
-                  class="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400"
-                >
-                  {{ statusCounts.normal }}
-                </p>
-                <p class="text-2xs sm:text-xs text-green-700 dark:text-green-300 opacity-80">
-                  Sensors
-                </p>
-              </div>
-            </div>
-
-            <!-- Warning Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'warning'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'warning' }"
-            >
-              <div>
-                <h3
-                  class="text-yellow-800 dark:text-yellow-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Warning
-                </h3>
-                <p
-                  class="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400"
-                >
-                  {{ statusCounts.warning }}
-                </p>
-                <p class="text-2xs sm:text-xs text-yellow-700 dark:text-yellow-300 opacity-80">
-                  Sensors
-                </p>
-              </div>
-            </div>
-
-            <!-- Critical Status Card -->
-            <div
-              @mouseenter="isHoveredCard = 'critical'"
-              @mouseleave="isHoveredCard = null"
-              class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/40 border border-red-200 dark:border-red-800 rounded-xl p-2 sm:p-3 flex items-center justify-between transform transition-all duration-300"
-              :class="{ 'scale-105 shadow-md': isHoveredCard === 'critical' }"
-            >
-              <div>
-                <h3
-                  class="text-red-800 dark:text-red-300 font-medium text-2xs sm:text-xs md:text-sm mb-0.5 sm:mb-1"
-                >
-                  Critical
-                </h3>
-                <p class="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                  {{ statusCounts.critical }}
-                </p>
-                <p class="text-2xs sm:text-xs text-red-700 dark:text-red-300 opacity-80">Sensors</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Key Metrics Section -->
-          <div class="mt-6">
-            <h3 class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 mb-3">
-              Key Metrics
-            </h3>
-            <div class="mb-4">
-              <!-- System Health Progress Bar -->
-              <div>
-                <div class="flex justify-between items-center mb-1">
-                  <span class="text-2xs sm:text-xs text-gray-600 dark:text-gray-400"
-                    >System Health</span
-                  >
-                  <span class="text-2xs sm:text-xs font-medium text-green-600 dark:text-green-400"
-                    >63%</span
-                  >
+              <div class="space-y-3">
+                <div>
+                  <div class="text-2xl font-bold text-white mb-1">{{ sensor.value }}</div>
+                  <div class="text-xs text-slate-500">Current Value</div>
                 </div>
-                <div class="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-green-500 dark:bg-green-600 rounded-full animate-progress"
-                    style="width: 63%"
-                  ></div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                  <span class="text-xs text-slate-500">Last Update</span>
+                  <span class="text-xs text-slate-400">{{ sensor.lastUpdate }}</span>
                 </div>
-              </div>
-            </div>
-
-            <!-- Key Metrics Grid -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-3">
-              <div
-                v-for="metric in keyMetrics"
-                :key="metric.name"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <p class="text-2xs sm:text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
-                  {{ metric.name }}
-                </p>
-                <p class="text-sm sm:text-base font-bold" :class="getStatusColor(metric.status)">
-                  {{ metric.value }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Plant Health Tab Content -->
-      <div v-if="activeTab === 'health'" class="animate-fade-in">
-        <div class="p-3 sm:p-4 md:p-5">
-          <!-- Health Score Display -->
-          <div
-            class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 mb-3 flex items-center justify-between"
-          >
-            <div class="text-left">
-              <p class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400 mb-0.5">
-                Overall Health Score
-              </p>
-              <div class="flex items-baseline">
-                <span class="text-base sm:text-lg font-bold mr-1" :class="healthScoreColor">{{
-                  plantHealthScore
-                }}</span>
-                <span class="text-2xs sm:text-xs text-gray-500 dark:text-gray-400">/ 100</span>
-              </div>
-            </div>
-
-            <!-- Health Score Progress Circle -->
-            <div class="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
-              <svg class="w-full h-full" viewBox="0 0 100 100">
-                <!-- Background circle -->
-                <circle
-                  class="stroke-current"
-                  :class="healthScoreBgColor"
-                  stroke-width="10"
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                ></circle>
-                <!-- Progress circle -->
-                <circle
-                  stroke-width="10"
-                  stroke-linecap="round"
-                  stroke-dasharray="251.2"
-                  :stroke-dashoffset="251.2 - (251.2 * plantHealthScore) / 100"
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                  transform="rotate(-90 50 50)"
-                  class="transition-all duration-1000 ease-out"
-                  :stroke="healthScoreSvgColor"
-                ></circle>
-                <!-- Text in center -->
-                <text
-                  x="50"
-                  y="50"
-                  class="text-sm sm:text-base font-bold"
-                  :fill="healthScoreSvgColor"
-                  dominant-baseline="middle"
-                  text-anchor="middle"
-                >
-                  {{ plantHealthScore }}
-                </text>
-              </svg>
-            </div>
-          </div>
-
-          <!-- Key Factors Section -->
-          <div class="space-y-2 sm:space-y-3">
-            <h3 class="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 mb-2">
-              Key Factors
-            </h3>
-
-            <!-- Factors Grid -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-3">
-              <!-- Soil Moisture -->
-              <div
-                v-if="soilMoisture"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-water text-blue-500 dark:text-blue-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Soil Moisture</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(soilMoisture.status)"
-                  >
-                    {{ soilMoisture.value }}{{ soilMoisture.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        soilMoisture.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400':
-                        soilMoisture.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        soilMoisture.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-
-              <!-- Soil pH -->
-              <div
-                v-if="soilPh"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-test-tube text-purple-500 dark:text-purple-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Soil pH</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(soilPh.status)"
-                  >
-                    {{ soilPh.value }}{{ soilPh.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        soilPh.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400': soilPh.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        soilPh.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-
-              <!-- Air Temperature -->
-              <div
-                v-if="airTemperature"
-                class="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-sm"
-              >
-                <div class="flex items-center mb-1.5">
-                  <span
-                    class="mdi mdi-thermometer text-red-500 dark:text-red-400 mr-1.5 text-sm flex-shrink-0"
-                  ></span>
-                  <span
-                    class="text-2xs sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate"
-                    >Air Temperature</span
-                  >
-                </div>
-                <div class="flex items-center">
-                  <span
-                    class="text-sm sm:text-base font-bold mr-1"
-                    :class="getStatusColor(airTemperature.status)"
-                  >
-                    {{ airTemperature.value }}{{ airTemperature.unit }}
-                  </span>
-                  <span
-                    class="mdi text-xs sm:text-sm flex-shrink-0"
-                    :class="{
-                      'mdi-check-circle text-green-500 dark:text-green-400':
-                        airTemperature.status === 'normal',
-                      'mdi-alert text-yellow-500 dark:text-yellow-400':
-                        airTemperature.status === 'warning',
-                      'mdi-alert-circle text-red-500 dark:text-red-400':
-                        airTemperature.status === 'critical',
-                    }"
-                  ></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Growth Prediction -->
-            <div
-              class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-100 dark:border-gray-700"
-            >
-              <div class="flex justify-between items-center flex-wrap gap-1 sm:gap-2">
-                <span class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >Growth Prediction</span
-                >
-                <span
-                  class="px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
-                  :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                      growthPrediction === 'Excellent' || growthPrediction === 'Good',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300':
-                      growthPrediction === 'Fair' || growthPrediction === 'Poor',
-                    'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300':
-                      growthPrediction === 'Critical',
-                  }"
-                >
-                  {{ growthPrediction }}
-                </span>
               </div>
             </div>
           </div>
@@ -827,45 +323,10 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Fade-in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.plant-status-dashboard {
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* Pulse animation */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--pulse-color), 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(var(--pulse-color), 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--pulse-color), 0);
-  }
-}
-
-@keyframes fillProgress {
-  from {
-    width: 0%;
-  }
-  to {
-    width: 63%;
-  }
-}
-
-.animate-progress {
-  animation: fillProgress 1s ease-out forwards;
+/* Basic transition */
+* {
+  transition-property: color, background-color, border-color, transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 </style>

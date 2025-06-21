@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import SensorChart from '../components/SensorChart.vue'
 import SoilHealthDashboard from '../components/SoilHealthDashboard.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
+import SoilHeader from '@/components/soil/SoilHeader.vue'
 import { formatCurrentTime, calculateParameterScore } from '@/scripts'
 import { handleDataExport } from '@/utils/exportUtils'
 import { useApi } from '@/composables/useApi'
@@ -326,66 +327,7 @@ const soilHealthScore = computed(() => {
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <!-- Title Banner -->
-    <div
-      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
-    >
-      <div class="h-1.5 w-full bg-gradient-to-r from-green-400 to-green-600"></div>
-      <div class="p-4 sm:p-6">
-        <!-- Header Content -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <!-- Title and Description -->
-          <div class="flex items-start sm:items-center w-full md:w-auto">
-            <div
-              class="bg-green-100 dark:bg-green-900/30 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
-            >
-              <span
-                class="mdi mdi-shovel text-green-600 dark:text-green-400 text-xl sm:text-2xl"
-              ></span>
-            </div>
-            <div class="flex-grow">
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
-                Soil Analysis Dashboard
-              </h1>
-              <p
-                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
-              >
-                Comprehensive soil health monitoring and analysis
-              </p>
-              <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-0.5 sm:mt-1">
-                Last updated: {{ lastUpdated }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
-            <button
-              @click="refreshData"
-              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-              :class="{ 'opacity-50 cursor-not-allowed': isRefreshing }"
-              :disabled="isRefreshing"
-            >
-              <span
-                class="mdi mr-1.5"
-                :class="isRefreshing ? 'mdi-loading mdi-spin' : 'mdi-refresh'"
-              ></span>
-              <span class="whitespace-nowrap">{{
-                isRefreshing ? 'Refreshing...' : 'Refresh Data'
-              }}</span>
-            </button>
-
-            <button
-              @click="showExportModal = true"
-              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-            >
-              <span class="mdi mdi-download mr-1.5"></span>
-              <span class="whitespace-nowrap">Export</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SoilHeader :last-updated="lastUpdated" :is-refreshing="isRefreshing" />
 
     <!-- Dashboard Overview -->
     <SoilHealthDashboard :soil-data="soilData" :health-score="soilHealthScore" />
@@ -398,7 +340,7 @@ const soilHealthScore = computed(() => {
       <div class="p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
           <div class="flex items-center mb-3 sm:mb-0">
-            <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+            <div class="bg-blue-100 dark:bg-blue-900/30 py-2 px-3 rounded-lg mr-3">
               <span
                 class="mdi mdi-chart-timeline-variant text-blue-600 dark:text-blue-400 text-xl"
               ></span>

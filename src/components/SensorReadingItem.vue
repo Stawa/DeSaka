@@ -51,6 +51,8 @@ const sensorColor = computed(() => getSensorColor(props.sensorId))
       <span
         class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
         :class="{
+          'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300':
+            sensorData.status === 'optimal',
           'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300':
             sensorData.status === 'normal',
           'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300':
@@ -62,6 +64,7 @@ const sensorColor = computed(() => getSensorColor(props.sensorId))
         <span
           class="mdi mr-1 text-xs"
           :class="{
+            'mdi-star-check': sensorData.status === 'optimal',
             'mdi-check-circle': sensorData.status === 'normal',
             'mdi-alert': sensorData.status === 'warning',
             'mdi-alert-circle': sensorData.status === 'critical',

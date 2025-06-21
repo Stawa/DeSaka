@@ -327,7 +327,7 @@ const airQualityIndex = computed(() => {
       <div class="p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
           <div class="flex items-center mb-3 sm:mb-0">
-            <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+            <div class="bg-blue-100 dark:bg-blue-900/30 py-2 px-3 rounded-lg mr-3">
               <span
                 class="mdi mdi-chart-timeline-variant text-blue-600 dark:text-blue-400 text-xl"
               ></span>
