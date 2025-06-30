@@ -334,65 +334,51 @@ const soilHealthScore = computed(() => {
 
     <!-- Soil Trends Section -->
     <div
-      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 dashboard-section"
+      class="mb-8 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800"
     >
-      <div class="h-1.5 w-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
+      <!-- Accent Line -->
+      <div class="h-1 w-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-2xl"></div>
+
+      <!-- Section Content -->
       <div class="p-6">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-          <div class="flex items-center mb-3 sm:mb-0">
-            <div class="bg-blue-100 dark:bg-blue-900/30 py-2 px-3 rounded-lg mr-3">
+        <!-- Header -->
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6"
+        >
+          <!-- Title & Description -->
+          <div class="flex items-center space-x-4">
+            <div class="bg-blue-100 dark:bg-blue-800/40 px-3 py-2 rounded-lg">
               <span
                 class="mdi mdi-chart-timeline-variant text-blue-600 dark:text-blue-400 text-xl"
               ></span>
             </div>
             <div>
-              <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Soil Trends</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Historical data analysis for soil parameters
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Soil Trends</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Historical data of soil parameters
               </p>
             </div>
           </div>
 
-          <!-- Time Period Selector -->
-          <div
-            class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-1 self-start sm:self-auto"
-          >
+          <!-- Timeframe Switch -->
+          <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
             <button
-              @click="changeTimeFrame('24h')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+              v-for="option in ['24h', '7d', '30d']"
+              :key="option"
+              @click="changeTimeFrame(option)"
+              class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
               :class="
-                timeFrame === '24h'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                timeFrame === option
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               "
             >
-              24h
-            </button>
-            <button
-              @click="changeTimeFrame('7d')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-              :class="
-                timeFrame === '7d'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-            >
-              7d
-            </button>
-            <button
-              @click="changeTimeFrame('30d')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-              :class="
-                timeFrame === '30d'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-            >
-              30d
+              {{ option }}
             </button>
           </div>
         </div>
 
+        <!-- Charts Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <SensorChart
             title="Temperature Trends"

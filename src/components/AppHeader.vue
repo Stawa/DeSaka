@@ -46,7 +46,7 @@ onUnmounted(() => {
           <!-- Mobile menu button -->
           <button
             @click="$emit('toggle-sidebar')"
-            class="md:hidden inline-flex items-center justify-center p-2 rounded-md transition-colors duration-200"
+            class="md:hidden inline-flex items-center justify-center px-3 py-2 rounded-md transition-colors duration-200"
             :class="
               isDarkMode
                 ? 'text-gray-400 hover:text-white hover:bg-gray-700'
@@ -76,7 +76,7 @@ onUnmounted(() => {
           <!-- Dark mode toggle -->
           <button
             @click="toggleDarkMode"
-            class="hidden sm:flex p-2 px-3 rounded-lg transition-colors duration-200"
+            class="hidden md:flex p-2 px-3 rounded-lg transition-colors duration-200"
             :class="
               isDarkMode
                 ? 'text-gray-400 hover:text-white hover:bg-gray-700'

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import SensorChart from '@/components/SensorChart.vue'
+import HistoryLists from '@/components/history/HistoryLists.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
+import HistoryHeader from '@/components/history/HistoryHeader.vue'
 import { formatSensorDataForExport } from '@/scripts'
 import { handleDataExport } from '@/utils/exportUtils'
 import { useApi } from '@/composables/useApi'
+import HistoryManagement from '@/components/history/HistoryManagement.vue'
 
 const { fetchFiles, fetchFileById } = useApi()
 
@@ -530,48 +532,8 @@ onMounted(() => {
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <!-- Title Banner -->
-    <div
-      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
-    >
-      <div class="h-1.5 w-full bg-gradient-to-r from-rose-400 to-rose-600"></div>
-      <div class="p-4 sm:p-6">
-        <!-- Header Content -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <!-- Title and Description -->
-          <div class="flex items-start sm:items-center w-full md:w-auto">
-            <div
-              class="bg-rose-100 dark:bg-rose-900/30 p-2 px-3 sm:px-4 sm:py-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
-            >
-              <span
-                class="mdi mdi-chart-line text-rose-600 dark:text-rose-400 text-xl sm:text-2xl"
-              ></span>
-            </div>
-            <div class="flex-grow">
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
-                Historical Data
-              </h1>
-              <p
-                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
-              >
-                View and analyze historical sensor data
-              </p>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
-            <button
-              @click="showExportModal = true"
-              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-            >
-              <span class="mdi mdi-download mr-1.5"></span>
-              <span class="whitespace-nowrap">Export Data</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- History Header -->
+    <HistoryHeader @export="handleExport" />
 
     <!-- Loading Indicator -->
     <div
@@ -608,299 +570,26 @@ onMounted(() => {
       v-else
       class="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 dashboard-section mb-6"
     >
-      <!-- Tab Navigation (All Screen Sizes) -->
-      <div class="border-b border-gray-100 dark:border-gray-700">
-        <div class="flex">
-          <button
-            @click="setActiveTab('date-range')"
-            class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
-            :class="{
-              'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
-                activeTab === 'date-range',
-              'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
-                activeTab !== 'date-range',
-            }"
-          >
-            <span class="mdi mdi-calendar-range mr-1"></span>
-            Date Range
-          </button>
-          <button
-            @click="setActiveTab('sensors')"
-            class="flex-1 py-3 px-4 text-center text-sm font-medium transition-colors duration-200 focus:outline-none"
-            :class="{
-              'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500':
-                activeTab === 'sensors',
-              'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300':
-                activeTab !== 'sensors',
-            }"
-          >
-            <span class="mdi mdi-tune mr-1"></span>
-            Sensors
-          </button>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="p-0">
-          <!-- Date Range Tab Content -->
-          <div v-if="activeTab === 'date-range'" class="animate-fade-in">
-            <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center">
-              <span class="mdi mdi-calendar-range text-primary-500 mr-2 text-xl"></span>
-              <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Date Range</h2>
-            </div>
-
-            <!-- Date Range Controls -->
-            <div class="p-4">
-              <div class="flex flex-wrap gap-3 mb-4">
-                <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="{
-                    'bg-primary-500 text-white': dateRange.start === dateRange.end,
-                    'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
-                      dateRange.start !== dateRange.end,
-                  }"
-                  @click="setDateRange('day')"
-                >
-                  Today
-                </button>
-
-                <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  :class="{
-                    'bg-primary-500 text-white':
-                      new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() ===
-                      6 * 24 * 60 * 60 * 1000,
-                    'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600':
-                      new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime() !==
-                      6 * 24 * 60 * 60 * 1000,
-                  }"
-                  @click="setDateRange('week')"
-                >
-                  Last 7 Days
-                </button>
-
-                <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                  @click="setDateRange('month')"
-                >
-                  Last 30 Days
-                </button>
-
-                <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                  @click="setDateRange('year')"
-                >
-                  Last Year
-                </button>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="start-date"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Start Date</label
-                  >
-                  <input
-                    id="start-date"
-                    type="date"
-                    v-model="dateRange.start"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    @change="fetchHistoricalData"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    for="end-date"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >End Date</label
-                  >
-                  <input
-                    id="end-date"
-                    type="date"
-                    v-model="dateRange.end"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    @change="fetchHistoricalData"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4"
-            >
-              <div class="flex flex-wrap gap-4 justify-between">
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  <span class="font-medium">{{ selectedSensors.length }}</span> sensors selected
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  <span class="font-medium">{{
-                    new Date(dateRange.start).toLocaleDateString()
-                  }}</span>
-                  to
-                  <span class="font-medium">{{
-                    new Date(dateRange.end).toLocaleDateString()
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sensors Tab Content -->
-        <div v-if="activeTab === 'sensors'" class="animate-fade-in">
-          <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center">
-            <span class="mdi mdi-tune text-primary-500 mr-2 text-xl"></span>
-            <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Select Sensors</h2>
-          </div>
-
-          <!-- Sensor Selection Controls -->
-          <div class="p-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              <div
-                v-for="sensor in availableSensors"
-                :key="sensor.id"
-                class="flex items-center space-x-2 p-2 rounded-lg transition-colors cursor-pointer"
-                :class="{
-                  'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-700':
-                    selectedSensors.includes(sensor.id),
-                  'hover:bg-gray-100 dark:hover:bg-gray-800': !selectedSensors.includes(sensor.id),
-                }"
-                @click="toggleSensor(sensor.id)"
-              >
-                <div class="flex-shrink-0">
-                  <div
-                    class="w-4 h-4 rounded-full"
-                    :style="{ backgroundColor: sensor.color }"
-                  ></div>
-                </div>
-                <div class="flex-grow">
-                  <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {{ sensor.name }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ sensor.unit }}</div>
-                </div>
-                <div class="flex-shrink-0">
-                  <span
-                    class="mdi text-lg"
-                    :class="{
-                      'mdi-checkbox-marked-circle text-primary-500': selectedSensors.includes(
-                        sensor.id,
-                      ),
-                      'mdi-checkbox-blank-circle-outline text-gray-400 dark:text-gray-600':
-                        !selectedSensors.includes(sensor.id),
-                    }"
-                  ></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 p-4"
-          >
-            <div class="flex flex-wrap gap-4 justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-300">
-                <span class="font-medium">{{ selectedSensors.length }}</span> sensors selected
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-300">
-                <span class="font-medium">{{
-                  new Date(dateRange.start).toLocaleDateString()
-                }}</span>
-                to
-                <span class="font-medium">{{ new Date(dateRange.end).toLocaleDateString() }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <HistoryManagement
+        :active-tab="activeTab"
+        :date-range="dateRange"
+        :selected-sensors="selectedSensors"
+        :available-sensors="availableSensors"
+        :fetch-historical-data="fetchHistoricalData"
+        @update-tab="setActiveTab"
+        @update-date-range="setDateRange"
+        @toggle-sensor="toggleSensor"
+      />
     </div>
 
     <!-- Charts Section - Now Below Tab Navigation -->
     <div v-if="selectedSensors.length > 0" class="animate-fade-in">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-          <div class="bg-primary-100 dark:bg-primary-900/30 px-3 py-2 rounded-lg mr-3">
-            <span class="mdi mdi-chart-line text-primary-600 dark:text-primary-400 text-xl"></span>
-          </div>
-          <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Sensor Data Charts</h2>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
-            :class="{
-              'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400':
-                chartLayout === 'grid',
-            }"
-            @click="chartLayout = 'grid'"
-          >
-            <span
-              class="mdi mdi-view-grid mr-1.5"
-              :class="{ 'text-primary-500': chartLayout === 'grid' }"
-            ></span>
-            <span class="hidden sm:inline">Grid</span>
-          </button>
-          <button
-            class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
-            :class="{
-              'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400':
-                chartLayout === 'list',
-            }"
-            @click="chartLayout = 'list'"
-          >
-            <span
-              class="mdi mdi-view-sequential mr-1.5"
-              :class="{ 'text-primary-500': chartLayout === 'list' }"
-            ></span>
-            <span class="hidden sm:inline">List</span>
-          </button>
-        </div>
-      </div>
-
-      <div
-        :class="{
-          'grid gap-6': true,
-          'grid-cols-1 md:grid-cols-2': chartLayout === 'grid' && selectedSensors.length > 1,
-          'grid-cols-1': chartLayout === 'list' || selectedSensors.length === 1,
-        }"
-      >
-        <div
-          v-for="sensorId in selectedSensors"
-          :key="sensorId"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg"
-        >
-          <div class="flex items-center p-3 border-b border-gray-100 dark:border-gray-700">
-            <div
-              class="w-3 h-3 rounded-full mr-2.5"
-              :style="{ backgroundColor: getSensorById(sensorId)?.color }"
-            ></div>
-            <h3 class="text-base font-medium text-gray-800 dark:text-gray-200">
-              {{ getSensorById(sensorId)?.name || '' }}
-            </h3>
-            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
-              {{ getSensorById(sensorId)?.unit }}
-            </span>
-            <div class="ml-auto flex">
-              <button
-                class="p-1 px-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title="Remove from view"
-                @click="toggleSensor(sensorId)"
-              >
-                <span class="mdi mdi-close text-sm"></span>
-              </button>
-            </div>
-          </div>
-          <div class="p-4">
-            <SensorChart
-              :title="getSensorById(sensorId)?.name || ''"
-              :data="chartData[sensorId] || []"
-              :valueLabel="getSensorById(sensorId)?.name || ''"
-              :chartColor="getSensorById(sensorId)?.color || '#000'"
-              :showTimeRange="false"
-            />
-          </div>
-        </div>
-      </div>
+      <HistoryLists
+        :selected-sensors="selectedSensors"
+        :chart-data="chartData"
+        :get-sensor-by-id="getSensorById"
+        :toggle-sensor="toggleSensor"
+      />
     </div>
 
     <div
@@ -955,14 +644,6 @@ onMounted(() => {
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
-}
-
-input[type='date']::-webkit-calendar-picker-indicator {
-  filter: invert(0);
-}
-
-.dark input[type='date']::-webkit-calendar-picker-indicator {
-  filter: invert(1);
 }
 
 .hide-scrollbar {

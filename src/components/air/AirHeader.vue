@@ -36,9 +36,9 @@ const exportData = () => {
         <div class="flex items-start gap-4 min-w-0 flex-1">
           <div class="flex-shrink-0">
             <div
-              class="w-12 h-12 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center ring-1 ring-emerald-200/50 dark:ring-emerald-700/50"
+              class="w-12 h-12 bg-blue-100/50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/50"
             >
-              <span class="mdi mdi-shovel text-2xl text-emerald-600 dark:text-emerald-400"></span>
+              <span class="mdi mdi-air-filter text-2xl text-blue-600 dark:text-blue-400"></span>
             </div>
           </div>
 
@@ -46,10 +46,10 @@ const exportData = () => {
             <h1
               class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight"
             >
-              Soil Analysis
+              Air Quality Monitoring
             </h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Real-time Environmental Monitoring
+              Comprehensive air quality monitoring and analysis
             </p>
           </div>
         </div>
@@ -97,21 +97,21 @@ const exportData = () => {
           </div>
         </div>
 
-        <!-- Right: sample stats -->
+        <!-- Right: air stats -->
         <div class="flex items-center gap-6 text-center text-xs">
           <div class="flex items-center gap-1.5">
             <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
             <span class="text-gray-600 dark:text-gray-300">
-              <span class="font-semibold text-gray-900 dark:text-gray-100">8</span>
+              <span class="font-semibold text-gray-900 dark:text-gray-100">5</span>
               <span class="ml-1">Active Sensors</span>
             </span>
           </div>
           <div class="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
           <div class="flex items-center gap-1.5">
-            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span class="text-gray-600 dark:text-gray-300">
-              <span class="font-semibold text-emerald-600 dark:text-emerald-400">92%</span>
-              <span class="ml-1">Moisture OK</span>
+              <span class="font-semibold text-blue-600 dark:text-blue-400">87%</span>
+              <span class="ml-1">Clean Air</span>
             </span>
           </div>
         </div>

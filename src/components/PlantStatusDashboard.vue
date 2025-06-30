@@ -131,9 +131,7 @@ const esp32Sensors = [
 ]
 
 const screenWidth = ref(window.innerWidth)
-
 const updateWidth = () => (screenWidth.value = window.innerWidth)
-
 onMounted(() => window.addEventListener('resize', updateWidth))
 onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
 
@@ -171,17 +169,17 @@ const currentTime = new Date().toLocaleString('en-US', {
 
 <template>
   <div
-    class="bg-white dark:bg-gray-900 text-black dark:text-white rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-md w-full max-w-full overflow-hidden"
+    class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-md w-full max-w-full overflow-hidden"
   >
     <!-- Header -->
-    <div class="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div class="flex items-center gap-4">
         <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
           <span class="text-3xl text-white mdi mdi-cpu-32-bit"></span>
         </div>
         <div>
           <h1 class="text-xl font-semibold">ESP32 Monitor</h1>
-          <p class="text-sm text-slate-400">Last 24 Hours • Updated {{ currentTime }}</p>
+          <p class="text-sm text-gray-500">Last 24 Hours • Updated {{ currentTime }}</p>
         </div>
       </div>
     </div>
@@ -190,14 +188,16 @@ const currentTime = new Date().toLocaleString('en-US', {
     <div class="px-6 py-6 space-y-8">
       <!-- System Info -->
       <div>
-        <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+        <h2
+          class="text-lg font-semibold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2"
+        >
           System Info
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
             v-for="card in infoCards"
             :key="card.key"
-            class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
+            class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -225,12 +225,12 @@ const currentTime = new Date().toLocaleString('en-US', {
                   :class="[wifiStrength.icon, card.iconColor]"
                 ></i>
               </div>
-              <span class="text-xs text-slate-400 uppercase tracking-wide">{{ card.label }}</span>
+              <span class="text-xs text-gray-500 uppercase tracking-wide">{{ card.label }}</span>
             </div>
-            <div :class="['font-bold text-white mb-1', card.valueClass]">
+            <div :class="['font-bold mb-1', card.valueClass, 'text-gray-800 dark:text-white']">
               {{ card.type === 'wifi' ? esp32Info.wifiSignal + ' dBm' : esp32Info[card.key] }}
             </div>
-            <div class="text-xs text-slate-500">
+            <div class="text-xs text-gray-500">
               {{ card.type === 'wifi' ? wifiStrength.label : card.subtitle }}
             </div>
           </div>
@@ -239,7 +239,9 @@ const currentTime = new Date().toLocaleString('en-US', {
 
       <!-- Sensor Info -->
       <div>
-        <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+        <h2
+          class="text-lg font-semibold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2"
+        >
           Sensor Info
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -247,18 +249,18 @@ const currentTime = new Date().toLocaleString('en-US', {
           <div
             v-for="sensor in fullRows"
             :key="sensor.id"
-            class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
+            class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
           >
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="font-medium text-white text-sm">{{ sensor.name }}</h3>
-                <p class="text-xs text-slate-500">{{ sensor.type }} • {{ sensor.pin }}</p>
+                <h3 class="font-medium text-gray-800 dark:text-white text-sm">{{ sensor.name }}</h3>
+                <p class="text-xs text-gray-500">{{ sensor.type }} • {{ sensor.pin }}</p>
               </div>
               <span
                 :class="
                   sensor.status === 'online'
-                    ? 'text-green-400 bg-green-400/10'
-                    : 'text-red-400 bg-red-400/10'
+                    ? 'text-green-500 bg-green-100 dark:text-green-400 dark:bg-green-400/10'
+                    : 'text-red-500 bg-red-100 dark:text-red-400 bg-red-400/10'
                 "
                 class="text-xs font-medium px-2 py-1 rounded-md"
               >
@@ -267,12 +269,16 @@ const currentTime = new Date().toLocaleString('en-US', {
             </div>
             <div class="space-y-3">
               <div>
-                <div class="text-2xl font-bold text-white mb-1">{{ sensor.value }}</div>
-                <div class="text-xs text-slate-500">Current Value</div>
+                <div class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+                  {{ sensor.value }}
+                </div>
+                <div class="text-xs text-gray-500">Current Value</div>
               </div>
-              <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-                <span class="text-xs text-slate-500">Last Update</span>
-                <span class="text-xs text-slate-400">{{ sensor.lastUpdate }}</span>
+              <div
+                class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-800"
+              >
+                <span class="text-xs text-gray-500">Last Update</span>
+                <span class="text-xs text-gray-400">{{ sensor.lastUpdate }}</span>
               </div>
             </div>
           </div>
@@ -286,18 +292,20 @@ const currentTime = new Date().toLocaleString('en-US', {
             <div
               v-for="sensor in lastRow"
               :key="sensor.id"
-              class="bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-slate-700 transition-all duration-200"
+              class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
             >
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <h3 class="font-medium text-white text-sm">{{ sensor.name }}</h3>
-                  <p class="text-xs text-slate-500">{{ sensor.type }} • {{ sensor.pin }}</p>
+                  <h3 class="font-medium text-gray-800 dark:text-white text-sm">
+                    {{ sensor.name }}
+                  </h3>
+                  <p class="text-xs text-gray-500">{{ sensor.type }} • {{ sensor.pin }}</p>
                 </div>
                 <span
                   :class="
                     sensor.status === 'online'
-                      ? 'text-green-400 bg-green-400/10'
-                      : 'text-red-400 bg-red-400/10'
+                      ? 'text-green-500 bg-green-100 dark:text-green-400 dark:bg-green-400/10'
+                      : 'text-red-500 bg-red-100 dark:text-red-400 bg-red-400/10'
                   "
                   class="text-xs font-medium px-2 py-1 rounded-md"
                 >
@@ -306,12 +314,16 @@ const currentTime = new Date().toLocaleString('en-US', {
               </div>
               <div class="space-y-3">
                 <div>
-                  <div class="text-2xl font-bold text-white mb-1">{{ sensor.value }}</div>
-                  <div class="text-xs text-slate-500">Current Value</div>
+                  <div class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+                    {{ sensor.value }}
+                  </div>
+                  <div class="text-xs text-gray-500">Current Value</div>
                 </div>
-                <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-                  <span class="text-xs text-slate-500">Last Update</span>
-                  <span class="text-xs text-slate-400">{{ sensor.lastUpdate }}</span>
+                <div
+                  class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-800"
+                >
+                  <span class="text-xs text-gray-500">Last Update</span>
+                  <span class="text-xs text-gray-400">{{ sensor.lastUpdate }}</span>
                 </div>
               </div>
             </div>
@@ -323,7 +335,6 @@ const currentTime = new Date().toLocaleString('en-US', {
 </template>
 
 <style scoped>
-/* Basic transition */
 * {
   transition-property: color, background-color, border-color, transform, opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

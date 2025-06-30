@@ -164,7 +164,9 @@ const navItems = [
             :class="isCollapsed ? 'md:w-0 md:opacity-0' : 'opacity-100'"
           >
             <p class="text-xs font-medium text-gray-600 dark:text-gray-400">v1.5.0</p>
-            <p class="text-xs text-gray-500 dark:text-gray-500 -mt-0.5">© 2025 DeSaka</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500 -mt-0.5">
+              © 2025 - {{ new Date().getFullYear() }} Desaka
+            </p>
           </div>
 
           <!-- Status indicator -->
