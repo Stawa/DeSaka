@@ -40,8 +40,8 @@ const infoCards = [
     label: 'Temperature',
     subtitle: 'Chip Temp',
     icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-    iconColor: 'text-orange-400',
-    bgColor: 'bg-orange-500/20',
+    iconColor: 'text-orange-500',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
     valueClass: 'text-2xl',
   },
   {
@@ -49,8 +49,8 @@ const infoCards = [
     label: 'Memory',
     subtitle: 'Free Heap',
     icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    iconColor: 'text-blue-400',
-    bgColor: 'bg-blue-500/20',
+    iconColor: 'text-blue-500',
+    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     valueClass: 'text-2xl',
   },
   {
@@ -58,8 +58,8 @@ const infoCards = [
     label: 'Chip Model',
     subtitle: 'WROOM-32',
     icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z',
-    iconColor: 'text-purple-400',
-    bgColor: 'bg-purple-500/20',
+    iconColor: 'text-purple-500',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
     valueClass: 'text-lg',
   },
   {
@@ -67,8 +67,8 @@ const infoCards = [
     label: 'WiFi Signal',
     subtitle: '',
     type: 'wifi',
-    iconColor: 'text-green-400',
-    bgColor: 'bg-green-500/20',
+    iconColor: 'text-emerald-500',
+    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
     valueClass: 'text-2xl',
   },
 ]
@@ -152,13 +152,6 @@ const lastRow = computed(() => {
   return esp32Sensors.slice(Math.floor(esp32Sensors.length / cols) * cols)
 })
 
-const lastRowClass = computed(() => {
-  const remaining = lastRow.value.length
-  const cols = columnCount.value
-  const offset = Math.floor((cols - remaining) / 2) + 1
-  return `col-start-${offset}`
-})
-
 const currentTime = new Date().toLocaleString('en-US', {
   hour: '2-digit',
   minute: '2-digit',
@@ -168,162 +161,132 @@ const currentTime = new Date().toLocaleString('en-US', {
 </script>
 
 <template>
-  <div
-    class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-md w-full max-w-full overflow-hidden"
-  >
-    <!-- Header -->
-    <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-      <div class="flex items-center gap-4">
-        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-          <span class="text-3xl text-white mdi mdi-cpu-32-bit"></span>
+  <div class="relative overflow-hidden">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/50 dark:from-blue-950/20 dark:via-gray-900 dark:to-indigo-950/20 rounded-3xl"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-100/30 to-transparent dark:from-blue-900/10 rounded-full blur-3xl"></div>
+    
+    <div class="relative card card-glass border-0 shadow-large">
+      <!-- Header -->
+      <div class="border-b border-gray-200/50 dark:border-gray-700/50 px-6 py-5 bg-gradient-to-r from-gray-50/50 to-white dark:from-gray-800/50 dark:to-gray-900">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100">ESP32 System Monitor</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Hardware status • Updated {{ currentTime }}</p>
+          </div>
         </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="px-6 py-6 space-y-8">
+        <!-- System Info -->
         <div>
-          <h1 class="text-xl font-semibold">ESP32 Monitor</h1>
-          <p class="text-sm text-gray-500">Last 24 Hours • Updated {{ currentTime }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="px-6 py-6 space-y-8">
-      <!-- System Info -->
-      <div>
-        <h2
-          class="text-lg font-semibold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2"
-        >
-          System Info
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div
-            v-for="card in infoCards"
-            :key="card.key"
-            class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
-          >
-            <div class="flex items-center gap-3 mb-3">
-              <div
-                :class="card.bgColor"
-                class="w-8 h-8 rounded-lg flex items-center justify-center"
-              >
-                <svg
-                  v-if="card.type !== 'wifi'"
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  :class="card.iconColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    :d="card.icon"
-                  />
-                </svg>
-                <i
-                  v-if="card.type === 'wifi'"
-                  class="mdi text-xl"
-                  :class="[wifiStrength.icon, card.iconColor]"
-                ></i>
-              </div>
-              <span class="text-xs text-gray-500 uppercase tracking-wide">{{ card.label }}</span>
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <div :class="['font-bold mb-1', card.valueClass, 'text-gray-800 dark:text-white']">
-              {{ card.type === 'wifi' ? esp32Info.wifiSignal + ' dBm' : esp32Info[card.key] }}
-            </div>
-            <div class="text-xs text-gray-500">
-              {{ card.type === 'wifi' ? wifiStrength.label : card.subtitle }}
-            </div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+              System Information
+            </h2>
           </div>
-        </div>
-      </div>
-
-      <!-- Sensor Info -->
-      <div>
-        <h2
-          class="text-lg font-semibold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2"
-        >
-          Sensor Info
-        </h2>
-        <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <!-- Full Rows -->
-          <div
-            v-for="sensor in fullRows"
-            :key="sensor.id"
-            class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
-          >
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-medium text-gray-800 dark:text-white text-sm">{{ sensor.name }}</h3>
-                <p class="text-xs text-gray-500">{{ sensor.type }} • {{ sensor.pin }}</p>
-              </div>
-              <span
-                :class="
-                  sensor.status === 'online'
-                    ? 'text-green-500 bg-green-100 dark:text-green-400 dark:bg-green-400/10'
-                    : 'text-red-500 bg-red-100 dark:text-red-400 bg-red-400/10'
-                "
-                class="text-xs font-medium px-2 py-1 rounded-md"
-              >
-                {{ sensor.status.toUpperCase() }}
-              </span>
-            </div>
-            <div class="space-y-3">
-              <div>
-                <div class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
-                  {{ sensor.value }}
-                </div>
-                <div class="text-xs text-gray-500">Current Value</div>
-              </div>
-              <div
-                class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-800"
-              >
-                <span class="text-xs text-gray-500">Last Update</span>
-                <span class="text-xs text-gray-400">{{ sensor.lastUpdate }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Centered Last Row -->
-          <div
-            v-if="lastRow.length"
-            class="col-span-full grid grid-cols-subgrid gap-4"
-            :class="lastRowClass"
-          >
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
-              v-for="sensor in lastRow"
+              v-for="card in infoCards"
+              :key="card.key"
+              class="card-interactive border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50 p-5 group"
+            >
+              <div class="flex items-center gap-4 mb-4">
+                <div
+                  :class="[card.bgColor, 'w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200']"
+                >
+                  <svg
+                    v-if="card.type !== 'wifi'"
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    :class="card.iconColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      :d="card.icon"
+                    />
+                  </svg>
+                  <i
+                    v-if="card.type === 'wifi'"
+                    class="mdi text-xl"
+                    :class="[wifiStrength.icon, card.iconColor]"
+                  ></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{{ card.label }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ card.type === 'wifi' ? wifiStrength.label : card.subtitle }}</div>
+                </div>
+              </div>
+              <div :class="['font-black text-gray-900 dark:text-gray-100 group-hover:scale-105 transition-transform duration-200', card.valueClass]">
+                {{ card.type === 'wifi' ? esp32Info.wifiSignal + ' dBm' : esp32Info[card.key] }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensor Info -->
+        <div>
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Connected Sensors
+            </h2>
+          </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div
+              v-for="sensor in esp32Sensors"
               :key="sensor.id"
-              class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200"
+              class="card-interactive border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50 p-5 group"
             >
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <h3 class="font-medium text-gray-800 dark:text-white text-sm">
-                    {{ sensor.name }}
-                  </h3>
-                  <p class="text-xs text-gray-500">{{ sensor.type }} • {{ sensor.pin }}</p>
-                </div>
-                <span
-                  :class="
-                    sensor.status === 'online'
-                      ? 'text-green-500 bg-green-100 dark:text-green-400 dark:bg-green-400/10'
-                      : 'text-red-500 bg-red-100 dark:text-red-400 bg-red-400/10'
-                  "
-                  class="text-xs font-medium px-2 py-1 rounded-md"
-                >
-                  {{ sensor.status.toUpperCase() }}
-                </span>
-              </div>
-              <div class="space-y-3">
-                <div>
-                  <div class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
-                    {{ sensor.value }}
-                  </div>
-                  <div class="text-xs text-gray-500">Current Value</div>
+                  <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base">{{ sensor.name }}</h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">{{ sensor.type }} • {{ sensor.pin }}</p>
                 </div>
                 <div
-                  class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-800"
+                  :class="[
+                    'px-3 py-1 rounded-lg text-xs font-bold',
+                    sensor.status === 'online'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                  ]"
                 >
-                  <span class="text-xs text-gray-500">Last Update</span>
-                  <span class="text-xs text-gray-400">{{ sensor.lastUpdate }}</span>
+                  {{ sensor.status.toUpperCase() }}
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <div>
+                  <div class="text-3xl font-black text-gray-900 dark:text-gray-100 mb-1 group-hover:scale-105 transition-transform duration-200">
+                    {{ sensor.value }}
+                  </div>
+                  <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Current Value</div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">Last Update</span>
+                  <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ sensor.lastUpdate }}</span>
                 </div>
               </div>
             </div>
@@ -335,8 +298,9 @@ const currentTime = new Date().toLocaleString('en-US', {
 </template>
 
 <style scoped>
+/* Enhanced transitions for all interactive elements */
 * {
-  transition-property: color, background-color, border-color, transform, opacity;
+  transition-property: color, background-color, border-color, transform, opacity, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
