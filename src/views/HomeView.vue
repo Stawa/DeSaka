@@ -370,63 +370,46 @@ const systemStatus = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-    <div class="container-lg py-6 lg:py-8 space-y-8 lg:space-y-12">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       <!-- Header Section -->
-      <div class="animate-fade-in">
-        <HomeHeader :last-update="lastUpdate" />
-      </div>
+      <HomeHeader :last-update="lastUpdate" />
 
       <!-- Dashboard Status Overview -->
-      <section class="animate-slide-up" style="animation-delay: 0.1s">
-        <PlantStatusDashboard
-          :sensor-data="sensorData"
-          :plant-health-score="plantHealthScore"
-          :growth-prediction="growthPrediction"
-          :system-status="systemStatus"
-        />
-      </section>
+      <PlantStatusDashboard
+        :sensor-data="sensorData"
+        :plant-health-score="plantHealthScore"
+        :growth-prediction="growthPrediction"
+        :system-status="systemStatus"
+      />
 
       <!-- Plant Analysis Insights -->
-      <section class="animate-slide-up" style="animation-delay: 0.2s">
-        <PlantAnalysis 
-          :plant-health-score="plantHealthScore" 
-          :growth-prediction="growthPrediction" 
-        />
-      </section>
+      <PlantAnalysis 
+        :plant-health-score="plantHealthScore" 
+        :growth-prediction="growthPrediction" 
+      />
 
       <!-- Sensor Readings Grid/Table -->
-      <section class="animate-slide-up" style="animation-delay: 0.3s">
-        <div class="relative">
-          <!-- Background decoration -->
-          <div class="absolute inset-0 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-950/20 dark:to-secondary-950/20 rounded-3xl transform rotate-1 opacity-30"></div>
-          
-          <div class="relative">
-            <SensorReadingsTable
-              v-if="windowWidth >= 1024"
-              :sensor-data="sensorData"
-              :on-sensor-click="openSensorDetails"
-              @refresh="updateData"
-            />
-            <SensorReadingsGrid
-              v-else
-              :sensor-data="sensorData"
-              :on-sensor-click="openSensorDetails"
-              @refresh="updateData"
-            />
-          </div>
-        </div>
-      </section>
+      <SensorReadingsTable
+        v-if="windowWidth >= 1024"
+        :sensor-data="sensorData"
+        :on-sensor-click="openSensorDetails"
+        @refresh="updateData"
+      />
+      <SensorReadingsGrid
+        v-else
+        :sensor-data="sensorData"
+        :on-sensor-click="openSensorDetails"
+        @refresh="updateData"
+      />
 
       <!-- Sensor Trends -->
-      <section class="animate-slide-up" style="animation-delay: 0.4s">
-        <SensorTrends
-          :plant-health-score="plantHealthScore"
-          :growth-prediction="growthPrediction"
-          :trend-timeframe="trendTimeframe"
-          @update-historical-data="updateHistoricalData"
-        />
-      </section>
+      <SensorTrends
+        :plant-health-score="plantHealthScore"
+        :growth-prediction="growthPrediction"
+        :trend-timeframe="trendTimeframe"
+        @update-historical-data="updateHistoricalData"
+      />
     </div>
 
     <!-- Export Modal -->
@@ -447,36 +430,3 @@ const systemStatus = computed(() => {
     />
   </div>
 </template>
-
-<style scoped>
-/* Staggered animations for sections */
-.animate-slide-up {
-  animation: slideUp 0.6s ease-out both;
-}
-
-/* Custom background patterns */
-.container-lg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 300px;
-  background: radial-gradient(ellipse at top, rgb(var(--tw-color-primary-100) / 0.1) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* Enhanced responsive adjustments */
-@media (max-width: 640px) {
-  .container-lg {
-    @apply px-4 py-4 space-y-6;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container-lg {
-    @apply space-y-16;
-  }
-}
-</style>

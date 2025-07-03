@@ -191,7 +191,7 @@ const navItems = [
             :class="isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'"
           >
             <div class="flex items-center gap-2">
-              <div class="status-dot status-online"></div>
+              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <div>
                 <p class="text-xs font-medium text-gray-800 dark:text-gray-200">System Online</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">v2.1.0</p>
@@ -205,7 +205,7 @@ const navItems = [
               class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
               :class="isCollapsed ? 'lg:w-6 lg:h-6' : ''"
             >
-              <div class="status-dot status-online"></div>
+              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
             </div>
           </div>
         </div>

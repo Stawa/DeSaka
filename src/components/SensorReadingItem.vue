@@ -61,22 +61,22 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
 
 <template>
   <tr
-    class="hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group"
+    class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer group"
     @click="onClick(sensorId)"
   >
     <td class="px-6 py-4 whitespace-nowrap">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
         <div
-          class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+          class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg"
           :class="`bg-${sensorColor}-100 dark:bg-${sensorColor}-900/30`"
         >
           <span
-            class="mdi text-xl"
+            class="mdi text-lg"
             :class="[sensorIcon, `text-${sensorColor}-600 dark:text-${sensorColor}-400`]"
           ></span>
         </div>
         <div>
-          <div class="text-base font-semibold text-gray-900 dark:text-gray-100">
+          <div class="font-medium text-gray-900 dark:text-gray-100">
             {{ sensorLabel }}
           </div>
           <div class="text-sm text-gray-600 dark:text-gray-400">{{ sensorDescription }}</div>
@@ -86,17 +86,17 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
     
     <td class="px-6 py-4 whitespace-nowrap">
       <div
-        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border"
         :class="[statusInfo.bg, statusInfo.color, statusInfo.border]"
       >
-        <div class="w-2 h-2 rounded-full" :class="statusInfo.dot"></div>
+        <div class="w-1.5 h-1.5 rounded-full" :class="statusInfo.dot"></div>
         {{ sensorData.status.charAt(0).toUpperCase() + sensorData.status.slice(1) }}
       </div>
     </td>
     
     <td class="px-6 py-4 whitespace-nowrap">
       <div class="flex items-baseline gap-2">
-        <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{
+        <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{
           sensorData.value
         }}</span>
         <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{
@@ -115,29 +115,11 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
     </td>
     
     <td class="px-6 py-4 whitespace-nowrap">
-      <div class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-colors duration-200">
-        <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+        <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
     </td>
   </tr>
 </template>
-
-<style scoped>
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-tr {
-  animation: fadeIn 0.3s ease-out;
-  animation-fill-mode: both;
-}
-</style>
