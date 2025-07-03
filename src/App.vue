@@ -83,7 +83,7 @@ watch(prefersDark, (newValue) => {
       />
 
       <main
-        class="flex-1 overflow-y-auto p-4 md:p-6 text-black dark:text-white transition-all duration-300"
+        class="flex-1 overflow-y-auto text-black dark:text-white transition-all duration-300"
         :class="{ 'md:ml-0': isSidebarCollapsed }"
       >
         <RouterView v-slot="{ Component }">

@@ -21,66 +21,104 @@ const sensorIcon = computed(() => getSensorIcon(props.sensorId))
 const sensorLabel = computed(() => getSensorLabel(props.sensorId))
 const sensorDescription = computed(() => getSensorDescription(props.sensorId))
 const sensorColor = computed(() => getSensorColor(props.sensorId))
+
+const getStatusInfo = (status: string) => {
+  const statusMap = {
+    optimal: {
+      color: 'text-emerald-700 dark:text-emerald-300',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      icon: 'mdi-check-circle',
+      dot: 'bg-emerald-500',
+      border: 'border-emerald-200 dark:border-emerald-800',
+    },
+    normal: {
+      color: 'text-emerald-700 dark:text-emerald-300',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      icon: 'mdi-check-circle',
+      dot: 'bg-emerald-500',
+      border: 'border-emerald-200 dark:border-emerald-800',
+    },
+    warning: {
+      color: 'text-amber-700 dark:text-amber-300',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      icon: 'mdi-alert',
+      dot: 'bg-amber-500',
+      border: 'border-amber-200 dark:border-amber-800',
+    },
+    critical: {
+      color: 'text-red-700 dark:text-red-300',
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      icon: 'mdi-alert-circle',
+      dot: 'bg-red-500',
+      border: 'border-red-200 dark:border-red-800',
+    },
+  }
+  return statusMap[status as keyof typeof statusMap] || statusMap.normal
+}
+
+const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
 </script>
 
 <template>
   <tr
-    class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer"
+    class="hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group"
     @click="onClick(sensorId)"
   >
-    <td class="px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4 whitespace-nowrap">
-      <div class="flex items-center">
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-center gap-4">
         <div
-          class="flex-shrink-0 h-7 w-7 xs:h-8 xs:w-8 sm:h-10 sm:w-10 flex items-center justify-center rounded-full"
-          :class="`bg-${sensorColor}-50 dark:bg-${sensorColor}-900/30`"
+          class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+          :class="`bg-${sensorColor}-100 dark:bg-${sensorColor}-900/30`"
         >
           <span
-            class="mdi text-lg sm:text-xl"
+            class="mdi text-xl"
             :class="[sensorIcon, `text-${sensorColor}-600 dark:text-${sensorColor}-400`]"
           ></span>
         </div>
-        <div class="ml-3 sm:ml-4">
-          <div class="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100">
+        <div>
+          <div class="text-base font-semibold text-gray-900 dark:text-gray-100">
             {{ sensorLabel }}
           </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">{{ sensorDescription }}</div>
+          <div class="text-sm text-gray-600 dark:text-gray-400">{{ sensorDescription }}</div>
         </div>
       </div>
     </td>
-    <td class="px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4 whitespace-nowrap">
-      <span
-        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-        :class="{
-          'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300':
-            sensorData.status === 'optimal',
-          'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300':
-            sensorData.status === 'normal',
-          'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300':
-            sensorData.status === 'warning',
-          'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300':
-            sensorData.status === 'critical',
-        }"
+    
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border"
+        :class="[statusInfo.bg, statusInfo.color, statusInfo.border]"
       >
-        <span
-          class="mdi mr-1 text-xs"
-          :class="{
-            'mdi-star-check': sensorData.status === 'optimal',
-            'mdi-check-circle': sensorData.status === 'normal',
-            'mdi-alert': sensorData.status === 'warning',
-            'mdi-alert-circle': sensorData.status === 'critical',
-          }"
-        ></span>
+        <div class="w-2 h-2 rounded-full" :class="statusInfo.dot"></div>
         {{ sensorData.status.charAt(0).toUpperCase() + sensorData.status.slice(1) }}
-      </span>
+      </div>
     </td>
-    <td class="px-2 py-2 sm:px-3 sm:py-3 md:px-4 md:py-4 whitespace-nowrap">
-      <div class="flex items-baseline">
-        <span class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">{{
+    
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-baseline gap-2">
+        <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{
           sensorData.value
         }}</span>
-        <span class="ml-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">{{
+        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{
           sensorData.unit
         }}</span>
+      </div>
+    </td>
+    
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>2 min ago</span>
+      </div>
+    </td>
+    
+    <td class="px-6 py-4 whitespace-nowrap">
+      <div class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-colors duration-200">
+        <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </td>
   </tr>

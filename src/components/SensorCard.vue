@@ -37,27 +37,35 @@ const statusConfig = computed(() => {
   const configs = {
     optimal: {
       accent: 'bg-emerald-500',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
-      badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-      glow: 'shadow-emerald-100 dark:shadow-emerald-950/20',
+      badge: 'badge badge-success',
+      glow: 'shadow-emerald-500/20',
+      border: 'border-emerald-200/50 dark:border-emerald-800/50',
     },
     warning: {
       accent: 'bg-amber-500',
+      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
       iconColor: 'text-amber-600 dark:text-amber-400',
-      badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-      glow: 'shadow-amber-100 dark:shadow-amber-950/20',
+      badge: 'badge badge-warning',
+      glow: 'shadow-amber-500/20',
+      border: 'border-amber-200/50 dark:border-amber-800/50',
     },
     critical: {
       accent: 'bg-red-500',
+      iconBg: 'bg-red-100 dark:bg-red-900/30',
       iconColor: 'text-red-600 dark:text-red-400',
-      badge: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
-      glow: 'shadow-red-100 dark:shadow-red-950/20',
+      badge: 'badge badge-error',
+      glow: 'shadow-red-500/20',
+      border: 'border-red-200/50 dark:border-red-800/50',
     },
     inactive: {
-      accent: 'bg-slate-400',
-      iconColor: 'text-slate-500 dark:text-slate-400',
-      badge: 'bg-slate-50 text-slate-700 dark:bg-slate-900 dark:text-slate-300',
-      glow: 'shadow-slate-100 dark:shadow-slate-950/20',
+      accent: 'bg-gray-400',
+      iconBg: 'bg-gray-100 dark:bg-gray-800/30',
+      iconColor: 'text-gray-500 dark:text-gray-400',
+      badge: 'badge bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      glow: 'shadow-gray-500/10',
+      border: 'border-gray-200/50 dark:border-gray-700/50',
     },
   }
   return configs[props.status as keyof typeof configs]
@@ -68,17 +76,17 @@ const trendInfo = computed(() => {
     increasing: {
       icon: 'mdi-trending-up',
       text: 'Trending up',
-      color: 'text-red-600 dark:text-red-400',
+      color: 'text-emerald-600 dark:text-emerald-400',
     },
     decreasing: {
       icon: 'mdi-trending-down',
       text: 'Trending down',
-      color: 'text-blue-600 dark:text-blue-400',
+      color: 'text-red-600 dark:text-red-400',
     },
     stable: {
       icon: 'mdi-trending-neutral',
       text: 'Stable',
-      color: 'text-slate-600 dark:text-slate-400',
+      color: 'text-gray-600 dark:text-gray-400',
     },
   }
   return configs[props.trend as keyof typeof configs] || configs.stable
@@ -87,65 +95,66 @@ const trendInfo = computed(() => {
 
 <template>
   <div
-    class="group relative bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/20 dark:hover:shadow-slate-950/20 hover:-translate-y-0.5 card-enter"
-    :class="statusConfig.glow"
+    class="group relative card card-hover overflow-hidden"
+    :class="[statusConfig.glow, statusConfig.border]"
   >
-    <!-- Subtle status accent -->
+    <!-- Status accent bar -->
     <div
-      class="absolute top-0 left-1/2 transform -translate-x-1/2 w-64 sm:w-24 h-0.5 rounded-full opacity-60"
+      class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
       :class="statusConfig.accent"
     ></div>
 
     <div class="p-6">
       <!-- Header -->
       <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center gap-4">
           <div
-            class="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 transition-colors duration-200"
-            :class="statusConfig.iconColor"
+            class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+            :class="[statusConfig.iconBg, statusConfig.iconColor]"
           >
-            <span :class="[iconClass, 'text-lg']"></span>
+            <span :class="[iconClass, 'text-xl']"></span>
           </div>
           <div>
-            <h3 class="font-medium text-slate-900 dark:text-slate-100 text-sm leading-tight">
+            <h3 class="font-semibold text-gray-900 dark:text-gray-100 text-base">
               {{ title }}
             </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Current reading
+            </p>
           </div>
         </div>
 
-        <span
-          class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors duration-200"
-          :class="statusConfig.badge"
-        >
+        <div :class="statusConfig.badge">
+          <div class="w-1.5 h-1.5 rounded-full" :class="statusConfig.accent"></div>
           {{ status.charAt(0).toUpperCase() + status.slice(1) }}
-        </span>
+        </div>
       </div>
 
       <!-- Main Value -->
       <div class="mb-4">
-        <div class="flex items-baseline space-x-1">
-          <span class="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight transition-all duration-300 group-hover:scale-105">
             {{ value }}
           </span>
-          <span v-if="unit" class="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <span v-if="unit" class="text-lg font-medium text-gray-500 dark:text-gray-400">
             {{ unit }}
           </span>
         </div>
       </div>
 
       <!-- Trend -->
-      <div class="flex items-center space-x-1.5">
-        <span :class="[`mdi ${trendInfo.icon}`, trendInfo.color, 'text-sm']"></span>
-        <span class="text-xs font-medium" :class="trendInfo.color">
-          {{ trendInfo.text }}
-        </span>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+          <span :class="[`mdi ${trendInfo.icon}`, trendInfo.color, 'text-sm']"></span>
+          <span class="text-xs font-medium" :class="trendInfo.color">
+            {{ trendInfo.text }}
+          </span>
+        </div>
       </div>
     </div>
 
     <!-- Hover effect overlay -->
-    <div
-      class="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-    ></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
   </div>
 </template>
 
@@ -166,16 +175,8 @@ const trendInfo = computed(() => {
 }
 
 /* Stagger animation delay for multiple cards */
-.card-enter:nth-child(1) {
-  animation-delay: 0ms;
-}
-.card-enter:nth-child(2) {
-  animation-delay: 100ms;
-}
-.card-enter:nth-child(3) {
-  animation-delay: 200ms;
-}
-.card-enter:nth-child(4) {
-  animation-delay: 300ms;
-}
+.card-enter:nth-child(1) { animation-delay: 0ms; }
+.card-enter:nth-child(2) { animation-delay: 100ms; }
+.card-enter:nth-child(3) { animation-delay: 200ms; }
+.card-enter:nth-child(4) { animation-delay: 300ms; }
 </style>
