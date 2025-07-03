@@ -14,7 +14,7 @@ const toggleDarkMode = () => {
   isAnimating.value = true
   setTimeout(() => {
     isAnimating.value = false
-  }, 600)
+  }, 300)
   emit('toggle-dark-mode')
 }
 
@@ -33,20 +33,17 @@ onUnmounted(() => {
 
 <template>
   <nav
-    class="sticky top-0 z-50 backdrop-blur-xl border-b transition-all duration-300"
-    :class="[
-      isDarkMode ? 'bg-gray-950/90 border-gray-800/50' : 'bg-white/90 border-gray-200/50',
-      isScrolled ? 'shadow-lg shadow-gray-900/5 dark:shadow-gray-950/20' : 'shadow-sm',
-    ]"
+    class="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-200"
+    :class="isScrolled ? 'shadow-sm' : ''"
   >
-    <div class="container-lg">
-      <div class="flex justify-between items-center h-16 lg:h-18">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-14">
         <!-- Left section -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
           <!-- Mobile menu button -->
           <button
             @click="$emit('toggle-sidebar')"
-            class="lg:hidden btn btn-ghost btn-sm p-2"
+            class="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Open main menu"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,21 +53,13 @@ onUnmounted(() => {
 
           <!-- Logo/Brand -->
           <div class="flex items-center gap-3">
-            <div class="relative">
-              <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
-                </svg>
-              </div>
-              <div class="absolute -inset-1 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl blur opacity-30 animate-float"></div>
+            <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+              </svg>
             </div>
             <div class="hidden sm:block">
-              <h1 class="text-xl lg:text-2xl font-bold text-gradient">
-                DeSaka
-              </h1>
-              <p class="text-xs text-gray-500 dark:text-gray-400 -mt-1">
-                Environmental Monitor
-              </p>
+              <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">DeSaka</h1>
             </div>
           </div>
         </div>
@@ -78,26 +67,21 @@ onUnmounted(() => {
         <!-- Right section -->
         <div class="flex items-center gap-2">
           <!-- Status indicator -->
-          <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-            <div class="status-dot status-online animate-pulse"></div>
-            <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Live</span>
+          <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span class="text-sm font-medium">Live</span>
           </div>
 
           <!-- Dark mode toggle -->
           <button
             @click="toggleDarkMode"
-            class="btn btn-ghost btn-sm p-2.5 relative overflow-hidden group"
+            class="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle dark mode"
           >
-            <div class="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
             <svg
-              class="w-5 h-5 transition-all duration-300 relative z-10"
-              :class="{
-                'text-amber-500 rotate-180': isDarkMode,
-                'text-gray-600 dark:text-gray-400': !isDarkMode,
-                'animate-spin': isAnimating,
-              }"
+              class="w-5 h-5 transition-transform duration-200"
+              :class="{ 'rotate-180': isDarkMode }"
               fill="currentColor" 
               viewBox="0 0 24 24"
             >
@@ -110,14 +94,3 @@ onUnmounted(() => {
     </div>
   </nav>
 </template>
-
-<style scoped>
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-spin {
-  animation: spin 0.6s ease-in-out;
-}
-</style>
