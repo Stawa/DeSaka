@@ -24,6 +24,13 @@ const toggleCollapse = () => {
   emit('toggle-collapse', isCollapsed.value)
 }
 
+const handleNavClick = () => {
+  // Close mobile sidebar when clicking nav items
+  if (window.innerWidth < 1024) {
+    emit('close')
+  }
+}
+
 const navItems = [
   { name: 'Dashboard', icon: 'view-dashboard', route: '/', description: 'Overview & analytics' },
   { name: 'Soil Data', icon: 'sprout', route: '/soil', description: 'Soil monitoring' },
@@ -31,13 +38,6 @@ const navItems = [
   { name: 'History', icon: 'chart-line', route: '/history', description: 'Historical data' },
   { name: 'Settings', icon: 'cog', route: '/settings', description: 'System settings' },
 ]
-
-const handleNavClick = () => {
-  // Close mobile sidebar when clicking nav items
-  if (window.innerWidth < 1024) {
-    emit('close')
-  }
-}
 </script>
 
 <template>
@@ -47,26 +47,6 @@ const handleNavClick = () => {
     @click="$emit('close')"
     class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
   ></div>
-
-  <!-- Collapse toggle (desktop) -->
-  <div class="hidden lg:block fixed left-0 top-1/2 -translate-y-1/2 z-50">
-    <button
-      @click="toggleCollapse"
-      class="flex items-center justify-center w-10 h-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 rounded-r-xl shadow-lg hover:shadow-xl text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-all duration-300 hover:scale-105 group"
-      :class="isCollapsed ? 'ml-20' : 'ml-72'"
-      aria-label="Toggle sidebar"
-    >
-      <svg
-        class="w-4 h-4 transition-transform duration-300"
-        :class="isCollapsed ? 'rotate-180' : ''"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
-  </div>
 
   <!-- Sidebar -->
   <aside
@@ -176,6 +156,31 @@ const handleNavClick = () => {
         </RouterLink>
       </nav>
 
+      <!-- Collapse Toggle Button (Inside Sidebar) -->
+      <div class="hidden lg:block px-4 py-2 border-t border-gray-200/30 dark:border-gray-800/30">
+        <button
+          @click="toggleCollapse"
+          class="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
+          :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <svg
+            class="w-4 h-4 transition-transform duration-300"
+            :class="isCollapsed ? 'rotate-180' : ''"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span
+            class="ml-2 transition-all duration-300 overflow-hidden"
+            :class="isCollapsed ? 'lg:w-0 lg:ml-0 lg:opacity-0' : 'w-auto opacity-100'"
+          >
+            Collapse
+          </span>
+        </button>
+      </div>
+
       <!-- Mobile theme toggle -->
       <div class="px-4 py-4 border-t border-gray-200/30 dark:border-gray-800/30 lg:hidden">
         <button @click="$emit('toggle-dark-mode')" class="w-full btn btn-secondary justify-start">
@@ -212,10 +217,7 @@ const handleNavClick = () => {
             :class="isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'"
           >
             <div class="flex items-center gap-2">
-              <div 
-                class="w-2 h-2 rounded-full"
-                :class="systemStatus === 'normal' ? 'bg-emerald-500' : systemStatus === 'warning' ? 'bg-amber-500' : 'bg-red-500'"
-              ></div>
+              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
               <div>
                 <p class="text-xs font-medium text-gray-800 dark:text-gray-200">System Online</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">v2.1.0</p>
@@ -229,10 +231,7 @@ const handleNavClick = () => {
               class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
               :class="isCollapsed ? 'lg:w-6 lg:h-6' : ''"
             >
-              <div 
-                class="w-2 h-2 rounded-full"
-                :class="systemStatus === 'normal' ? 'bg-emerald-500' : systemStatus === 'warning' ? 'bg-amber-500' : 'bg-red-500'"
-              ></div>
+              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
             </div>
           </div>
         </div>
