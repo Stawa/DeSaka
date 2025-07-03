@@ -21,7 +21,6 @@ import {
 const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
-
 const showExportModal = ref(false)
 
 function updateWindowWidth() {
@@ -226,22 +225,6 @@ async function updateData() {
   }
 }
 
-const quickActions = [
-  { name: 'Refresh Data', icon: 'refresh', action: updateData },
-  {
-    name: 'Export Data',
-    icon: 'download-outline',
-    action: function () {
-      showExportModal.value = true
-    },
-  },
-  {
-    name: 'System Check',
-    icon: 'check-circle-outline',
-    action: () => alert('System check would be implemented here'),
-  },
-]
-
 function handleExport(exportOptions: any) {
   handleDataExport(exportOptions)
 }
@@ -387,57 +370,66 @@ const systemStatus = computed(() => {
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-6">
-    <!-- Title Banner -->
-    <div class="mb-6 sm:mb-8">
-      <HomeHeader :last-update="lastUpdate" />
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div class="container-lg py-6 lg:py-8 space-y-8 lg:space-y-12">
+      <!-- Header Section -->
+      <div class="animate-fade-in">
+        <HomeHeader :last-update="lastUpdate" />
+      </div>
+
+      <!-- Dashboard Status Overview -->
+      <section class="animate-slide-up" style="animation-delay: 0.1s">
+        <PlantStatusDashboard
+          :sensor-data="sensorData"
+          :plant-health-score="plantHealthScore"
+          :growth-prediction="growthPrediction"
+          :system-status="systemStatus"
+        />
+      </section>
+
+      <!-- Plant Analysis Insights -->
+      <section class="animate-slide-up" style="animation-delay: 0.2s">
+        <PlantAnalysis 
+          :plant-health-score="plantHealthScore" 
+          :growth-prediction="growthPrediction" 
+        />
+      </section>
+
+      <!-- Sensor Readings Grid/Table -->
+      <section class="animate-slide-up" style="animation-delay: 0.3s">
+        <div class="relative">
+          <!-- Background decoration -->
+          <div class="absolute inset-0 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-950/20 dark:to-secondary-950/20 rounded-3xl transform rotate-1 opacity-30"></div>
+          
+          <div class="relative">
+            <SensorReadingsTable
+              v-if="windowWidth >= 1024"
+              :sensor-data="sensorData"
+              :on-sensor-click="openSensorDetails"
+              @refresh="updateData"
+            />
+            <SensorReadingsGrid
+              v-else
+              :sensor-data="sensorData"
+              :on-sensor-click="openSensorDetails"
+              @refresh="updateData"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- Sensor Trends -->
+      <section class="animate-slide-up" style="animation-delay: 0.4s">
+        <SensorTrends
+          :plant-health-score="plantHealthScore"
+          :growth-prediction="growthPrediction"
+          :trend-timeframe="trendTimeframe"
+          @update-historical-data="updateHistoricalData"
+        />
+      </section>
     </div>
 
-    <!-- Dashboard Header with System Status and Plant Health Overview -->
-    <div class="mb-10">
-      <PlantStatusDashboard
-        :sensor-data="sensorData"
-        :plant-health-score="plantHealthScore"
-        :growth-prediction="growthPrediction"
-        :system-status="systemStatus"
-      />
-    </div>
-
-    <!-- Plant Growth Analysis with Insights -->
-    <div class="mb-6 sm:mb-8">
-      <PlantAnalysis :plant-health-score="plantHealthScore" :growth-prediction="growthPrediction" />
-    </div>
-
-    <!-- Sensor Cards Grid with improved spacing and animations -->
-    <div class="mb-6 sm:mb-8">
-      <!-- Sensor Readings Component -->
-      <SensorReadingsTable
-        v-if="windowWidth >= 1024"
-        :sensor-data="sensorData"
-        :on-sensor-click="openSensorDetails"
-        @refresh="updateData"
-        @download="console.log('Download functionality removed')"
-      />
-      <SensorReadingsGrid
-        v-else
-        :sensor-data="sensorData"
-        :on-sensor-click="openSensorDetails"
-        @refresh="updateData"
-        @download="console.log('Download functionality removed')"
-      />
-    </div>
-
-    <!-- Sensor Trends Section with improved styling -->
-    <div class="mb-6 sm:mb-8">
-      <SensorTrends
-        :plant-health-score="plantHealthScore"
-        :growth-prediction="growthPrediction"
-        :trend-timeframe="trendTimeframe"
-        @update-historical-data="updateHistoricalData"
-      />
-    </div>
-
-    <!-- Export Data Modal -->
+    <!-- Export Modal -->
     <DataExportModal
       :show="showExportModal"
       title="Export Dashboard Data"
@@ -457,83 +449,34 @@ const systemStatus = computed(() => {
 </template>
 
 <style scoped>
-/* Fade-in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Staggered animations for sections */
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out both;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+/* Custom background patterns */
+.container-lg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: radial-gradient(ellipse at top, rgb(var(--tw-color-primary-100) / 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
-/* Hover effects for cards */
-.card-hover {
-  transition: all 0.3s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-/* Pulse animation for status indicators */
-@keyframes pulse {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s infinite ease-in-out;
-}
-
-/* Responsive adjustments */
+/* Enhanced responsive adjustments */
 @media (max-width: 640px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dashboard-header > div {
-    margin-top: 1rem;
-    width: 100%;
+  .container-lg {
+    @apply px-4 py-4 space-y-6;
   }
 }
 
-/* Progress bar animation */
-@keyframes fillProgress {
-  from {
-    width: 0;
+@media (min-width: 1024px) {
+  .container-lg {
+    @apply space-y-16;
   }
-  to {
-    width: var(--progress-width, 0%);
-  }
-}
-
-.animate-progress {
-  animation: fillProgress 1s ease-out forwards;
-}
-
-/* Transition for dark mode */
-.dark-mode-transition {
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    border-color 0.3s ease;
 }
 </style>
