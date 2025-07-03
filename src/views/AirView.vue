@@ -13,6 +13,7 @@ import {
   updateSensorStatus,
   formatSensorDataForExport,
 } from '@/scripts'
+import AirHeader from '@/components/air/AirHeader.vue'
 
 type DataPoint = { time: string; value: number }
 
@@ -255,156 +256,98 @@ const airQualityIndex = computed(() => {
 
 <template>
   <div class="container mx-auto px-4 py-6">
-    <!-- Title Banner -->
-    <div
-      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700"
-    >
-      <div class="h-1.5 w-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
-      <div class="p-4 sm:p-6">
-        <!-- Header Content -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <!-- Title and Description -->
-          <div class="flex items-start sm:items-center w-full md:w-auto">
-            <div
-              class="bg-blue-100 dark:bg-blue-900/30 py-2 px-3 sm:py-2 sm:px-3 rounded-lg mr-3 sm:mr-4 flex-shrink-0"
-            >
-              <span
-                class="mdi mdi-air-filter text-blue-600 dark:text-blue-400 text-xl sm:text-2xl"
-              ></span>
-            </div>
-            <div class="flex-grow">
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
-                Air Quality Monitoring
-              </h1>
-              <p
-                class="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none"
-              >
-                Comprehensive air quality monitoring and analysis
-              </p>
-              <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-0.5 sm:mt-1">
-                Last updated: {{ lastUpdated }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto justify-end mt-3 md:mt-0">
-            <button
-              @click="refreshData"
-              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-              :class="{ 'opacity-50 cursor-not-allowed': isRefreshing }"
-              :disabled="isRefreshing"
-            >
-              <span
-                class="mdi mr-1.5"
-                :class="isRefreshing ? 'mdi-loading mdi-spin' : 'mdi-refresh'"
-              ></span>
-              <span class="whitespace-nowrap">{{
-                isRefreshing ? 'Refreshing...' : 'Refresh Data'
-              }}</span>
-            </button>
-
-            <button
-              @click="showExportModal = true"
-              class="flex items-center px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors shadow-sm"
-            >
-              <span class="mdi mdi-download mr-1.5"></span>
-              <span class="whitespace-nowrap">Export</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AirHeader
+      :title="'Air Quality'"
+      :subtitle="'Current Conditions'"
+      :last-updated="lastUpdated"
+    />
 
     <!-- Air Quality Dashboard -->
-    <AirQualityDashboard :air-data="airData" :quality-index="airQualityIndex" />
+    <AirQualityDashboard :air-data="airData" :healthScore="airQualityIndex" />
 
     <!-- Air Trends Section -->
+    <!-- Air Trends Section (Redesigned) -->
     <div
-      class="mb-8 bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 dashboard-section"
+      class="bg-white dark:bg-gray-900 rounded-2xl shadow-md border border-gray-200 dark:border-gray-800 mb-12 overflow-hidden"
     >
-      <div class="h-1.5 w-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
-      <div class="p-6">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-          <div class="flex items-center mb-3 sm:mb-0">
-            <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
-              <span
-                class="mdi mdi-chart-timeline-variant text-blue-600 dark:text-blue-400 text-xl"
-              ></span>
-            </div>
-            <div>
-              <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Air Trends</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Historical data analysis for air parameters
-              </p>
-            </div>
+      <!-- Top Accent Bar -->
+      <div class="h-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 w-full"></div>
+
+      <div class="p-6 md:p-8">
+        <!-- Header -->
+        <div
+          class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6"
+        >
+          <!-- Header Text -->
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Air Trends</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Historical data analysis of environmental air quality metrics
+            </p>
           </div>
 
-          <!-- Time Period Selector -->
+          <!-- Time Frame Selector -->
           <div
-            class="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-full p-1 self-start sm:self-auto"
+            class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-full border border-gray-300 dark:border-gray-700"
           >
-            <button
-              @click="changeTimeFrame('24h')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-              :class="
-                timeFrame === '24h'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-            >
-              24h
-            </button>
-            <button
-              @click="changeTimeFrame('7d')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-              :class="
-                timeFrame === '7d'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-            >
-              7d
-            </button>
-            <button
-              @click="changeTimeFrame('30d')"
-              class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-              :class="
-                timeFrame === '30d'
-                  ? 'bg-primary-500 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-            >
-              30d
-            </button>
+            <template v-for="frame in ['24h', '7d', '30d']" :key="frame">
+              <button
+                @click="changeTimeFrame(frame)"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded-full font-medium focus:outline-none transition-all duration-200',
+                  timeFrame === frame
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700',
+                ]"
+              >
+                {{ frame }}
+              </button>
+            </template>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <SensorChart
-            title="Temperature Trends"
-            :data="airData.temperature.history"
-            valueLabel="Air Temperature (°C)"
-            chartColor="#E97451"
-          />
-          <SensorChart
-            title="Humidity Trends"
-            :data="airData.humidity.history"
-            valueLabel="Air Humidity (%)"
-            chartColor="#3B82F6"
-          />
-          <SensorChart
-            title="CO₂ Level Trends"
-            :data="airData.co2.history"
-            valueLabel="Air CO₂ (ppm)"
-            chartColor="#8B5CF6"
-          />
-          <SensorChart
-            title="TVOC Level Trends"
-            :data="airData.tvoc.history"
-            valueLabel="Air TVOC (ppb)"
-            chartColor="#10B981"
-          />
+        <!-- Sensor Chart Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition"
+          >
+            <SensorChart
+              title="Temperature"
+              :data="airData.temperature.history"
+              valueLabel="Air Temperature (°C)"
+              chartColor="#E97451"
+            />
+          </div>
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition"
+          >
+            <SensorChart
+              title="Humidity"
+              :data="airData.humidity.history"
+              valueLabel="Air Humidity (%)"
+              chartColor="#3B82F6"
+            />
+          </div>
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition"
+          >
+            <SensorChart
+              title="CO₂"
+              :data="airData.co2.history"
+              valueLabel="Air CO₂ (ppm)"
+              chartColor="#8B5CF6"
+            />
+          </div>
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition"
+          >
+            <SensorChart
+              title="TVOC"
+              :data="airData.tvoc.history"
+              valueLabel="Air TVOC (ppb)"
+              chartColor="#10B981"
+            />
+          </div>
         </div>
       </div>
     </div>

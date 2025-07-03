@@ -32,86 +32,76 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header
-    class="relative z-50 sticky top-0 transition-all duration-300"
+  <nav
+    class="sticky top-0 z-40 backdrop-blur-xl border-b transition-all duration-300"
     :class="[
-      isDarkMode
-        ? 'bg-gray-800 border-b border-gray-700'
-        : 'bg-primary-500 border-b border-primary-600',
-      isScrolled ? 'shadow-lg' : 'shadow-md',
+      isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200',
+      isScrolled ? 'shadow-lg' : 'shadow-sm',
     ]"
   >
-    <div class="container mx-auto px-6 py-3 relative z-10">
-      <div class="flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
         <!-- Left section -->
-        <div class="flex items-center">
+        <div class="flex items-center space-x-4">
           <!-- Mobile menu button -->
           <button
             @click="$emit('toggle-sidebar')"
-            class="mr-4 p-2 rounded-lg transition-all duration-300 md:hidden focus:outline-none focus:ring-2 focus:ring-offset-2"
+            class="md:hidden inline-flex items-center justify-center px-3 py-2 rounded-md transition-colors duration-200"
             :class="
               isDarkMode
-                ? 'text-gray-300 hover:text-white hover:bg-gray-700 focus:ring-gray-400'
-                : 'text-white hover:bg-primary-600 focus:ring-white/50'
+                ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
             "
-            aria-label="Toggle sidebar"
+            aria-label="Open main menu"
           >
-            <span class="mdi mdi-menu text-2xl transition-transform duration-200"></span>
+            <span class="mdi mdi-menu text-xl"></span>
           </button>
 
-          <!-- Logo section -->
-          <div class="flex items-center cursor-pointer">
-            <div
-              class="relative p-2 rounded-lg mr-4 transition-all duration-300"
-              :class="isDarkMode ? 'bg-gray-700' : 'bg-primary-600'"
+          <!-- Logo/Brand -->
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <span class="mdi mdi-leaf text-white text-lg"></span>
+            </div>
+            <h1
+              class="text-xl font-bold tracking-tight"
+              :class="isDarkMode ? 'text-white' : 'text-gray-900'"
             >
-              <img src="/Logo.webp" alt="DeSaka Logo" class="h-8 w-8 relative z-10" />
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold tracking-tight text-white">DeSaka</h1>
-            </div>
+              DeSaka
+            </h1>
           </div>
         </div>
 
         <!-- Right section -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
           <!-- Dark mode toggle -->
           <button
             @click="toggleDarkMode"
-            class="relative py-2 px-3 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 hidden md:flex items-center"
+            class="hidden md:flex p-2 px-3 rounded-lg transition-colors duration-200"
             :class="
               isDarkMode
-                ? 'bg-gray-700 text-yellow-300 focus:ring-yellow-300/50'
-                : 'bg-primary-600 text-white focus:ring-white/50'
+                ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
             "
             :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle dark mode"
           >
-            <!-- Icon container -->
             <span
-              class="mdi text-xl"
+              class="mdi text-xl transition-transform duration-300"
               :class="{
-                'mdi-weather-sunny': isDarkMode,
-                'mdi-weather-night': !isDarkMode,
-                'animate-spin-slow': isAnimating,
+                'mdi-white-balance-sunny text-yellow-500': isDarkMode,
+                'mdi-moon-waning-crescent': !isDarkMode,
+                'animate-spin': isAnimating,
               }"
             ></span>
-
-            <span class="ml-2 text-sm font-medium">{{
-              isDarkMode ? 'Light Mode' : 'Dark Mode'
-            }}</span>
-            <span class="sr-only">{{
-              isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'
-            }}</span>
           </button>
         </div>
       </div>
     </div>
-  </header>
+  </nav>
 </template>
 
 <style scoped>
-@keyframes spin-slow {
+@keyframes spin {
   0% {
     transform: rotate(0deg);
   }
@@ -120,76 +110,21 @@ onUnmounted(() => {
   }
 }
 
-.animate-spin-slow {
-  animation: spin-slow 0.6s ease-in-out;
+.animate-spin {
+  animation: spin 0.6s ease-in-out;
 }
 
-/* Custom scrollbar for better integration */
-::-webkit-scrollbar {
-  width: 8px;
+/* Focus styles for better accessibility */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.5);
-}
-
-/* Enhanced focus styles */
-button:focus-visible {
-  outline: none;
-}
-
-/* Smooth transitions for all interactive elements */
+/* Smooth transitions */
 * {
-  transition-property:
-    color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
-    transform, filter;
+  transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Header shadow effects */
-header {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition:
-    box-shadow 0.3s ease,
-    transform 0.3s ease;
-}
-
-.dark header {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-header.shadow-lg {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.dark header.shadow-lg {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-/* Enhance the logo area */
-header .logo-container {
-  position: relative;
-  overflow: hidden;
-}
-
-/* Improve button interactions */
-button {
-  transform: translateY(0);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-button:active {
-  transform: translateY(1px);
+  transition-duration: 200ms;
 }
 </style>

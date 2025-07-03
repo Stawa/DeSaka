@@ -16,87 +16,141 @@ const props = defineProps({
 defineEmits(['refresh', 'download'])
 
 const sensorIds = computed(() => Object.keys(props.sensorData))
+const sensorCount = computed(() => sensorIds.value.length)
 </script>
 
 <template>
   <div
-    class="bg-white dark:bg-gray-900 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-lg w-full"
+    class="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md w-full"
   >
-    <div class="h-1 sm:h-1.5 w-full bg-gradient-to-r from-primary-400 to-primary-500"></div>
-    <div class="p-3 sm:p-4 md:p-6">
-      <!-- Header with title and buttons -->
-      <div
-        class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4"
-      >
-        <div class="flex items-center min-w-0">
+    <!-- Header -->
+    <div class="px-6 py-5 border-b border-gray-50 dark:border-gray-700">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
           <div
-            class="bg-primary-100 dark:bg-primary-900/30 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0"
+            class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm"
           >
-            <span
-              class="mdi mdi-gauge text-primary-600 dark:text-primary-400 text-base sm:text-lg md:text-xl"
-            ></span>
+            <span class="text-white text-2xl mdi mdi-table-check"></span>
           </div>
-          <h2
-            class="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-200 truncate"
-          >
-            Sensor Readings
-          </h2>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Sensor Readings</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ sensorCount }} {{ sensorCount === 1 ? 'sensor' : 'sensors' }} active
+            </p>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Responsive Table Layout for Sensor Readings -->
-      <div class="animate-fade-in overflow-x-auto -mx-3 sm:mx-0">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th
-                scope="col"
-                class="px-3 py-2.5 sm:px-4 sm:py-3.5 text-left text-2xs sm:text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Sensor
-              </th>
-              <th
-                scope="col"
-                class="px-3 py-2.5 sm:px-4 sm:py-3.5 text-left text-2xs sm:text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                class="px-3 py-2.5 sm:px-4 sm:py-3.5 text-left text-2xs sm:text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Reading
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            <SensorReadingItem
-              v-for="sensorId in sensorIds"
-              :key="sensorId"
-              :sensor-id="sensorId"
-              :sensor-data="sensorData[sensorId]"
-              :on-click="onSensorClick"
-            />
-          </tbody>
-        </table>
+    <!-- Content -->
+    <div class="p-6">
+      <div class="overflow-hidden">
+        <!-- Mobile: Card Layout -->
+        <div class="block sm:hidden space-y-3">
+          <SensorReadingItem
+            v-for="sensorId in sensorIds"
+            :key="sensorId"
+            :sensor-id="sensorId"
+            :sensor-data="sensorData[sensorId]"
+            :on-click="onSensorClick"
+            mobile-layout
+          />
+        </div>
+
+        <!-- Desktop: Table Layout -->
+        <div class="hidden sm:block">
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                  <th
+                    class="text-left py-3 px-4 font-medium text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    Sensor
+                  </th>
+                  <th
+                    class="text-left py-3 px-4 font-medium text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-left py-3 px-4 font-medium text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    Current Reading
+                  </th>
+                  <th
+                    class="text-left py-3 px-4 font-medium text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    Last Updated
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+                <SensorReadingItem
+                  v-for="sensorId in sensorIds"
+                  :key="sensorId"
+                  :sensor-id="sensorId"
+                  :sensor-data="sensorData[sensorId]"
+                  :on-click="onSensorClick"
+                />
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-if="sensorCount === 0" class="text-center py-12">
+          <div
+            class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <svg
+              class="w-8 h-8 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            No sensors available
+          </h3>
+          <p class="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+            Connect your sensors to start monitoring readings and performance metrics.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Custom scrollbar for webkit browsers */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
+.overflow-x-auto::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800 rounded-full;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 </style>

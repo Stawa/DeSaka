@@ -16,7 +16,7 @@ const sidebarClass = computed(() => {
 })
 
 const sidebarWidthClass = computed(() => {
-  return isCollapsed.value ? 'md:w-[70px]' : 'md:w-[280px]'
+  return isCollapsed.value ? 'md:w-16' : 'md:w-64'
 })
 
 const toggleCollapse = () => {
@@ -38,175 +38,193 @@ const navItems = [
   <div
     v-if="isOpen"
     @click="$emit('close')"
-    class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden transition-all duration-300"
   ></div>
 
   <!-- Collapse Button (desktop only) -->
-  <div class="hidden md:block fixed left-0 top-1/2 transform -translate-y-1/2 z-20">
+  <div class="hidden md:block fixed left-0 top-1/2 transform -translate-y-1/2 z-30">
     <button
       @click="toggleCollapse"
-      class="text-gray-500 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-r-lg p-2 dark:text-gray-300 transition-all duration-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-md"
-      :class="{
-        'ml-[70px]': isCollapsed,
-        'ml-[280px]': !isCollapsed,
-      }"
-      aria-label="Toggle sidebar collapse"
+      class="flex items-center justify-center w-8 h-8 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-r-lg shadow-lg hover:shadow-xl text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-all duration-300 hover:scale-105"
+      :class="isCollapsed ? 'ml-16' : 'ml-64'"
+      aria-label="Toggle sidebar"
     >
       <span
-        class="mdi mdi-chevron-left text-xl transition-transform duration-300"
-        :class="{ 'mdi-chevron-right': isCollapsed }"
+        class="mdi text-sm transition-transform duration-300"
+        :class="isCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left'"
       ></span>
     </button>
   </div>
 
   <!-- Sidebar -->
   <aside
-    class="max-w-full bg-white shadow-xl fixed inset-y-0 left-0 z-30 md:relative md:translate-x-0 transform transition-all duration-300 ease-in-out dark:bg-gray-800 dark:text-white border-r border-gray-100 dark:border-gray-700 overflow-x-hidden"
+    class="fixed inset-y-0 left-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-300 ease-out md:relative md:translate-x-0"
     :class="[sidebarClass, sidebarWidthClass]"
   >
     <div class="h-full flex flex-col">
-      <!-- Desktop Header (visible only on desktop) -->
-      <div class="hidden md:flex items-center p-5 border-b dark:border-gray-700 overflow-hidden">
-        <div
-          class="flex items-center min-w-0 w-full transition-all duration-300"
-          :class="isCollapsed ? 'justify-center' : 'justify-start'"
-        >
-          <span
-            class="mdi mdi-leaf text-primary-500 text-2xl flex-shrink-0 transition-all duration-300 dark:text-primary-400"
-            :class="{ 'text-3xl': isCollapsed }"
-          ></span>
-
-          <h2
-            class="font-bold text-lg text-primary-600 dark:text-primary-300 transition-all duration-300 overflow-hidden"
-            :class="{
-              'w-0 ml-0 opacity-0': isCollapsed,
-              'w-auto ml-2 opacity-100': !isCollapsed,
-            }"
+      <!-- Header -->
+      <div
+        class="mt-2 flex items-center h-16 px-4 border-b border-gray-200/30 dark:border-gray-700/30"
+      >
+        <div class="flex items-center" :class="isCollapsed ? 'md:justify-center md:w-full' : ''">
+          <div
+            class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg"
           >
-            DeSaka
-          </h2>
-        </div>
-      </div>
+            <span class="mdi mdi-leaf text-white text-lg"></span>
+          </div>
 
-      <!-- Sidebar header with close button (mobile only) -->
-      <div class="p-5 border-b flex justify-between items-center md:hidden dark:border-gray-700">
-        <div class="flex items-center">
-          <span class="mdi mdi-leaf text-primary-500 text-2xl mr-2 dark:text-primary-400"></span>
-          <h2 class="font-bold text-lg text-primary-600 dark:text-primary-300">DeSaka</h2>
+          <div
+            class="ml-3 transition-all duration-300 overflow-hidden"
+            :class="isCollapsed ? 'md:w-0 md:ml-0 md:opacity-0' : 'w-auto opacity-100'"
+          >
+            <h1 class="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
+              Dashboard
+            </h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400 -mt-0.5">
+              Lorem ipsum dolor sit amet.
+            </p>
+          </div>
         </div>
+
+        <!-- Mobile close button -->
         <button
           @click="$emit('close')"
-          class="text-gray-500 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1 dark:text-gray-300"
-          aria-label="Close sidebar"
+          class="ml-auto p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors md:hidden"
         >
           <span class="mdi mdi-close text-xl"></span>
         </button>
       </div>
 
-      <!-- Navigation links -->
-      <nav class="flex-1 overflow-y-auto overflow-x-hidden py-4 sm:py-6">
-        <h2
-          class="px-4 sm:px-6 mb-3 sm:mb-4 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400 transition-all duration-300"
-          :class="{ 'md:opacity-0 md:h-0 md:mb-0': isCollapsed, 'md:opacity-100': !isCollapsed }"
+      <!-- Navigation -->
+      <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+        <RouterLink
+          v-for="item in navItems"
+          :key="item.name"
+          :to="item.route"
+          class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-gray-700 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800/80 transition-all duration-200 relative overflow-hidden"
+          :class="isCollapsed ? 'md:justify-center' : ''"
+          active-class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-200/50 dark:border-emerald-700/50"
+          @click="!isCollapsed && $emit('close')"
+          :title="isCollapsed ? item.name : ''"
         >
-          Navigation
-        </h2>
+          <!-- Active indicator -->
+          <div
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-r-full opacity-0 router-link-active:opacity-100 transition-opacity duration-300"
+          ></div>
 
-        <ul class="space-y-1 sm:space-y-2 w-full">
-          <li v-for="item in navItems" :key="item.name" class="w-full">
-            <RouterLink
-              :to="item.route"
-              class="group flex items-center py-2 sm:py-3 mx-1 sm:mx-2 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-all duration-200 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-primary-300 w-auto z-40"
-              :class="
-                isCollapsed ? 'md:justify-center md:items-center md:px-0 px-2' : 'px-4 sm:px-6'
-              "
-              active-class="bg-primary-100 text-primary-600 font-medium shadow-sm dark:bg-gray-700 dark:text-primary-300"
-              @click="
-                ($event: MouseEvent) => {
-                  const target = $event.currentTarget as HTMLElement
-                  if (!target.closest('.md\\:block')) {
-                    $emit('close')
-                  }
-                }
-              "
-              :title="isCollapsed ? item.name : ''"
-            >
-              <div class="flex items-center justify-center" :class="isCollapsed ? 'w-full' : ''">
-                <span
-                  class="mdi text-lg sm:text-xl group-hover:scale-110 transition-transform duration-200 flex-shrink-0"
-                  :class="[`mdi-${item.icon}`, isCollapsed && 'md:text-2xl']"
-                ></span>
-              </div>
-              <span
-                class="ml-2 sm:ml-3 text-sm sm:text-base font-medium transition-all duration-300 whitespace-nowrap overflow-hidden flex-grow"
-                :class="{
-                  'md:w-0 md:ml-0 md:opacity-0': isCollapsed,
-                  'md:w-auto md:opacity-100': !isCollapsed,
-                }"
-                >{{ item.name }}</span
-              >
-              <span
-                class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 mdi mdi-chevron-right text-primary-400 dark:text-primary-300 hidden sm:inline flex-shrink-0"
-                :class="{ 'md:hidden': isCollapsed }"
-              ></span>
-            </RouterLink>
-          </li>
-        </ul>
+          <span
+            class="mdi flex-shrink-0 text-lg transition-all duration-200 group-hover:scale-110"
+            :class="[`mdi-${item.icon}`, isCollapsed ? 'text-xl' : '']"
+          ></span>
+
+          <span
+            class="ml-3 transition-all duration-300 truncate"
+            :class="isCollapsed ? 'md:w-0 md:ml-0 md:opacity-0' : 'opacity-100'"
+          >
+            {{ item.name }}
+          </span>
+
+          <!-- Hover arrow -->
+          <span
+            class="ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 mdi mdi-arrow-right text-xs"
+            :class="isCollapsed ? 'md:hidden' : ''"
+          ></span>
+        </RouterLink>
       </nav>
 
-      <!-- Action Buttons (visible on small screens below navigation) -->
-      <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-700 sm:hidden">
-        <!-- Theme toggle button for mobile - only visible on small screens -->
+      <!-- Mobile theme toggle -->
+      <div class="px-3 py-4 border-t border-gray-200/30 dark:border-gray-700/30 md:hidden">
         <button
           @click="$emit('toggle-dark-mode')"
-          class="w-full btn btn-sm btn-secondary flex items-center justify-center"
-          aria-label="Toggle dark mode"
+          class="w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         >
           <span
-            class="mdi mr-1"
-            :class="{
-              'mdi-weather-sunny text-yellow-500': $props.isDarkMode,
-              'mdi-weather-night text-blue-500': !$props.isDarkMode,
-            }"
+            class="mdi mr-2"
+            :class="
+              isDarkMode
+                ? 'mdi-white-balance-sunny text-amber-500'
+                : 'mdi-moon-waning-crescent text-indigo-500'
+            "
           ></span>
-          <span>{{ $props.isDarkMode ? 'Light Mode' : 'Dark Mode' }}</span>
+          {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
         </button>
       </div>
 
       <!-- Footer -->
-      <div class="p-5 border-t dark:border-gray-700 overflow-hidden">
-        <div class="flex items-center justify-between mb-3">
-          <span
-            class="text-sm font-medium text-gray-700 dark:text-gray-300 transition-opacity duration-300 whitespace-nowrap overflow-hidden"
-            :class="{ 'md:opacity-0 md:w-0': isCollapsed, 'md:opacity-100': !isCollapsed }"
-            >DeSaka v1.2.5</span
-          >
-        </div>
-        <p
-          class="text-xs text-gray-500 dark:text-gray-400 transition-opacity duration-300"
-          :class="{ 'md:opacity-0': isCollapsed, 'md:opacity-100': !isCollapsed }"
+      <div
+        class="px-4 py-3 border-t border-gray-200/30 dark:border-gray-700/30 transition-all duration-300"
+        :class="isCollapsed ? 'md:px-2' : ''"
+      >
+        <div
+          class="flex items-center transition-all duration-300"
+          :class="isCollapsed ? 'md:justify-center' : 'justify-between'"
         >
-          © 2025 - {{ new Date().getFullYear() }} All Rights Reserved
-        </p>
+          <div
+            class="transition-all duration-300 overflow-hidden"
+            :class="isCollapsed ? 'md:w-0 md:opacity-0' : 'opacity-100'"
+          >
+            <p class="text-xs font-medium text-gray-600 dark:text-gray-400">v1.5.0</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500 -mt-0.5">
+              © 2025 - {{ new Date().getFullYear() }} Desaka
+            </p>
+          </div>
+
+          <!-- Status indicator -->
+          <div class="flex items-center" :class="isCollapsed ? 'md:justify-center' : ''">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm"></div>
+            <span
+              class="ml-2 text-xs text-gray-500 dark:text-gray-400 transition-all duration-300"
+              :class="isCollapsed ? 'md:w-0 md:ml-0 md:opacity-0' : 'opacity-100'"
+            >
+              Online
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </aside>
 </template>
 
 <style scoped>
-.btn {
-  @apply rounded-lg font-medium transition-all duration-200 flex items-center justify-center;
+/* Smooth scrollbar for navigation */
+nav::-webkit-scrollbar {
+  width: 4px;
 }
 
-.btn-sm {
-  @apply text-xs py-2 px-3;
+nav::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
 
-.btn-primary {
-  @apply bg-primary-500 text-white hover:bg-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
+nav::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
 }
 
-.btn-secondary {
-  @apply bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:ring-opacity-50;
+nav::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Subtle animations */
+.router-link-active {
+  @apply transform;
+  animation: subtle-bounce 0.3s ease-out;
+}
+
+@keyframes subtle-bounce {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Backdrop blur fallback */
+@supports not (backdrop-filter: blur(12px)) {
+  aside {
+    @apply bg-white dark:bg-gray-900;
+  }
 }
 </style>

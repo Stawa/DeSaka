@@ -40,25 +40,25 @@ const props = defineProps<{
 
 const chartType = ref<'line' | 'bar'>('line')
 const chartRef = ref<InstanceType<typeof Line | typeof Bar> | null>(null)
-const chartHeight = ref(240)
+const chartHeight = ref(280)
 const isLoading = ref(false)
 
 const createGradient = (color: string): CanvasGradient | string => {
   const canvas = chartRef.value?.$el?.querySelector('canvas')
-  if (!canvas) return color + '20'
+  if (!canvas) return color + '10'
   const ctx = canvas.getContext('2d')
-  if (!ctx) return color + '20'
+  if (!ctx) return color + '10'
 
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-  gradient.addColorStop(0, color + '30')
-  gradient.addColorStop(0.5, color + '15')
-  gradient.addColorStop(1, color + '05')
+  gradient.addColorStop(0, color + '15')
+  gradient.addColorStop(0.8, color + '08')
+  gradient.addColorStop(1, color + '02')
   return gradient
 }
 
 const chartData = computed(() => {
-  const primaryColor = props.chartColor || '#3B7D4A'
-  const secondaryColor = props.secondaryColor || '#4A3B7D'
+  const primaryColor = props.chartColor || '#6366f1'
+  const secondaryColor = props.secondaryColor || '#f59e0b'
   const currentType = chartType.value
 
   const datasets: ChartDataset<'line' | 'bar', number[]>[] = [
@@ -67,17 +67,19 @@ const chartData = computed(() => {
       label: props.valueLabel,
       data: props.data.map((item) => item.value),
       borderColor: primaryColor,
-      backgroundColor: currentType === 'bar' ? primaryColor + '80' : createGradient(primaryColor),
-      borderWidth: 2,
-      tension: 0.4,
+      backgroundColor: currentType === 'bar' ? primaryColor + '12' : createGradient(primaryColor),
+      borderWidth: currentType === 'line' ? 2.5 : 0,
+      tension: 0.3,
       fill: currentType === 'line',
-      pointRadius: currentType === 'line' ? 3 : 0,
-      pointHoverRadius: currentType === 'line' ? 6 : 0,
-      pointBackgroundColor: '#fff',
-      pointBorderColor: primaryColor,
+      pointRadius: currentType === 'line' ? 0 : 0,
+      pointHoverRadius: currentType === 'line' ? 5 : 0,
+      pointBackgroundColor: primaryColor,
+      pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
-      pointHitRadius: 30,
+      pointHitRadius: 15,
       cubicInterpolationMode: 'monotone',
+      borderCapStyle: 'round',
+      borderJoinStyle: 'round',
     },
   ]
 
@@ -87,17 +89,19 @@ const chartData = computed(() => {
       label: props.secondaryLabel,
       data: props.secondaryData.map((item) => item.value),
       borderColor: secondaryColor,
-      backgroundColor: currentType === 'bar' ? secondaryColor + '60' : 'transparent',
-      borderWidth: 2,
-      borderDash: currentType === 'line' ? [5, 5] : undefined,
-      tension: 0.4,
+      backgroundColor: currentType === 'bar' ? secondaryColor + '12' : 'transparent',
+      borderWidth: currentType === 'line' ? 2.5 : 0,
+      borderDash: currentType === 'line' ? [6, 4] : undefined,
+      tension: 0.3,
       fill: false,
-      pointRadius: currentType === 'line' ? 3 : 0,
-      pointHoverRadius: currentType === 'line' ? 6 : 0,
-      pointBackgroundColor: '#fff',
-      pointBorderColor: secondaryColor,
+      pointRadius: currentType === 'line' ? 0 : 0,
+      pointHoverRadius: currentType === 'line' ? 5 : 0,
+      pointBackgroundColor: secondaryColor,
+      pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
-      pointHitRadius: 30,
+      pointHitRadius: 15,
+      borderCapStyle: 'round',
+      borderJoinStyle: 'round',
     })
   }
 
@@ -109,59 +113,42 @@ const chartData = computed(() => {
 
 const chartOptions = computed(() => {
   const isDarkMode = document.documentElement.classList.contains('dark')
-  const gridColor = isDarkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.8)'
-  const tickColor = isDarkMode ? 'rgba(209, 213, 219, 0.8)' : 'rgba(107, 114, 128, 0.8)'
-  const tooltipBgColor = isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)'
-  const tooltipTitleColor = isDarkMode ? '#e5e7eb' : '#333'
-  const tooltipBodyColor = isDarkMode ? '#d1d5db' : '#666'
-  const tooltipBorderColor = isDarkMode ? '#4b5563' : '#ddd'
+  const gridColor = isDarkMode ? 'rgba(71, 85, 105, 0.15)' : 'rgba(148, 163, 184, 0.15)'
+  const tickColor = isDarkMode ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)'
+  const tooltipBgColor = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+  const tooltipTitleColor = isDarkMode ? '#f1f5f9' : '#1e293b'
+  const tooltipBodyColor = isDarkMode ? '#cbd5e1' : '#475569'
 
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 800,
-      easing: chartType.value === 'line' ? ('easeOutQuart' as const) : ('easeOutQuad' as const),
+      duration: 600,
+      easing: 'easeOutQuart' as const,
     },
     plugins: {
       legend: {
-        position: 'top' as const,
-        align: 'start' as const,
-        labels: {
-          boxWidth: 12,
-          boxHeight: 12,
-          padding: 15,
-          color: isDarkMode ? '#e5e7eb' : '#333',
-          font: {
-            size: 12,
-            weight: 'normal' as const,
-            family: '"Inter", sans-serif',
-          },
-        },
+        display: false,
       },
       tooltip: {
         backgroundColor: tooltipBgColor,
         titleColor: tooltipTitleColor,
         bodyColor: tooltipBodyColor,
-        borderColor: tooltipBorderColor,
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 8,
+        borderWidth: 0,
+        padding: 16,
+        cornerRadius: 12,
         titleFont: {
-          size: 14,
-          weight: 'bold' as const,
-          family: '"Inter", sans-serif',
+          size: 13,
+          weight: '600' as const,
+          family: 'system-ui, -apple-system, sans-serif',
         },
         bodyFont: {
-          size: 13,
-          weight: 'normal' as const,
-          family: '"Inter", sans-serif',
+          size: 12,
+          weight: '500' as const,
+          family: 'system-ui, -apple-system, sans-serif',
         },
-        displayColors: true,
-        boxWidth: 8,
-        boxHeight: 8,
-        boxPadding: 4,
-        usePointStyle: true,
+        displayColors: false,
+        caretPadding: 8,
         callbacks: {
           title: (tooltipItems: Array<{ label: string }>) => {
             return tooltipItems[0].label
@@ -172,7 +159,7 @@ const chartOptions = computed(() => {
               label += ': '
             }
             if (context.parsed.y !== null) {
-              label += context.parsed.y
+              label += context.parsed.y.toLocaleString()
               if (props.valueUnit) {
                 label += ` ${props.valueUnit}`
               }
@@ -193,11 +180,14 @@ const chartOptions = computed(() => {
         ticks: {
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 8,
+          maxTicksLimit: 6,
           color: tickColor,
           font: {
             size: 11,
+            weight: '500' as const,
+            family: 'system-ui, -apple-system, sans-serif',
           },
+          padding: 8,
         },
       },
       y: {
@@ -208,15 +198,18 @@ const chartOptions = computed(() => {
         grid: {
           color: gridColor,
           drawBorder: false,
-          lineWidth: 0.5,
+          lineWidth: 1,
         },
         ticks: {
           font: {
             size: 11,
+            weight: '500' as const,
+            family: 'system-ui, -apple-system, sans-serif',
           },
           color: tickColor,
+          padding: 12,
           callback: (value: number) => {
-            return value + (props.valueUnit ? ` ${props.valueUnit}` : '')
+            return value.toLocaleString() + (props.valueUnit ? ` ${props.valueUnit}` : '')
           },
         },
       },
@@ -226,11 +219,8 @@ const chartOptions = computed(() => {
       intersect: false,
     },
     elements: {
-      line: {
-        borderWidth: 2,
-      },
       point: {
-        hoverBorderWidth: 4,
+        hoverBorderWidth: 3,
       },
     },
   }
@@ -252,14 +242,24 @@ const getUnitFromLabel = () => {
   if (props.valueLabel.includes('(')) {
     return props.valueLabel.match(/\(([^)]+)\)/)?.at(1) || ''
   }
-  return ''
+  return props.valueUnit || ''
 }
 
 const getAverageValue = () => {
   const data = chartData.value.datasets[0].data as number[]
-  if (!data.length) return '0.0'
+  if (!data.length) return '0'
   const sum = data.reduce((acc, val) => acc + val, 0)
-  return (sum / data.length).toFixed(1)
+  return Math.round(sum / data.length).toLocaleString()
+}
+
+const getMaxValue = () => {
+  const data = chartData.value.datasets[0].data as number[]
+  return data.length ? Math.max(...data).toLocaleString() : '0'
+}
+
+const getMinValue = () => {
+  const data = chartData.value.datasets[0].data as number[]
+  return data.length ? Math.min(...data).toLocaleString() : '0'
 }
 
 const getTimeRangeText = () => {
@@ -270,17 +270,25 @@ const getTimeRangeText = () => {
     const lastTimeStr = props.data[props.data.length - 1]?.time
 
     if (!firstTimeStr || !lastTimeStr) {
-      return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      return new Date().toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
     }
 
     const first = new Date(firstTimeStr)
     const last = new Date(lastTimeStr)
 
     if (isNaN(first.getTime()) || isNaN(last.getTime())) {
-      return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      return new Date().toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
     }
 
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }
 
     if (first.toDateString() === last.toDateString()) {
       return first.toLocaleDateString(undefined, options)
@@ -298,7 +306,7 @@ const zoomToData = () => {
   isLoading.value = true
   setTimeout(() => {
     isLoading.value = false
-  }, 500)
+  }, 400)
 }
 
 watch(
@@ -308,7 +316,7 @@ watch(
       isLoading.value = true
       setTimeout(() => {
         isLoading.value = false
-      }, 500)
+      }, 400)
     }
   },
   { deep: true },
@@ -316,7 +324,7 @@ watch(
 
 onMounted(() => {
   const handleResize = () => {
-    chartHeight.value = window.innerWidth < 768 ? 200 : 240
+    chartHeight.value = window.innerWidth < 768 ? 240 : 280
   }
   window.addEventListener('resize', handleResize)
   handleResize()
@@ -325,7 +333,7 @@ onMounted(() => {
     isLoading.value = true
     setTimeout(() => {
       isLoading.value = false
-    }, 500)
+    }, 400)
   }
 
   return () => window.removeEventListener('resize', handleResize)
@@ -333,20 +341,76 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="w-full transition-all">
+  <div class="w-full space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div class="space-y-1">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ title }}</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getTimeRangeText() }}</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+          @click="toggleChartType"
+        >
+          <svg
+            v-if="chartType === 'line'"
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+            />
+          </svg>
+          {{ chartType === 'line' ? 'Bar' : 'Line' }}
+        </button>
+
+        <button
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+          @click="zoomToData"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          Fit
+        </button>
+      </div>
+    </div>
+
     <!-- Chart -->
     <div
-      class="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 shadow-inner overflow-hidden relative"
+      class="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
       :style="{ height: `${chartHeight}px` }"
     >
       <!-- Loading overlay -->
       <div
         v-if="isLoading"
-        class="absolute inset-0 bg-gray-50/80 dark:bg-gray-800/80 flex items-center justify-center z-10"
+        class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10 backdrop-blur-sm"
       >
-        <div class="animate-pulse flex flex-col items-center">
-          <span class="mdi mdi-loading mdi-spin text-primary-500 text-2xl mb-2"></span>
-          <span class="text-sm text-gray-500 dark:text-gray-400">Loading data...</span>
+        <div class="flex flex-col items-center space-y-3">
+          <div
+            class="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-indigo-500 rounded-full animate-spin"
+          ></div>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Loading...</span>
         </div>
       </div>
 
@@ -355,92 +419,144 @@ onMounted(() => {
         v-else-if="!chartData.datasets[0].data.length"
         class="absolute inset-0 flex items-center justify-center"
       >
-        <div class="text-center">
-          <span
-            class="mdi mdi-chart-timeline-variant text-gray-300 dark:text-gray-600 text-3xl block mb-2"
-          ></span>
-          <span class="text-sm text-gray-500 dark:text-gray-400">No data available</span>
+        <div class="text-center space-y-3">
+          <div
+            class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto"
+          >
+            <svg
+              class="w-6 h-6 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No data available</p>
         </div>
       </div>
 
       <!-- Chart component -->
-      <div v-else class="relative h-full">
+      <div v-else class="h-full p-6">
         <component
           :is="chartType === 'line' ? Line : Bar"
           :data="chartData as any"
           :options="chartOptions as any"
           ref="chartRef"
         />
-
-        <!-- Time period indicator -->
-        <div
-          class="absolute top-2 right-2 bg-white/70 dark:bg-gray-800/70 text-xs text-gray-500 dark:text-gray-400 py-1 px-2 rounded-md backdrop-blur-sm"
-        >
-          {{ getTimeRangeText() }}
-        </div>
       </div>
     </div>
 
-    <!-- Footer Stats -->
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-y-3 text-sm">
-      <div class="flex items-center gap-4 text-gray-700 dark:text-gray-300 flex-wrap">
-        <div
-          class="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md"
-        >
-          <span class="mdi mdi-arrow-up-bold text-green-500"></span>
-          <span class="font-medium">
-            {{
-              chartData.datasets[0].data.length
-                ? Math.max(...chartData.datasets[0].data).toFixed(1)
-                : '0.0'
-            }}
-            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
-              getUnitFromLabel()
-            }}</span>
-          </span>
-        </div>
-        <div class="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">
-          <span class="mdi mdi-arrow-down-bold text-red-500"></span>
-          <span class="font-medium">
-            {{
-              chartData.datasets[0].data.length
-                ? Math.min(...chartData.datasets[0].data).toFixed(1)
-                : '0.0'
-            }}
-            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
-              getUnitFromLabel()
-            }}</span>
-          </span>
-        </div>
-        <div class="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
-          <span class="mdi mdi-calculator-variant text-blue-500"></span>
-          <span class="font-medium">
-            {{ getAverageValue() }}
-            <span class="text-xs text-gray-500 dark:text-gray-400 ml-0.5">{{
-              getUnitFromLabel()
-            }}</span>
-          </span>
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Peak
+            </p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
+              {{ getMaxValue() }}
+              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
+                getUnitFromLabel()
+              }}</span>
+            </p>
+          </div>
+          <div
+            class="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-4 h-4 text-emerald-600 dark:text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 11l5-5m0 0l5 5m-5-5v12"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button
-          class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
-          @click="toggleChartType"
-        >
-          <span
-            class="mdi"
-            :class="chartType === 'line' ? 'mdi-chart-bar' : 'mdi-chart-line'"
-          ></span>
-          <span class="ml-1">{{ chartType === 'line' ? 'Bar' : 'Line' }}</span>
-        </button>
-        <button
-          class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
-          @click="zoomToData"
-        >
-          <span class="mdi mdi-magnify"></span>
-          <span class="ml-1">Auto Scale</span>
-        </button>
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Average
+            </p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
+              {{ getAverageValue() }}
+              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
+                getUnitFromLabel()
+              }}</span>
+            </p>
+          </div>
+          <div
+            class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-4 h-4 text-blue-600 dark:text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Low
+            </p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
+              {{ getMinValue() }}
+              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
+                getUnitFromLabel()
+              }}</span>
+            </p>
+          </div>
+          <div
+            class="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-4 h-4 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 13l-5 5m0 0l-5-5m5 5V6"
+              />
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>

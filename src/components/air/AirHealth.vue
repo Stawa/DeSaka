@@ -28,23 +28,23 @@ const props = defineProps({
 const healthStatus = computed(() => {
   if (props.healthScore >= 90) {
     return {
-      color: 'text-sky-600 dark:text-sky-400',
+      color: 'text-emerald-600 dark:text-emerald-400',
       label: 'Excellent',
-      bgColor: 'bg-sky-50 dark:bg-sky-900/20',
-      airColor: '#0284c7',
-      airGradient: 'from-sky-100 via-sky-500 to-sky-600',
-      glowColor: 'shadow-sky-500/50',
-      ringColor: 'ring-sky-300 dark:ring-sky-600',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+      airColor: '#10b981',
+      airGradient: 'from-emerald-600 via-emerald-500 to-emerald-400',
+      glowColor: 'shadow-emerald-500/30',
+      ringColor: 'ring-emerald-300 dark:ring-emerald-600',
     }
   } else if (props.healthScore >= 75) {
     return {
-      color: 'text-blue-600 dark:text-blue-400',
+      color: 'text-green-600 dark:text-green-400',
       label: 'Good',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-      airColor: '#2563eb',
-      airGradient: 'from-blue-600 via-blue-500 to-blue-400',
-      glowColor: 'shadow-blue-500/50',
-      ringColor: 'ring-blue-300 dark:ring-blue-600',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      airColor: '#059669',
+      airGradient: 'from-green-600 via-green-500 to-green-400',
+      glowColor: 'shadow-green-500/30',
+      ringColor: 'ring-green-300 dark:ring-green-600',
     }
   } else if (props.healthScore >= 60) {
     return {
@@ -53,7 +53,7 @@ const healthStatus = computed(() => {
       bgColor: 'bg-amber-50 dark:bg-amber-900/20',
       airColor: '#d97706',
       airGradient: 'from-amber-600 via-amber-500 to-amber-400',
-      glowColor: 'shadow-amber-500/50',
+      glowColor: 'shadow-amber-500/30',
       ringColor: 'ring-amber-300 dark:ring-amber-600',
     }
   } else if (props.healthScore >= 40) {
@@ -63,7 +63,7 @@ const healthStatus = computed(() => {
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
       airColor: '#ea580c',
       airGradient: 'from-orange-600 via-orange-500 to-orange-400',
-      glowColor: 'shadow-orange-500/50',
+      glowColor: 'shadow-orange-500/30',
       ringColor: 'ring-orange-300 dark:ring-orange-600',
     }
   } else {
@@ -73,7 +73,7 @@ const healthStatus = computed(() => {
       bgColor: 'bg-red-50 dark:bg-red-900/20',
       airColor: '#dc2626',
       airGradient: 'from-red-600 via-red-500 to-red-400',
-      glowColor: 'shadow-red-500/50',
+      glowColor: 'shadow-red-500/30',
       ringColor: 'ring-red-300 dark:ring-red-600',
     }
   }
@@ -306,7 +306,7 @@ const healthStatus = computed(() => {
                     <div class="relative air-base">
                       <!-- Main base with better gradient -->
                       <div
-                        class="w-16 h-6 bg-gradient-to-b from-gray-400 via-gray-500 to-gray-600 dark:from-gray-500 dark:via-gray-600 dark:to-gray-700 rounded-full shadow-lg"
+                        class="w-16 h-6 bg-gradient-to-b from-sky-300 via-sky-400 to-sky-500 dark:from-sky-500 dark:via-sky-600 dark:to-sky-700 rounded-full shadow-lg"
                       ></div>
                       <!-- Subtle top reflection that doesn't overlap -->
                       <div
