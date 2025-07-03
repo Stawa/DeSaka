@@ -31,6 +31,13 @@ const navItems = [
   { name: 'History', icon: 'chart-line', route: '/history', description: 'Historical data' },
   { name: 'Settings', icon: 'cog', route: '/settings', description: 'System settings' },
 ]
+
+const handleNavClick = () => {
+  // Close mobile sidebar when clicking nav items
+  if (window.innerWidth < 1024) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
@@ -124,7 +131,7 @@ const navItems = [
             'hover:bg-gray-100/80 dark:hover:bg-gray-800/60',
           ]"
           active-class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-300 shadow-sm border border-emerald-200/50 dark:border-emerald-700/50"
-          @click="!isCollapsed && $emit('close')"
+          @click="handleNavClick"
           :title="isCollapsed ? item.name : ''"
         >
           <!-- Active indicator -->
@@ -205,7 +212,10 @@ const navItems = [
             :class="isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'"
           >
             <div class="flex items-center gap-2">
-              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              <div 
+                class="w-2 h-2 rounded-full"
+                :class="systemStatus === 'normal' ? 'bg-emerald-500' : systemStatus === 'warning' ? 'bg-amber-500' : 'bg-red-500'"
+              ></div>
               <div>
                 <p class="text-xs font-medium text-gray-800 dark:text-gray-200">System Online</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">v2.1.0</p>
@@ -219,7 +229,10 @@ const navItems = [
               class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
               :class="isCollapsed ? 'lg:w-6 lg:h-6' : ''"
             >
-              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              <div 
+                class="w-2 h-2 rounded-full"
+                :class="systemStatus === 'normal' ? 'bg-emerald-500' : systemStatus === 'warning' ? 'bg-amber-500' : 'bg-red-500'"
+              ></div>
             </div>
           </div>
         </div>
