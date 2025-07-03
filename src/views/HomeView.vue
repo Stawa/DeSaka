@@ -370,7 +370,7 @@ const systemStatus = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 ">
+  <div class="min-h-screen ">
     <div class="container-lg py-6 lg:py-8 space-y-8 lg:space-y-12">
       <!-- Header Section -->
       <div class="animate-fade-in">
