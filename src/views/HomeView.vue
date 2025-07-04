@@ -422,7 +422,7 @@ const systemStatus = computed(() => {
         - Responsive layout with proper spacing
         - Includes system status and last update information
       -->
-      <HomeHeader :last-update="'Just now'" />
+      <HomeHeader :last-update="lastUpdate" />
 
       <!--
         Dashboard Status Overview

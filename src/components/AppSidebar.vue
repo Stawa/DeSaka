@@ -84,7 +84,9 @@ const navItems = [
             :class="isCollapsed ? 'lg:w-0 lg:ml-0 lg:opacity-0' : 'w-auto opacity-100'"
           >
             <h1 class="text-lg font-bold text-gray-900 dark:text-white">DeSaka</h1>
-            <p class="text-xs text-gray-500 dark:text-gray-400 -mt-0.5">Environmental Monitor</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 -mt-0.5">
+              Sidebar / Environmental Monitor
+            </p>
           </div>
         </div>
 

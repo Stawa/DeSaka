@@ -335,7 +335,7 @@ const healthStatus = computed(() => {
                     <div
                       class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 flex items-center justify-center"
                     >
-                      <span class="text-lg">🌡️</span>
+                      <span class="mdi mdi-sun-thermometer text-lg"></span>
                     </div>
                     <div>
                       <div class="font-semibold text-gray-900 dark:text-white">Temperature</div>

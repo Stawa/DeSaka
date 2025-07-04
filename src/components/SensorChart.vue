@@ -30,35 +30,85 @@ ChartJS.register(
 const props = defineProps<{
   title: string
   data: Array<{ time: string; value: number }>
-  secondaryData?: Array<{ time: string; value: number }>
   valueLabel: string
-  secondaryLabel?: string
   chartColor?: string
-  secondaryColor?: string
   valueUnit?: string
+  icon?: string
 }>()
 
 const chartType = ref<'line' | 'bar'>('line')
 const chartRef = ref<InstanceType<typeof Line | typeof Bar> | null>(null)
-const chartHeight = ref(280)
 const isLoading = ref(false)
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+const devicePixelRatio = ref(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)
 
-const createGradient = (color: string): CanvasGradient | string => {
+const isMobile = computed(() => windowWidth.value < 640)
+const isTablet = computed(() => windowWidth.value >= 640 && windowWidth.value < 1024)
+const isHighDPI = computed(() => devicePixelRatio.value > 1)
+
+const getFontSizes = () => {
+  const baseSize = isMobile.value ? 11 : isTablet.value ? 12 : 13
+  const scaleFactor = isHighDPI.value ? 1.1 : 1
+
+  return {
+    tick: Math.round(baseSize * 0.85 * scaleFactor),
+    tooltip: {
+      title: Math.round(baseSize * 0.95 * scaleFactor),
+      body: Math.round(baseSize * 0.85 * scaleFactor),
+    },
+    cardTitle: isMobile.value ? 16 : 18,
+    cardSubtitle: isMobile.value ? 13 : 14,
+    statLabel: 11,
+    statValue: isMobile.value ? 13 : 14,
+  }
+}
+
+const getThemeColor = (color: string) => {
+  const colors = {
+    '#10B981': {
+      primary: '#10B981',
+      light: '#34D399',
+      bg: 'rgba(16, 185, 129, 0.1)',
+      gradient: ['rgba(16, 185, 129, 0.2)', 'rgba(16, 185, 129, 0.05)', 'rgba(16, 185, 129, 0.01)'],
+    },
+    '#0D9488': {
+      primary: '#0D9488',
+      light: '#14B8A6',
+      bg: 'rgba(13, 148, 136, 0.1)',
+      gradient: ['rgba(13, 148, 136, 0.2)', 'rgba(13, 148, 136, 0.05)', 'rgba(13, 148, 136, 0.01)'],
+    },
+    '#7C3AED': {
+      primary: '#7C3AED',
+      light: '#8B5CF6',
+      bg: 'rgba(124, 58, 237, 0.1)',
+      gradient: ['rgba(124, 58, 237, 0.2)', 'rgba(124, 58, 237, 0.05)', 'rgba(124, 58, 237, 0.01)'],
+    },
+    '#F59E0B': {
+      primary: '#F59E0B',
+      light: '#FBBF24',
+      bg: 'rgba(245, 158, 11, 0.1)',
+      gradient: ['rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.05)', 'rgba(245, 158, 11, 0.01)'],
+    },
+  }
+  return colors[color as keyof typeof colors] || colors['#10B981']
+}
+
+const createGradient = (theme: any): CanvasGradient | string => {
   const canvas = chartRef.value?.$el?.querySelector('canvas')
-  if (!canvas) return color + '10'
+  if (!canvas) return theme.bg
+
   const ctx = canvas.getContext('2d')
-  if (!ctx) return color + '10'
+  if (!ctx) return theme.bg
 
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-  gradient.addColorStop(0, color + '15')
-  gradient.addColorStop(0.8, color + '08')
-  gradient.addColorStop(1, color + '02')
+  gradient.addColorStop(0, theme.gradient[0])
+  gradient.addColorStop(0.6, theme.gradient[1])
+  gradient.addColorStop(1, theme.gradient[2])
   return gradient
 }
 
 const chartData = computed(() => {
-  const primaryColor = props.chartColor || '#6366f1'
-  const secondaryColor = props.secondaryColor || '#f59e0b'
+  const theme = getThemeColor(props.chartColor || '#10B981')
   const currentType = chartType.value
 
   const datasets: ChartDataset<'line' | 'bar', number[]>[] = [
@@ -66,44 +116,22 @@ const chartData = computed(() => {
       type: currentType,
       label: props.valueLabel,
       data: props.data.map((item) => item.value),
-      borderColor: primaryColor,
-      backgroundColor: currentType === 'bar' ? primaryColor + '12' : createGradient(primaryColor),
+      borderColor: theme.primary,
+      backgroundColor: currentType === 'bar' ? theme.bg : createGradient(theme),
       borderWidth: currentType === 'line' ? 2.5 : 0,
       tension: 0.3,
       fill: currentType === 'line',
-      pointRadius: currentType === 'line' ? 0 : 0,
-      pointHoverRadius: currentType === 'line' ? 5 : 0,
-      pointBackgroundColor: primaryColor,
+      pointRadius: currentType === 'line' ? (isMobile.value || isTablet.value ? 3 : 0) : 0,
+      pointHoverRadius: currentType === 'line' ? 6 : 0,
+      pointBackgroundColor: theme.primary,
       pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
-      pointHitRadius: 15,
+      pointHitRadius: 20,
       cubicInterpolationMode: 'monotone',
       borderCapStyle: 'round',
       borderJoinStyle: 'round',
     },
   ]
-
-  if (props.secondaryData && props.secondaryLabel) {
-    datasets.push({
-      type: currentType,
-      label: props.secondaryLabel,
-      data: props.secondaryData.map((item) => item.value),
-      borderColor: secondaryColor,
-      backgroundColor: currentType === 'bar' ? secondaryColor + '12' : 'transparent',
-      borderWidth: currentType === 'line' ? 2.5 : 0,
-      borderDash: currentType === 'line' ? [6, 4] : undefined,
-      tension: 0.3,
-      fill: false,
-      pointRadius: currentType === 'line' ? 0 : 0,
-      pointHoverRadius: currentType === 'line' ? 5 : 0,
-      pointBackgroundColor: secondaryColor,
-      pointBorderColor: '#ffffff',
-      pointBorderWidth: 2,
-      pointHitRadius: 15,
-      borderCapStyle: 'round',
-      borderJoinStyle: 'round',
-    })
-  }
 
   return {
     labels: props.data.map((item) => item.time),
@@ -112,16 +140,17 @@ const chartData = computed(() => {
 })
 
 const chartOptions = computed(() => {
-  const isDarkMode = document.documentElement.classList.contains('dark')
-  const gridColor = isDarkMode ? 'rgba(71, 85, 105, 0.15)' : 'rgba(148, 163, 184, 0.15)'
-  const tickColor = isDarkMode ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)'
-  const tooltipBgColor = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)'
-  const tooltipTitleColor = isDarkMode ? '#f1f5f9' : '#1e293b'
-  const tooltipBodyColor = isDarkMode ? '#cbd5e1' : '#475569'
+  const isDarkMode =
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  const gridColor = isDarkMode ? 'rgba(71, 85, 105, 0.1)' : 'rgba(148, 163, 184, 0.1)'
+  const tickColor = isDarkMode ? 'rgba(148, 163, 184, 0.9)' : 'rgba(100, 116, 139, 0.9)'
+  const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)'
+  const fontSizes = getFontSizes()
 
   return {
     responsive: true,
     maintainAspectRatio: false,
+    devicePixelRatio: Math.max(devicePixelRatio.value, 2),
     animation: {
       duration: 600,
       easing: 'easeOutQuart' as const,
@@ -131,40 +160,34 @@ const chartOptions = computed(() => {
         display: false,
       },
       tooltip: {
-        backgroundColor: tooltipBgColor,
-        titleColor: tooltipTitleColor,
-        bodyColor: tooltipBodyColor,
-        borderWidth: 0,
-        padding: 16,
-        cornerRadius: 12,
+        enabled: true,
+        backgroundColor: tooltipBg,
+        titleColor: isDarkMode ? '#f8fafc' : '#0f172a',
+        bodyColor: isDarkMode ? '#e2e8f0' : '#334155',
+        borderWidth: 1,
+        borderColor: isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(148, 163, 184, 0.3)',
+        padding: 12,
+        cornerRadius: 8,
         titleFont: {
-          size: 13,
+          size: fontSizes.tooltip.title,
           weight: '600' as const,
-          family: 'system-ui, -apple-system, sans-serif',
+          family:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
         bodyFont: {
-          size: 12,
+          size: fontSizes.tooltip.body,
           weight: '500' as const,
-          family: 'system-ui, -apple-system, sans-serif',
+          family:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
         displayColors: false,
-        caretPadding: 8,
+        caretPadding: 6,
+        usePointStyle: false,
         callbacks: {
-          title: (tooltipItems: Array<{ label: string }>) => {
-            return tooltipItems[0].label
-          },
+          title: (tooltipItems: Array<{ label: string }>) => tooltipItems[0].label,
           label: (context: { parsed: { y: number }; dataset: { label?: string } }) => {
-            let label = context.dataset.label || ''
-            if (label) {
-              label += ': '
-            }
-            if (context.parsed.y !== null) {
-              label += context.parsed.y.toLocaleString()
-              if (props.valueUnit) {
-                label += ` ${props.valueUnit}`
-              }
-            }
-            return label
+            const value = context.parsed.y?.toFixed(1) || '0'
+            return `${value}${props.valueUnit ? ` ${props.valueUnit}` : ''}`
           },
         },
       },
@@ -180,14 +203,17 @@ const chartOptions = computed(() => {
         ticks: {
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 6,
+          maxTicksLimit: isMobile.value || isTablet.value ? 4 : 6,
           color: tickColor,
           font: {
-            size: 11,
+            size: fontSizes.tick,
             weight: '500' as const,
-            family: 'system-ui, -apple-system, sans-serif',
+            family:
+              '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            lineHeight: 1.2,
           },
           padding: 8,
+          align: 'center' as const,
         },
       },
       y: {
@@ -202,14 +228,19 @@ const chartOptions = computed(() => {
         },
         ticks: {
           font: {
-            size: 11,
+            size: fontSizes.tick,
             weight: '500' as const,
-            family: 'system-ui, -apple-system, sans-serif',
+            family:
+              '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            lineHeight: 1.2,
           },
           color: tickColor,
-          padding: 12,
+          padding: 8,
+          maxTicksLimit: isMobile.value || isTablet.value ? 4 : 5,
+          align: 'end' as const,
           callback: (value: number) => {
-            return value.toLocaleString() + (props.valueUnit ? ` ${props.valueUnit}` : '')
+            const formatted = value.toFixed(value % 1 === 0 ? 0 : 1)
+            return `${formatted}${props.valueUnit ? ` ${props.valueUnit}` : ''}`
           },
         },
       },
@@ -220,7 +251,15 @@ const chartOptions = computed(() => {
     },
     elements: {
       point: {
-        hoverBorderWidth: 3,
+        hoverBorderWidth: 2,
+      },
+    },
+    layout: {
+      padding: {
+        top: 12,
+        right: 12,
+        bottom: 12,
+        left: 12,
       },
     },
   }
@@ -228,85 +267,35 @@ const chartOptions = computed(() => {
 
 const toggleChartType = () => {
   chartType.value = chartType.value === 'line' ? 'bar' : 'line'
+}
+
+const getStats = () => {
+  const values = props.data.map((item) => item.value)
+  if (!values.length) return { min: 0, max: 0, avg: 0, current: 0 }
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const avg = values.reduce((sum, val) => sum + val, 0) / values.length
+  const current = values[values.length - 1]
+
+  return {
+    min: Number(min.toFixed(1)),
+    max: Number(max.toFixed(1)),
+    avg: Number(avg.toFixed(1)),
+    current: Number(current.toFixed(1)),
+  }
+}
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+  devicePixelRatio.value = window.devicePixelRatio || 1
+
+  // Force chart re-render for optimal text clarity
   nextTick(() => {
-    if (chartRef.value) {
-      const chart = chartRef.value.chart
-      if (chart) {
-        ;(chart as unknown as { update: () => void }).update()
-      }
+    if (chartRef.value?.chart) {
+      chartRef.value.chart.resize()
     }
   })
-}
-
-const getUnitFromLabel = () => {
-  if (props.valueLabel.includes('(')) {
-    return props.valueLabel.match(/\(([^)]+)\)/)?.at(1) || ''
-  }
-  return props.valueUnit || ''
-}
-
-const getAverageValue = () => {
-  const data = chartData.value.datasets[0].data as number[]
-  if (!data.length) return '0'
-  const sum = data.reduce((acc, val) => acc + val, 0)
-  return Math.round(sum / data.length).toLocaleString()
-}
-
-const getMaxValue = () => {
-  const data = chartData.value.datasets[0].data as number[]
-  return data.length ? Math.max(...data).toLocaleString() : '0'
-}
-
-const getMinValue = () => {
-  const data = chartData.value.datasets[0].data as number[]
-  return data.length ? Math.min(...data).toLocaleString() : '0'
-}
-
-const getTimeRangeText = () => {
-  if (!props.data || !props.data.length) return 'No data'
-
-  try {
-    const firstTimeStr = props.data[0]?.time
-    const lastTimeStr = props.data[props.data.length - 1]?.time
-
-    if (!firstTimeStr || !lastTimeStr) {
-      return new Date().toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    }
-
-    const first = new Date(firstTimeStr)
-    const last = new Date(lastTimeStr)
-
-    if (isNaN(first.getTime()) || isNaN(last.getTime())) {
-      return new Date().toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    }
-
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }
-
-    if (first.toDateString() === last.toDateString()) {
-      return first.toLocaleDateString(undefined, options)
-    }
-
-    return `${first.toLocaleDateString(undefined, options)} - ${last.toLocaleDateString(undefined, options)}`
-  } catch (error) {
-    console.error('Error formatting date range', error)
-    return new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  }
-}
-
-const zoomToData = () => {
-  if (!chartData.value.datasets[0].data.length) return
-  isLoading.value = true
-  setTimeout(() => {
-    isLoading.value = false
-  }, 400)
 }
 
 watch(
@@ -316,133 +305,157 @@ watch(
       isLoading.value = true
       setTimeout(() => {
         isLoading.value = false
-      }, 400)
+      }, 300)
     }
   },
   { deep: true },
 )
 
 onMounted(() => {
-  const handleResize = () => {
-    chartHeight.value = window.innerWidth < 768 ? 240 : 280
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleResize)
+    handleResize()
   }
-  window.addEventListener('resize', handleResize)
-  handleResize()
 
   if (props.data.length) {
     isLoading.value = true
     setTimeout(() => {
       isLoading.value = false
-    }, 400)
+    }, 300)
   }
 
-  return () => window.removeEventListener('resize', handleResize)
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', handleResize)
+    }
+  }
 })
 </script>
 
 <template>
-  <div class="w-full space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ title }}</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getTimeRangeText() }}</p>
-      </div>
+  <!-- Card with optimized text rendering -->
+  <div
+    class="bg-white/80 dark:bg-gray-900/80 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group text-rendering-optimized"
+  >
+    <!-- Header with crisp text -->
+    <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <!-- Icon container -->
+          <div
+            class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+            :style="{ backgroundColor: chartColor || '#10B981' }"
+          >
+            <span class="mdi text-white text-2xl font-medium antialiased" :class="icon"></span>
+          </div>
 
-      <div class="flex items-center gap-2">
+          <div class="min-w-0 flex-1">
+            <!-- Optimized title text -->
+            <h3
+              class="font-semibold text-gray-900 dark:text-gray-100 antialiased leading-tight tracking-tight"
+              :class="isMobile ? 'text-base' : 'text-lg'"
+            >
+              {{ title }}
+            </h3>
+            <!-- Optimized subtitle text -->
+            <p
+              class="text-gray-500 dark:text-gray-400 mt-0.5 antialiased leading-tight font-medium"
+              :class="isMobile ? 'text-sm' : 'text-sm'"
+            >
+              Current:
+              <span class="font-semibold tabular-nums">{{ getStats().current }}</span>
+              <span class="font-normal">{{ valueUnit }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Toggle button with optimized icon -->
         <button
-          class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
           @click="toggleChartType"
+          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+          :disabled="isLoading"
+          :aria-label="`Switch to ${chartType === 'line' ? 'bar' : 'line'} chart`"
         >
           <svg
             v-if="chartType === 'line'"
-            class="w-3.5 h-3.5"
+            class="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            stroke-width="2"
           >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            v-else
+            class="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
               d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
             />
           </svg>
-          {{ chartType === 'line' ? 'Bar' : 'Line' }}
-        </button>
-
-        <button
-          class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-          @click="zoomToData"
-        >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          Fit
         </button>
       </div>
     </div>
 
-    <!-- Chart -->
-    <div
-      class="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-      :style="{ height: `${chartHeight}px` }"
-    >
-      <!-- Loading overlay -->
+    <!-- Chart Container with enhanced rendering -->
+    <div class="relative h-56 p-6">
+      <!-- Loading overlay with crisp text -->
       <div
         v-if="isLoading"
-        class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10 backdrop-blur-sm"
+        class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg"
       >
-        <div class="flex flex-col items-center space-y-3">
+        <div class="flex items-center gap-2">
           <div
-            class="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-indigo-500 rounded-full animate-spin"
+            class="w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-emerald-500 rounded-full animate-spin"
           ></div>
-          <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Loading...</span>
+          <span class="text-sm text-gray-600 dark:text-gray-400 font-medium antialiased"
+            >Loading...</span
+          >
         </div>
       </div>
 
-      <!-- Empty state -->
+      <!-- Empty state with crisp text -->
       <div
         v-else-if="!chartData.datasets[0].data.length"
         class="absolute inset-0 flex items-center justify-center"
       >
-        <div class="text-center space-y-3">
+        <div class="text-center">
           <div
-            class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto"
+            class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3"
           >
             <svg
               class="w-6 h-6 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              stroke-width="2"
             >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                stroke-width="2"
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
           </div>
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No data available</p>
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 antialiased">
+            No data available
+          </p>
         </div>
       </div>
 
-      <!-- Chart component -->
-      <div v-else class="h-full p-6">
+      <!-- Chart component with enhanced canvas rendering -->
+      <div v-else class="h-full chart-container">
         <component
           :is="chartType === 'line' ? Line : Bar"
           :data="chartData as any"
@@ -452,112 +465,151 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-3 gap-4">
-      <div
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Peak
-            </p>
-            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
-              {{ getMaxValue() }}
-              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
-                getUnitFromLabel()
-              }}</span>
-            </p>
-          </div>
-          <div
-            class="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center"
-          >
-            <svg
-              class="w-4 h-4 text-emerald-600 dark:text-emerald-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+    <!-- Stats Footer with optimized text rendering -->
+    <div
+      class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800"
+    >
+      <div class="grid grid-cols-3 gap-4">
+        <div class="text-center">
+          <div class="flex items-center justify-center gap-1 mb-1">
+            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+            <p
+              class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide antialiased"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M7 11l5-5m0 0l5 5m-5-5v12"
-              />
-            </svg>
+              Min
+            </p>
           </div>
+          <p
+            class="font-semibold text-gray-900 dark:text-gray-100 antialiased tabular-nums"
+            :class="isMobile ? 'text-sm' : 'text-sm'"
+          >
+            {{ getStats().min }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-normal">{{
+              valueUnit
+            }}</span>
+          </p>
         </div>
-      </div>
 
-      <div
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Average
-            </p>
-            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
-              {{ getAverageValue() }}
-              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
-                getUnitFromLabel()
-              }}</span>
-            </p>
-          </div>
-          <div
-            class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
-          >
-            <svg
-              class="w-4 h-4 text-blue-600 dark:text-blue-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div class="text-center">
+          <div class="flex items-center justify-center gap-1 mb-1">
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <p
+              class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide antialiased"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
+              Avg
+            </p>
           </div>
+          <p
+            class="font-semibold text-gray-900 dark:text-gray-100 antialiased tabular-nums"
+            :class="isMobile ? 'text-sm' : 'text-sm'"
+          >
+            {{ getStats().avg }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-normal">{{
+              valueUnit
+            }}</span>
+          </p>
         </div>
-      </div>
 
-      <div
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Low
-            </p>
-            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mt-1">
-              {{ getMinValue() }}
-              <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{
-                getUnitFromLabel()
-              }}</span>
-            </p>
-          </div>
-          <div
-            class="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center"
-          >
-            <svg
-              class="w-4 h-4 text-red-600 dark:text-red-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div class="text-center">
+          <div class="flex items-center justify-center gap-1 mb-1">
+            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+            <p
+              class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide antialiased"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 13l-5 5m0 0l-5-5m5 5V6"
-              />
-            </svg>
+              Max
+            </p>
           </div>
+          <p
+            class="font-semibold text-gray-900 dark:text-gray-100 antialiased tabular-nums"
+            :class="isMobile ? 'text-sm' : 'text-sm'"
+          >
+            {{ getStats().max }}
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-normal">{{
+              valueUnit
+            }}</span>
+          </p>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Critical: Text rendering optimization */
+.text-rendering-optimized {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1,
+    'calt' 1;
+}
+
+/* Enhanced chart container for crisp rendering */
+.chart-container {
+  /* Force hardware acceleration for smoother rendering */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.chart-container canvas {
+  /* Critical: Ensure crisp pixel rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+
+  /* Prevent canvas scaling blur */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Tabular numbers for consistent digit spacing */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Enhanced antialiasing for all text elements */
+h3,
+p,
+span,
+button {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth transitions matching app's design */
+* {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus states matching app's design */
+button:focus {
+  outline: 2px solid theme('colors.emerald.500');
+  outline-offset: 2px;
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .text-rendering-optimized {
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .text-rendering-optimized {
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
+}
+</style>
