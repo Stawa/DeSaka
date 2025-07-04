@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 import AppSidebar from './components/AppSidebar.vue'
+import AppFooter from './components/AppFooter.vue'
 import Toast from './components/ToastNotification.vue'
 import { ref, watch, onMounted, onErrorCaptured } from 'vue'
 import { usePreferredDark } from '@vueuse/core'
@@ -82,14 +83,17 @@ watch(prefersDark, (newValue) => {
         @toggle-collapse="toggleSidebarCollapse"
       />
 
-      <main
-        class="flex-1 overflow-y-auto text-black dark:text-white transition-all duration-300"
-        :class="{ 'md:ml-0': isSidebarCollapsed }"
-      >
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" />
-        </RouterView>
-      </main>
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <main
+          class="flex-1 overflow-y-auto text-black dark:text-white transition-all duration-300"
+          :class="{ 'md:ml-0': isSidebarCollapsed }"
+        >
+          <RouterView v-slot="{ Component }">
+            <component :is="Component" />
+            <AppFooter />
+          </RouterView>
+        </main>
+      </div>
     </div>
 
     <!-- Toast component for notifications -->
