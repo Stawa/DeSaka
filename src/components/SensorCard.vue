@@ -2,164 +2,155 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  title: {
-    type: String,
-    required: true,
-  },
-  value: {
-    type: [String, Number],
-    required: true,
-  },
-  unit: {
-    type: String,
-    default: '',
-  },
-  status: {
-    type: String,
-    default: 'optimal',
-    validator: (value: string) => ['optimal', 'warning', 'critical', 'inactive'].includes(value),
-  },
-  icon: {
-    type: String,
-    default: 'thermometer',
-  },
-  trend: {
-    type: String,
-    default: 'stable',
-  },
-})
-
-const iconClass = computed(() => {
-  return `mdi mdi-${props.icon}`
+  title: { type: String, required: true },
+  value: { type: [Number, String], required: true },
+  unit: { type: String, required: true },
+  status: { type: String, default: 'normal' },
+  icon: { type: String, required: true },
+  trend: { type: String, default: 'stable' },
 })
 
 const statusConfig = computed(() => {
   const configs = {
     optimal: {
-      accent: 'bg-emerald-500',
-      iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+      dot: 'bg-emerald-500',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
-      badge: 'badge badge-success',
-      glow: 'shadow-emerald-500/20',
-      border: 'border-emerald-200/50 dark:border-emerald-800/50',
+      ring: 'ring-emerald-200/50 dark:ring-emerald-700/30',
+    },
+    normal: {
+      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+      dot: 'bg-emerald-500',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      ring: 'ring-emerald-200/50 dark:ring-emerald-700/30',
     },
     warning: {
-      accent: 'bg-amber-500',
-      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+      dot: 'bg-amber-500',
+      iconBg: 'bg-amber-50 dark:bg-amber-900/20',
       iconColor: 'text-amber-600 dark:text-amber-400',
-      badge: 'badge badge-warning',
-      glow: 'shadow-amber-500/20',
-      border: 'border-amber-200/50 dark:border-amber-800/50',
+      ring: 'ring-amber-200/50 dark:ring-amber-700/30',
     },
     critical: {
-      accent: 'bg-red-500',
-      iconBg: 'bg-red-100 dark:bg-red-900/30',
+      badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+      dot: 'bg-red-500',
+      iconBg: 'bg-red-50 dark:bg-red-900/20',
       iconColor: 'text-red-600 dark:text-red-400',
-      badge: 'badge badge-error',
-      glow: 'shadow-red-500/20',
-      border: 'border-red-200/50 dark:border-red-800/50',
+      ring: 'ring-red-200/50 dark:ring-red-700/30',
     },
     inactive: {
-      accent: 'bg-gray-400',
-      iconBg: 'bg-gray-100 dark:bg-gray-800/30',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      dot: 'bg-gray-400',
+      iconBg: 'bg-gray-50 dark:bg-gray-800/30',
       iconColor: 'text-gray-500 dark:text-gray-400',
-      badge: 'badge bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-      glow: 'shadow-gray-500/10',
-      border: 'border-gray-200/50 dark:border-gray-700/50',
+      ring: 'ring-gray-200/50 dark:ring-gray-700/30',
     },
   }
-  return configs[props.status as keyof typeof configs]
+  return configs[props.status as keyof typeof configs] || configs.normal
 })
 
-const trendInfo = computed(() => {
+const trendConfig = computed(() => {
   const configs = {
     increasing: {
       icon: 'mdi-trending-up',
-      text: 'Trending up',
-      color: 'text-emerald-600 dark:text-emerald-400',
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
     },
     decreasing: {
       icon: 'mdi-trending-down',
-      text: 'Trending down',
-      color: 'text-red-600 dark:text-red-400',
+      color: 'text-red-500',
+      bg: 'bg-red-50 dark:bg-red-900/20',
     },
     stable: {
       icon: 'mdi-trending-neutral',
-      text: 'Stable',
-      color: 'text-gray-600 dark:text-gray-400',
+      color: 'text-gray-500',
+      bg: 'bg-gray-50 dark:bg-gray-800/30',
     },
   }
   return configs[props.trend as keyof typeof configs] || configs.stable
+})
+
+const sensorIcon = computed(() => {
+  const iconMap: Record<string, string> = {
+    thermometer: 'mdi-thermometer',
+    'water-percent': 'mdi-water-percent',
+    flask: 'mdi-flask',
+    'weather-partly-cloudy': 'mdi-weather-partly-cloudy',
+    water: 'mdi-water',
+    'white-balance-sunny': 'mdi-white-balance-sunny',
+  }
+  return iconMap[props.icon] || 'mdi-circle'
 })
 </script>
 
 <template>
   <div
-    class="group relative card card-hover overflow-hidden"
-    :class="[statusConfig.glow, statusConfig.border]"
+    class="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-xl hover:shadow-gray-900/5 dark:hover:shadow-gray-950/20 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
   >
-    <!-- Status accent bar -->
-    <div
-      class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
-      :class="statusConfig.accent"
-    ></div>
-
     <div class="p-6">
       <!-- Header -->
-      <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center gap-4">
-          <div
-            class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-            :class="[statusConfig.iconBg, statusConfig.iconColor]"
-          >
-            <span :class="[iconClass, 'text-xl']"></span>
-          </div>
-          <div>
-            <h3 class="font-semibold text-gray-900 dark:text-gray-100 text-base">
-              {{ title }}
-            </h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Current reading
-            </p>
-          </div>
+      <div class="flex items-start gap-4 mb-6">
+        <div
+          :class="[
+            statusConfig.iconBg,
+            statusConfig.ring,
+            'w-12 h-12 rounded-xl flex items-center justify-center ring-1',
+          ]"
+        >
+          <i :class="[sensorIcon, statusConfig.iconColor, 'mdi text-xl']"></i>
         </div>
-
-        <div :class="statusConfig.badge">
-          <div class="w-1.5 h-1.5 rounded-full" :class="statusConfig.accent"></div>
-          {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
+            {{ title }}
+          </h3>
+          <div
+            :class="[
+              statusConfig.badge,
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+            ]"
+          >
+            <div :class="[statusConfig.dot, 'w-1.5 h-1.5 rounded-full']"></div>
+            {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+          </div>
         </div>
       </div>
 
-      <!-- Main Value -->
-      <div class="mb-4">
+      <!-- Value Display -->
+      <div class="space-y-2">
         <div class="flex items-baseline gap-2">
-          <span class="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight transition-all duration-300 group-hover:scale-105">
-            {{ value }}
+          <span class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {{ typeof value === 'number' ? value.toFixed(1) : value }}
           </span>
-          <span v-if="unit" class="text-lg font-medium text-gray-500 dark:text-gray-400">
+          <span class="text-lg font-medium text-gray-500 dark:text-gray-400">
             {{ unit }}
           </span>
         </div>
-      </div>
 
-      <!-- Trend -->
-      <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          <span :class="[`mdi ${trendInfo.icon}`, trendInfo.color, 'text-sm']"></span>
-          <span class="text-xs font-medium" :class="trendInfo.color">
-            {{ trendInfo.text }}
+        <!-- Trend indicator -->
+        <div class="flex items-center gap-2 text-sm">
+          <i :class="[trendConfig.icon, trendConfig.color, 'mdi text-sm']"></i>
+          <span :class="[trendConfig.color, 'font-medium']">
+            {{ trend.charAt(0).toUpperCase() + trend.slice(1) }} trend
           </span>
         </div>
       </div>
     </div>
 
     <!-- Hover effect overlay -->
-    <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"></div>
+    <div
+      class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-50/20 dark:to-gray-800/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+    ></div>
   </div>
 </template>
 
 <style scoped>
-@keyframes cardEnter {
+/* Ensure Material Design Icons are loaded */
+@import url('https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css');
+
+/* Smooth entrance animation */
+@keyframes slideInUp {
   from {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
@@ -170,13 +161,18 @@ const trendInfo = computed(() => {
   }
 }
 
-.card-enter {
-  animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.group {
+  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Stagger animation delay for multiple cards */
-.card-enter:nth-child(1) { animation-delay: 0ms; }
-.card-enter:nth-child(2) { animation-delay: 100ms; }
-.card-enter:nth-child(3) { animation-delay: 200ms; }
-.card-enter:nth-child(4) { animation-delay: 300ms; }
+/* Enhanced hover effects */
+.group:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* Focus states for accessibility */
+.group:focus-within {
+  outline: 2px solid theme('colors.emerald.500');
+  outline-offset: 2px;
+}
 </style>

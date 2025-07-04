@@ -414,15 +414,15 @@ const systemStatus = computed(() => {
 </script>
 
 <template>
-  <!-- 
+  <!--
     Main container with modern design system
     - Uses consistent spacing and layout patterns
     - Implements responsive design with proper breakpoints
     - Maintains visual hierarchy through structured sections
   -->
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      <!-- 
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      <!--
         Header Section
         - Consistent with sidebar/navbar design patterns
         - Responsive layout with proper spacing
@@ -430,7 +430,7 @@ const systemStatus = computed(() => {
       -->
       <HomeHeader :last-update="lastUpdate" />
 
-      <!-- 
+      <!--
         Dashboard Status Overview
         - Central hub for plant health monitoring
         - Uses card-based design consistent with app theme
@@ -443,18 +443,15 @@ const systemStatus = computed(() => {
         :system-status="systemStatus"
       />
 
-      <!-- 
+      <!--
         Plant Analysis Insights
         - AI-powered recommendations and metrics
         - Modern card design with proper visual hierarchy
         - Responsive layout adapting to screen size
       -->
-      <PlantAnalysis 
-        :plant-health-score="plantHealthScore" 
-        :growth-prediction="growthPrediction" 
-      />
+      <PlantAnalysis :plant-health-score="plantHealthScore" :growth-prediction="growthPrediction" />
 
-      <!-- 
+      <!--
         Sensor Readings Display
         - Adaptive component selection based on screen size
         - Table view for desktop (better data density)
@@ -474,7 +471,7 @@ const systemStatus = computed(() => {
         @refresh="updateData"
       />
 
-      <!-- 
+      <!--
         Sensor Trends Analysis
         - Historical data visualization
         - Interactive timeframe selection
@@ -489,7 +486,7 @@ const systemStatus = computed(() => {
       />
     </div>
 
-    <!-- 
+    <!--
       Export Modal
       - Consistent modal design with app theme
       - Accessible keyboard navigation
@@ -515,7 +512,7 @@ const systemStatus = computed(() => {
 </template>
 
 <style scoped>
-/* 
+/*
   Modern styling approach with design system consistency
   - Uses CSS custom properties for theme consistency
   - Implements smooth transitions for better UX
@@ -595,11 +592,21 @@ html {
 }
 
 /* Stagger animation delays for visual appeal */
-.space-y-8 > *:nth-child(1) { animation-delay: 0.1s; }
-.space-y-8 > *:nth-child(2) { animation-delay: 0.2s; }
-.space-y-8 > *:nth-child(3) { animation-delay: 0.3s; }
-.space-y-8 > *:nth-child(4) { animation-delay: 0.4s; }
-.space-y-8 > *:nth-child(5) { animation-delay: 0.5s; }
+.space-y-8 > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.space-y-8 > *:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.space-y-8 > *:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.space-y-8 > *:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.space-y-8 > *:nth-child(5) {
+  animation-delay: 0.5s;
+}
 
 /* Reduced motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
@@ -608,7 +615,7 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  
+
   html {
     scroll-behavior: auto;
   }
@@ -626,7 +633,7 @@ html {
   .no-print {
     display: none !important;
   }
-  
+
   * {
     background: white !important;
     color: black !important;
