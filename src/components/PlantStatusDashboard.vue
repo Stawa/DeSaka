@@ -281,7 +281,7 @@ const currentTime = new Date().toLocaleString('en-US', {
           >
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ sensor.name }}</h3>
+                <h5 class="font-medium text-gray-900 dark:text-gray-100">{{ sensor.name }}</h5>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
                   {{ sensor.type }} • {{ sensor.pin }}
                 </p>

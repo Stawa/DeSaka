@@ -12,8 +12,6 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['refresh'])
-
 const tableData = computed(() => [
   {
     id: 'soilTemperature',
@@ -119,10 +117,6 @@ const getCategoryColor = (category: string) => {
 const handleSensorClick = (sensorId: string) => {
   props.onSensorClick(sensorId)
 }
-
-const handleRefresh = () => {
-  emit('refresh')
-}
 </script>
 
 <template>
@@ -161,27 +155,6 @@ const handleRefresh = () => {
             </p>
           </div>
         </div>
-
-        <!-- Refresh Button -->
-        <button
-          @click="handleRefresh"
-          class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
-        >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M16.023 9.348h4.992M2.985 19.644v-4.992h4.992l-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-            />
-          </svg>
-          Refresh
-        </button>
       </div>
     </div>
 
@@ -215,11 +188,6 @@ const handleRefresh = () => {
             >
               Last Update
             </th>
-            <th
-              class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-            >
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -227,7 +195,7 @@ const handleRefresh = () => {
             v-for="sensor in tableData"
             :key="sensor.id"
             class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors duration-200 cursor-pointer"
-            @click="handleSensorClick(sensor.id)"
+            @click="handleSensorClick(sensor.category.toLowerCase())"
           >
             <!-- Sensor Name -->
             <td class="px-6 py-4 whitespace-nowrap">
@@ -288,30 +256,6 @@ const handleRefresh = () => {
             <!-- Last Update -->
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
               {{ sensor.lastUpdate }}
-            </td>
-
-            <!-- Actions -->
-            <td class="px-6 py-4 whitespace-nowrap">
-              <button
-                @click.stop="handleSensorClick(sensor.id)"
-                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                View
-              </button>
             </td>
           </tr>
         </tbody>

@@ -13,71 +13,77 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['refresh'])
-
 const sensorCards = computed(() => [
   {
     id: 'soilTemperature',
-    title: 'Soil Temperature',
+    name: 'Soil Temperature',
     value: props.sensorData.soilTemperature?.value || 0,
     unit: props.sensorData.soilTemperature?.unit || '°C',
     status: props.sensorData.soilTemperature?.status || 'inactive',
-    icon: 'thermometer',
+    icon: 'mdi-thermometer',
+    category: 'Soil',
+    lastUpdate: '2 min ago',
     trend: 'stable',
   },
   {
     id: 'soilMoisture',
-    title: 'Soil Moisture',
+    name: 'Soil Moisture',
     value: props.sensorData.soilMoisture?.value || 0,
     unit: props.sensorData.soilMoisture?.unit || '%',
     status: props.sensorData.soilMoisture?.status || 'inactive',
-    icon: 'water-percent',
-    trend: 'increasing',
+    icon: 'mdi-water-percent',
+    category: 'Soil',
+    lastUpdate: '1 min ago',
+    trend: 'stable',
   },
   {
     id: 'soilPH',
-    title: 'Soil pH Level',
+    name: 'Soil pH Level',
     value: props.sensorData.soilPH?.value || 0,
     unit: props.sensorData.soilPH?.unit || 'pH',
     status: props.sensorData.soilPH?.status || 'inactive',
-    icon: 'flask',
+    icon: 'mdi-flask',
+    category: 'Soil',
+    lastUpdate: '3 min ago',
     trend: 'stable',
   },
   {
     id: 'airTemperature',
-    title: 'Air Temperature',
+    name: 'Air Temperature',
     value: props.sensorData.airTemperature?.value || 0,
     unit: props.sensorData.airTemperature?.unit || '°C',
     status: props.sensorData.airTemperature?.status || 'inactive',
-    icon: 'weather-partly-cloudy',
-    trend: 'decreasing',
+    icon: 'mdi-weather-partly-cloudy',
+    category: 'Air',
+    lastUpdate: '1 min ago',
+    trend: 'stable',
   },
   {
     id: 'airHumidity',
-    title: 'Air Humidity',
+    name: 'Air Humidity',
     value: props.sensorData.airHumidity?.value || 0,
     unit: props.sensorData.airHumidity?.unit || '%',
     status: props.sensorData.airHumidity?.status || 'inactive',
-    icon: 'water',
+    icon: 'mdi-water',
+    category: 'Air',
+    lastUpdate: '2 min ago',
     trend: 'stable',
   },
   {
     id: 'lightIntensity',
-    title: 'Light Intensity',
+    name: 'Light Intensity',
     value: props.sensorData.lightIntensity?.value || 0,
     unit: props.sensorData.lightIntensity?.unit || 'lux',
     status: props.sensorData.lightIntensity?.status || 'inactive',
-    icon: 'white-balance-sunny',
-    trend: 'increasing',
+    icon: 'mdi-white-balance-sunny',
+    category: 'Environment',
+    lastUpdate: '1 min ago',
+    trend: 'stable',
   },
 ])
 
 const handleSensorClick = (sensorId: string) => {
   props.onSensorClick(sensorId)
-}
-
-const handleRefresh = () => {
-  emit('refresh')
 }
 </script>
 
@@ -117,27 +123,6 @@ const handleRefresh = () => {
             </p>
           </div>
         </div>
-
-        <!-- Refresh Button -->
-        <button
-          @click="handleRefresh"
-          class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
-        >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M16.023 9.348h4.992M2.985 19.644v-4.992h4.992l-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
-            />
-          </svg>
-          Refresh
-        </button>
       </div>
     </div>
 
@@ -147,12 +132,12 @@ const handleRefresh = () => {
         <div
           v-for="(sensor, index) in sensorCards"
           :key="sensor.id"
-          @click="handleSensorClick(sensor.id)"
+          @click="handleSensorClick(sensor.category)"
           class="cursor-pointer card-enter"
           :style="{ animationDelay: `${index * 100}ms` }"
         >
           <SensorCard
-            :title="sensor.title"
+            :title="sensor.name"
             :value="sensor.value"
             :unit="sensor.unit"
             :status="sensor.status"

@@ -1,6 +1,112 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+interface Props {
+  plantHealthScore?: number
+  growthPrediction?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  plantHealthScore: 85,
+  growthPrediction: 'Excellent',
+})
+
+const healthScoreColor = computed(() => {
+  if (props.plantHealthScore >= 80) return 'text-green-600 dark:text-green-400'
+  if (props.plantHealthScore >= 60) return 'text-yellow-600 dark:text-yellow-400'
+  return 'text-red-600 dark:text-red-400'
+})
+
+const healthScoreBg = computed(() => {
+  if (props.plantHealthScore >= 80) return 'from-green-500/10 to-emerald-500/10'
+  if (props.plantHealthScore >= 60) return 'from-yellow-500/10 to-amber-500/10'
+  return 'from-red-500/10 to-rose-500/10'
+})
+
+const recommendations = [
+  {
+    id: 1,
+    type: 'success',
+    title: 'Optimal Watering Schedule',
+    description:
+      'Current soil moisture levels are ideal. Maintain your watering schedule for optimal plant health.',
+    icon: 'M5 13l4 4L19 7',
+    priority: 'low',
+    bgColor: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+    borderColor: 'border-green-200/60 dark:border-green-700/40',
+    iconBg: 'bg-green-100 dark:bg-green-900/40',
+    iconColor: 'text-green-600 dark:text-green-400',
+  },
+  {
+    id: 2,
+    type: 'warning',
+    title: 'Nutrient Enhancement',
+    description:
+      'Consider adding nitrogen-rich fertilizer within the next 3-5 days to boost growth.',
+    icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z',
+    priority: 'medium',
+    bgColor: 'from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20',
+    borderColor: 'border-amber-200/60 dark:border-amber-700/40',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/40',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+  },
+  {
+    id: 3,
+    type: 'info',
+    title: 'Temperature Monitoring',
+    description: 'Monitor air temperature during midday as it approaches the upper threshold.',
+    icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    priority: 'high',
+    bgColor: 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20',
+    borderColor: 'border-blue-200/60 dark:border-blue-700/40',
+    iconBg: 'bg-blue-100 dark:bg-blue-900/40',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+  },
+]
+
+const growthMetrics = [
+  {
+    id: 1,
+    label: 'Growth Rate',
+    value: '+2.3',
+    unit: 'cm/week',
+    trend: 'up',
+    color: 'emerald',
+    icon: 'M7 11l5-5m0 0l5 5m-5-5v12',
+  },
+  {
+    id: 2,
+    label: 'Leaf Count',
+    value: '12',
+    unit: 'leaves',
+    trend: 'stable',
+    color: 'green',
+    icon: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+  },
+  {
+    id: 3,
+    label: 'Est. Yield',
+    value: 'High',
+    unit: 'quality',
+    trend: 'up',
+    color: 'amber',
+    icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1',
+  },
+  {
+    id: 4,
+    label: 'Harvest',
+    value: '~18',
+    unit: 'days',
+    trend: 'down',
+    color: 'blue',
+    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+]
+</script>
+
 <template>
   <div
-    class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+    class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden"
   >
     <!-- Subtle accent bar -->
     <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
@@ -316,3 +422,57 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+.shadow-soft {
+  box-shadow:
+    0 2px 15px -3px rgba(0, 0, 0, 0.07),
+    0 10px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-medium {
+  box-shadow:
+    0 4px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced hover effects */
+.group:hover {
+  transform: translateY(-2px);
+}
+
+/* Animation for metric cards */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.grid > div {
+  animation: slideInUp 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.grid > div:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.grid > div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.grid > div:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.grid > div:nth-child(4) {
+  animation-delay: 0.4s;
+}
+</style>

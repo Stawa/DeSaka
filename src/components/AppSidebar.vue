@@ -64,16 +64,19 @@ const navItems = [
       >
         <div class="flex items-center" :class="isCollapsed ? 'lg:justify-center lg:w-full' : ''">
           <div class="relative">
-            <div
-              class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25"
-            >
-              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
-              </svg>
+            <div class="relative w-10 h-10">
+              <!-- Glowing blur background - put this first and behind -->
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl blur opacity-30 animate-float z-0"
+              ></div>
+
+              <!-- Foreground icon container -->
+              <div
+                class="relative z-10 w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25"
+              >
+                <span class="mdi mdi-leaf text-white text-xl"></span>
+              </div>
             </div>
-            <div
-              class="absolute -inset-1 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl blur opacity-20 animate-float"
-            ></div>
           </div>
 
           <div
@@ -170,7 +173,12 @@ const navItems = [
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           <span
             class="ml-2 transition-all duration-300 overflow-hidden"
@@ -217,21 +225,18 @@ const navItems = [
             :class="isCollapsed ? 'lg:w-0 lg:opacity-0' : 'opacity-100'"
           >
             <div class="flex items-center gap-2">
-              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              <div class="flex items-center" :class="isCollapsed ? 'lg:justify-center' : ''">
+                <div
+                  class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
+                  :class="isCollapsed ? 'lg:w-6 lg:h-6' : ''"
+                >
+                  <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                </div>
+              </div>
               <div>
                 <p class="text-xs font-medium text-gray-800 dark:text-gray-200">System Online</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">v2.1.0</p>
               </div>
-            </div>
-          </div>
-
-          <!-- Collapsed state indicator -->
-          <div class="flex items-center" :class="isCollapsed ? 'lg:justify-center' : ''">
-            <div
-              class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"
-              :class="isCollapsed ? 'lg:w-6 lg:h-6' : ''"
-            >
-              <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
             </div>
           </div>
         </div>

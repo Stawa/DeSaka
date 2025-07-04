@@ -18,13 +18,11 @@ import {
   formatCurrentTime,
 } from '@/scripts'
 
-// Reactive window width for responsive behavior
 const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
 const showExportModal = ref(false)
 
-// Window resize handler for responsive design
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
 }
@@ -38,7 +36,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth)
 })
 
-// Type definitions for better TypeScript support
 type SensorDataItem = { value: number; unit: string; status: string }
 type SensorDataType = {
   [key: string]: SensorDataItem
@@ -60,7 +57,6 @@ type HistoricalDataType = {
   airHumidity: HistoricalDataItem
 }
 
-// Reactive sensor data with proper typing
 const sensorData = ref<SensorDataType>({
   soilTemperature: { value: 24.5, unit: '°C', status: 'normal' },
   soilMoisture: { value: 65, unit: '%', status: 'normal' },
@@ -70,7 +66,6 @@ const sensorData = ref<SensorDataType>({
   lightIntensity: { value: 850, unit: 'lux', status: 'normal' },
 })
 
-// Historical data for trend analysis
 const historicalData = ref<HistoricalDataType>({
   soilTemperature: [],
   soilMoisture: [],
@@ -386,7 +381,6 @@ const plantHealthScore = computed(() => {
     90,
   )
 
-  // Weighted calculation for overall health score
   const totalScore =
     soilTempScore * 0.2 +
     soilMoistureScore * 0.3 +
@@ -428,7 +422,7 @@ const systemStatus = computed(() => {
         - Responsive layout with proper spacing
         - Includes system status and last update information
       -->
-      <HomeHeader :last-update="lastUpdate" />
+      <HomeHeader :last-update="'Just now'" />
 
       <!--
         Dashboard Status Overview
@@ -462,14 +456,8 @@ const systemStatus = computed(() => {
         v-if="windowWidth >= 1024"
         :sensor-data="sensorData"
         :on-sensor-click="openSensorDetails"
-        @refresh="updateData"
       />
-      <SensorReadingsGrid
-        v-else
-        :sensor-data="sensorData"
-        :on-sensor-click="openSensorDetails"
-        @refresh="updateData"
-      />
+      <SensorReadingsGrid v-else :sensor-data="sensorData" :on-sensor-click="openSensorDetails" />
 
       <!--
         Sensor Trends Analysis
