@@ -18,11 +18,13 @@ import {
   formatCurrentTime,
 } from '@/scripts'
 
+// Reactive window width for responsive behavior
 const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
 const showExportModal = ref(false)
 
+// Window resize handler for responsive design
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
 }
@@ -36,6 +38,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth)
 })
 
+// Type definitions for better TypeScript support
 type SensorDataItem = { value: number; unit: string; status: string }
 type SensorDataType = {
   [key: string]: SensorDataItem
@@ -57,6 +60,7 @@ type HistoricalDataType = {
   airHumidity: HistoricalDataItem
 }
 
+// Reactive sensor data with proper typing
 const sensorData = ref<SensorDataType>({
   soilTemperature: { value: 24.5, unit: '°C', status: 'normal' },
   soilMoisture: { value: 65, unit: '%', status: 'normal' },
@@ -66,6 +70,7 @@ const sensorData = ref<SensorDataType>({
   lightIntensity: { value: 850, unit: 'lux', status: 'normal' },
 })
 
+// Historical data for trend analysis
 const historicalData = ref<HistoricalDataType>({
   soilTemperature: [],
   soilMoisture: [],
@@ -76,11 +81,16 @@ const historicalData = ref<HistoricalDataType>({
 
 const { fetchSensorData, refreshData: apiRefreshData, fetchFileById } = useApi()
 
+/**
+ * Updates historical data based on selected timeframe
+ * Implements data fetching with fallback mechanisms
+ */
 async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
   isRefreshing.value = true
 
   try {
+    // Primary data source: File API
     try {
       const soilFileId = '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG'
       const airFileId = '1F38HpxfKYZRj2tk0JZanTajVIEK2izkO'
@@ -88,6 +98,7 @@ async function updateHistoricalData(timeframe: string) {
       const soilResponse = await fetchFileById(soilFileId)
       const airResponse = await fetchFileById(airFileId)
 
+      // Process soil data
       if (soilResponse && soilResponse.temperature && soilResponse.temperature.history) {
         historicalData.value.soilTemperature = soilResponse.temperature.history.map(
           (item: any) => ({
@@ -104,6 +115,7 @@ async function updateHistoricalData(timeframe: string) {
         }))
       }
 
+      // Process air data
       if (airResponse && airResponse.temperature && airResponse.temperature.history) {
         historicalData.value.airTemperature = airResponse.temperature.history.map((item: any) => ({
           time: new Date(item.time).toLocaleString(),
@@ -127,6 +139,7 @@ async function updateHistoricalData(timeframe: string) {
       )
     }
 
+    // Fallback: Sensors API
     const endDate = new Date().toISOString().split('T')[0]
     let startDate = new Date()
 
@@ -152,6 +165,7 @@ async function updateHistoricalData(timeframe: string) {
       sensors: ['air_temperature', 'air_humidity'],
     }
 
+    // Process fallback data
     const soilResponse = await apiRefreshData(
       (data) => {
         if (data && data.soil_temperature && data.soil_temperature.history) {
@@ -207,12 +221,19 @@ async function updateHistoricalData(timeframe: string) {
   }
 }
 
+// Last update timestamp for user feedback
 const lastUpdate: Ref<string> = ref(formatCurrentTime({ second: '2-digit' }))
 
+/**
+ * Opens detailed sensor view (placeholder for future implementation)
+ */
 function openSensorDetails(sensorId: string) {
   console.log(`Opening details for sensor: ${sensorId}`)
 }
 
+/**
+ * Main data refresh function
+ */
 async function updateData() {
   isRefreshing.value = true
   try {
@@ -225,14 +246,22 @@ async function updateData() {
   }
 }
 
+/**
+ * Export handler for data export functionality
+ */
 function handleExport(exportOptions: any) {
   handleDataExport(exportOptions)
 }
 
+/**
+ * Updates current sensor values from API responses
+ * Handles both file API and sensors API formats
+ */
 function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
   const isFileApiFormat =
     soilResponse?.temperature !== undefined || airResponse?.temperature !== undefined
 
+  // Update soil temperature
   if (isFileApiFormat && soilResponse?.temperature?.history?.length > 0) {
     const latestReading =
       soilResponse.temperature.history[soilResponse.temperature.history.length - 1]
@@ -245,6 +274,7 @@ function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
     sensorData.value.soilTemperature.unit = soilResponse.soil_temperature.unit || '°C'
   }
 
+  // Update soil moisture
   if (isFileApiFormat && soilResponse?.moisture?.history?.length > 0) {
     const latestReading = soilResponse.moisture.history[soilResponse.moisture.history.length - 1]
     sensorData.value.soilMoisture.value = latestReading.value
@@ -256,12 +286,14 @@ function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
     sensorData.value.soilMoisture.unit = soilResponse.soil_moisture.unit || '%'
   }
 
+  // Update soil pH
   if (soilResponse?.soil_ph?.history?.length > 0) {
     const latestReading = soilResponse.soil_ph.history[soilResponse.soil_ph.history.length - 1]
     sensorData.value.soilPH.value = latestReading.value
     sensorData.value.soilPH.unit = soilResponse.soil_ph.unit || 'pH'
   }
 
+  // Update air temperature
   if (isFileApiFormat && airResponse?.temperature?.history?.length > 0) {
     const latestReading =
       airResponse.temperature.history[airResponse.temperature.history.length - 1]
@@ -274,6 +306,7 @@ function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
     sensorData.value.airTemperature.unit = airResponse.air_temperature.unit || '°C'
   }
 
+  // Update air humidity
   if (isFileApiFormat && airResponse?.humidity?.history?.length > 0) {
     const latestReading = airResponse.humidity.history[airResponse.humidity.history.length - 1]
     sensorData.value.airHumidity.value = latestReading.value
@@ -285,6 +318,7 @@ function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
     sensorData.value.airHumidity.unit = airResponse.air_humidity.unit || '%'
   }
 
+  // Update sensor statuses based on optimal ranges
   sensorData.value.soilTemperature.status = getSensorStatus(
     sensorData.value.soilTemperature.value,
     15,
@@ -318,6 +352,9 @@ function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
   lastUpdate.value = formatCurrentTime({ second: '2-digit' })
 }
 
+/**
+ * Computed plant health score based on weighted sensor parameters
+ */
 const plantHealthScore = computed(() => {
   const soilTempScore = calculateParameterScore(
     sensorData.value.soilTemperature.value,
@@ -349,6 +386,7 @@ const plantHealthScore = computed(() => {
     90,
   )
 
+  // Weighted calculation for overall health score
   const totalScore =
     soilTempScore * 0.2 +
     soilMoistureScore * 0.3 +
@@ -359,10 +397,16 @@ const plantHealthScore = computed(() => {
   return Math.round(totalScore)
 })
 
+/**
+ * Computed growth prediction based on health score
+ */
 const growthPrediction = computed(() => {
   return getGrowthPrediction(plantHealthScore.value)
 })
 
+/**
+ * Computed system status based on all sensor statuses
+ */
 const systemStatus = computed(() => {
   const statuses = Object.values(sensorData.value).map((item) => item.status)
   return getSystemStatus(statuses)
@@ -370,12 +414,28 @@ const systemStatus = computed(() => {
 </script>
 
 <template>
+  <!-- 
+    Main container with modern design system
+    - Uses consistent spacing and layout patterns
+    - Implements responsive design with proper breakpoints
+    - Maintains visual hierarchy through structured sections
+  -->
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      <!-- Header Section -->
+      <!-- 
+        Header Section
+        - Consistent with sidebar/navbar design patterns
+        - Responsive layout with proper spacing
+        - Includes system status and last update information
+      -->
       <HomeHeader :last-update="lastUpdate" />
 
-      <!-- Dashboard Status Overview -->
+      <!-- 
+        Dashboard Status Overview
+        - Central hub for plant health monitoring
+        - Uses card-based design consistent with app theme
+        - Responsive grid layout for optimal viewing
+      -->
       <PlantStatusDashboard
         :sensor-data="sensorData"
         :plant-health-score="plantHealthScore"
@@ -383,13 +443,24 @@ const systemStatus = computed(() => {
         :system-status="systemStatus"
       />
 
-      <!-- Plant Analysis Insights -->
+      <!-- 
+        Plant Analysis Insights
+        - AI-powered recommendations and metrics
+        - Modern card design with proper visual hierarchy
+        - Responsive layout adapting to screen size
+      -->
       <PlantAnalysis 
         :plant-health-score="plantHealthScore" 
         :growth-prediction="growthPrediction" 
       />
 
-      <!-- Sensor Readings Grid/Table -->
+      <!-- 
+        Sensor Readings Display
+        - Adaptive component selection based on screen size
+        - Table view for desktop (better data density)
+        - Grid view for mobile (touch-friendly)
+        - Consistent styling with app theme
+      -->
       <SensorReadingsTable
         v-if="windowWidth >= 1024"
         :sensor-data="sensorData"
@@ -403,7 +474,13 @@ const systemStatus = computed(() => {
         @refresh="updateData"
       />
 
-      <!-- Sensor Trends -->
+      <!-- 
+        Sensor Trends Analysis
+        - Historical data visualization
+        - Interactive timeframe selection
+        - Responsive chart layouts
+        - Smooth animations and transitions
+      -->
       <SensorTrends
         :plant-health-score="plantHealthScore"
         :growth-prediction="growthPrediction"
@@ -412,7 +489,13 @@ const systemStatus = computed(() => {
       />
     </div>
 
-    <!-- Export Modal -->
+    <!-- 
+      Export Modal
+      - Consistent modal design with app theme
+      - Accessible keyboard navigation
+      - Responsive layout for all screen sizes
+      - Smooth enter/exit animations
+    -->
     <DataExportModal
       :show="showExportModal"
       title="Export Dashboard Data"
@@ -430,3 +513,124 @@ const systemStatus = computed(() => {
     />
   </div>
 </template>
+
+<style scoped>
+/* 
+  Modern styling approach with design system consistency
+  - Uses CSS custom properties for theme consistency
+  - Implements smooth transitions for better UX
+  - Follows accessibility guidelines for contrast and focus states
+*/
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus states for accessibility */
+button:focus,
+a:focus {
+  outline: 2px solid theme('colors.primary.500');
+  outline-offset: 2px;
+}
+
+/* Responsive image handling */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling for consistency */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme('colors.gray.100');
+}
+
+::-webkit-scrollbar-thumb {
+  background: theme('colors.gray.400');
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.gray.500');
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: theme('colors.gray.800');
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: theme('colors.gray.600');
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.gray.500');
+}
+
+/* Animation for page load */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Apply fade-in animation to main sections */
+.space-y-8 > * {
+  animation: fadeInUp 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Stagger animation delays for visual appeal */
+.space-y-8 > *:nth-child(1) { animation-delay: 0.1s; }
+.space-y-8 > *:nth-child(2) { animation-delay: 0.2s; }
+.space-y-8 > *:nth-child(3) { animation-delay: 0.3s; }
+.space-y-8 > *:nth-child(4) { animation-delay: 0.4s; }
+.space-y-8 > *:nth-child(5) { animation-delay: 0.5s; }
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-color: currentColor;
+  }
+}
+
+/* Print styles for better document output */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
+</style>
