@@ -13,7 +13,10 @@
           <div
             class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md"
           >
-            <span class="mdi mdi-database text-white text-lg"></span>
+            <span
+              class="mdi mdi-database text-white text-lg"
+              style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)"
+            ></span>
           </div>
           <div>
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Data Management</h2>
@@ -65,7 +68,10 @@
           <div
             class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg"
           >
-            <span class="mdi mdi-clock-outline text-white text-lg"></span>
+            <span
+              class="mdi mdi-clock-outline text-white text-lg"
+              style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)"
+            ></span>
           </div>
           <div>
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Time & Format</h2>

@@ -3,15 +3,18 @@
     class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden"
   >
     <!-- Gradient accent bar -->
-    <div class="h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500"></div>
+    <div class="h-1 bg-gradient-to-r from-sky-400 via-cyan-400 to-sky-500"></div>
 
     <!-- Header -->
     <div class="px-6 py-6 border-b border-gray-100 dark:border-gray-800">
       <div class="flex items-center gap-4">
         <div
-          class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg"
+          class="w-12 h-12 bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg"
         >
-          <span class="mdi mdi-bell-ring text-white text-xl"></span>
+          <span
+            class="mdi mdi-bell-ring text-white text-xl"
+            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5)"
+          ></span>
         </div>
         <div class="min-w-0 flex-1">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
