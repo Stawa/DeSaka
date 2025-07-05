@@ -1,17 +1,125 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import SettingInput from '@/components/settings/SettingInput.vue'
-import SettingSelect from '@/components/settings/SettingSelect.vue'
+<template>
+  <div class="space-y-6">
+    <!-- Data Settings Card -->
+    <div
+      class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden"
+    >
+      <!-- Gradient accent bar -->
+      <div class="h-1 bg-gradient-to-br from-blue-500 to-cyan-500 text-white"></div>
 
-const props = defineProps<{
+      <div class="p-6">
+        <!-- Section header -->
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md"
+          >
+            <span class="mdi mdi-database text-white text-lg"></span>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Data Management</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Configure data refresh and retention settings
+            </p>
+          </div>
+        </div>
+
+        <!-- Settings grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SettingInput
+            id="data-refresh-interval"
+            v-model="model.dataRefreshInterval"
+            label="Refresh Interval"
+            :min="1"
+            :max="60"
+            suffix="minutes"
+            hint="How often to refresh sensor data"
+            :show-step-buttons="true"
+            :show-progress="true"
+          />
+
+          <SettingInput
+            id="data-retention-period"
+            v-model="model.dataRetentionPeriod"
+            label="Retention Period"
+            :min="1"
+            :max="365"
+            suffix="days"
+            hint="How long to keep historical data"
+            :show-step-buttons="true"
+            :show-progress="true"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Time & Format Settings Card -->
+    <div
+      class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden"
+    >
+      <!-- Gradient accent bar -->
+      <div class="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"></div>
+
+      <div class="p-6">
+        <!-- Section header -->
+        <div class="flex items-center gap-3 mb-6">
+          <div
+            class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg"
+          >
+            <span class="mdi mdi-clock-outline text-white text-lg"></span>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Time & Format</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Customize time zone and display formats
+            </p>
+          </div>
+        </div>
+
+        <!-- Settings grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <SettingSelect
+            id="timezone-select"
+            v-model="model.timezone"
+            :options="timezoneOptions"
+            label="Timezone"
+            hint="Select your local timezone"
+            :show-selected-info="true"
+          />
+
+          <SettingSelect
+            id="date-format-select"
+            v-model="model.dateFormat"
+            :options="dateFormatOptions"
+            label="Date Format"
+            hint="Choose date display format"
+            :show-selected-info="true"
+          />
+
+          <SettingSelect
+            id="time-format-select"
+            v-model="model.timeFormat"
+            :options="timeFormatOptions"
+            label="Time Format"
+            hint="Choose time display format"
+            :show-selected-info="true"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import SettingInput from './SettingInput.vue'
+import SettingSelect from './SettingSelect.vue'
+
+const props = defineProps({
   settings: {
-    dataRefreshInterval: number
-    dataRetentionPeriod: number
-    timezone: string
-    dateFormat: string
-    timeFormat: string
-  }
-}>()
+    type: Object,
+    required: true,
+  },
+})
 
 const emit = defineEmits(['update:settings'])
 
@@ -21,93 +129,37 @@ const model = computed({
 })
 
 const timezoneOptions = [
-  { value: 'Asia/Jakarta', label: 'Asia/Jakarta' },
-  { value: 'Asia/Singapore', label: 'Asia/Singapore' },
-  { value: 'Asia/Japan', label: 'Asia/Japan' },
+  {
+    value: 'Asia/Jakarta',
+    label: 'Asia/Jakarta (WIB)',
+    description: 'Western Indonesia Time',
+  },
+  {
+    value: 'Asia/Singapore',
+    label: 'Asia/Singapore (SGT)',
+    description: 'Singapore Standard Time',
+  },
+  {
+    value: 'Asia/Tokyo',
+    label: 'Asia/Tokyo (JST)',
+    description: 'Japan Standard Time',
+  },
+  {
+    value: 'UTC',
+    label: 'UTC',
+    description: 'Coordinated Universal Time',
+  },
 ]
 
 const dateFormatOptions = [
-  { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY' },
-  { value: 'MM-DD-YYYY', label: 'MM-DD-YYYY' },
-  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+  { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY', description: '05-07-2025' },
+  { value: 'MM-DD-YYYY', label: 'MM-DD-YYYY', description: '12-31-2024' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD', description: '2024-12-31' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY', description: '31/12/2024' },
 ]
 
 const timeFormatOptions = [
-  { value: '24h', label: '24-Hour' },
-  { value: '12h', label: '12-Hour' },
+  { value: '24h', label: '24-Hour (23:59)', description: '23:59' },
+  { value: '12h', label: '12-Hour (11:59 PM)', description: '11:59 PM' },
 ]
 </script>
-
-<template>
-  <div>
-    <!-- Data Settings -->
-    <section
-      class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 mb-5 border border-gray-100 dark:border-gray-700"
-    >
-      <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-        <span class="mdi mdi-refresh mr-2 text-primary-600 dark:text-primary-400"></span>
-        Data Settings
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-        <!-- Data Refresh Interval -->
-        <SettingInput
-          id="data-refresh-interval"
-          v-model="model.dataRefreshInterval"
-          label="Data Refresh Interval"
-          :min="1"
-          :max="60"
-          suffix="minutes"
-          hint="How often to refresh sensor data (1-60 minutes)"
-        />
-
-        <!-- Data Retention Period -->
-        <SettingInput
-          id="data-retention-period"
-          v-model="model.dataRetentionPeriod"
-          label="Data Retention Period"
-          :min="1"
-          :max="365"
-          suffix="days"
-          hint="How long to keep historical data (1-365 days)"
-        />
-      </div>
-    </section>
-
-    <!-- Time & Format Settings -->
-    <section
-      class="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700"
-    >
-      <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-        <span class="mdi mdi-clock-outline mr-2 text-primary-600 dark:text-primary-400"></span>
-        Time & Format Settings
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <SettingSelect
-          id="timezone-select"
-          v-model="model.timezone"
-          :options="timezoneOptions"
-          label="Timezone"
-          hint="Select your local timezone for accurate time display"
-        />
-
-        <SettingSelect
-          id="date-format-select"
-          v-model="model.dateFormat"
-          :options="dateFormatOptions"
-          label="Date Format"
-          hint="Choose how dates are displayed throughout the application"
-        />
-
-        <SettingSelect
-          id="time-format-select"
-          v-model="model.timeFormat"
-          :options="timeFormatOptions"
-          label="Time Format"
-          hint="Choose how time is displayed throughout the application"
-        />
-      </div>
-    </section>
-  </div>
-</template>

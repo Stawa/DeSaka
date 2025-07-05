@@ -1,15 +1,17 @@
 <template>
   <div class="w-full">
+    <!-- Enhanced label -->
     <label
       :for="id"
-      class="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 transition-colors"
+      class="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 transition-colors flex items-center gap-2"
     >
+      <span class="mdi mdi-cog-outline text-blue-500"></span>
       {{ label }}
       <span v-if="required" class="text-red-500 ml-1">*</span>
     </label>
 
     <div class="relative group">
-      <!-- Input field -->
+      <!-- Enhanced input field -->
       <input
         :id="id"
         :value="modelValue"
@@ -25,77 +27,106 @@
         :class="inputClasses"
       />
 
-      <!-- Suffix -->
-      <div
-        v-if="suffix"
-        class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-sm font-medium"
-        :class="suffixClasses"
-      >
-        {{ suffix }}
-      </div>
+      <!-- Suffix and Step buttons container -->
+      <div class="absolute inset-y-0 right-0 flex items-center">
+        <!-- Suffix -->
+        <div
+          v-if="suffix"
+          class="px-3 text-sm font-bold pointer-events-none"
+          :class="suffixClasses"
+        >
+          {{ suffix }}
+        </div>
 
-      <!-- Step buttons -->
-      <div v-if="showStepButtons && !disabled" class="absolute inset-y-0 right-0 flex flex-col">
-        <button
-          type="button"
-          @click="increment"
-          class="flex-1 px-3 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-tr-xl"
-          :class="{ 'cursor-not-allowed opacity-50': isAtMax }"
-          :disabled="isAtMax"
+        <!-- Modern step buttons -->
+        <div
+          v-if="showStepButtons && !disabled"
+          class="flex flex-col border-l border-gray-200 dark:border-gray-700 ml-2"
         >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 15l7-7 7 7"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          @click="decrement"
-          class="flex-1 px-3 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-br-xl"
-          :class="{ 'cursor-not-allowed opacity-50': isAtMin }"
-          :disabled="isAtMin"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
+          <button
+            type="button"
+            @click="increment"
+            class="flex items-center justify-center w-8 h-6 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 rounded-tr-xl group/btn"
+            :class="{ 'cursor-not-allowed opacity-50': isAtMax }"
+            :disabled="isAtMax"
+          >
+            <svg
+              class="w-3 h-3 transform group-hover/btn:scale-125 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="3"
+                d="M5 15l7-7 7 7"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            @click="decrement"
+            class="flex items-center justify-center w-8 h-6 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 rounded-br-xl group/btn"
+            :class="{ 'cursor-not-allowed opacity-50': isAtMin }"
+            :disabled="isAtMin"
+          >
+            <svg
+              class="w-3 h-3 transform group-hover/btn:scale-125 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="3"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Hint and error message -->
-    <div class="mt-2 min-h-[1.25rem]">
-      <p v-if="error" class="text-xs text-red-600 dark:text-red-400 animate-pulse">
+    <!-- Enhanced hint and error message -->
+    <div class="mt-3 min-h-[1.25rem]">
+      <p
+        v-if="error"
+        class="text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800"
+      >
+        <span class="mdi mdi-alert-circle"></span>
         {{ error }}
       </p>
-      <p v-else-if="hint" class="text-xs text-gray-600 dark:text-gray-400">
+      <p v-else-if="hint" class="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
+        <span class="mdi mdi-information-outline"></span>
         {{ hint }}
       </p>
     </div>
 
-    <!-- Progress indicator (for ranges) -->
-    <div v-if="showProgress && min !== undefined && max !== undefined" class="mt-2">
-      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-        <div
-          class="bg-gradient-to-r from-blue-500 to-purple-600 h-1.5 rounded-full transition-all duration-300 ease-out"
-          :style="{ width: progressPercentage + '%' }"
-        ></div>
-      </div>
-      <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-        <span>{{ min }}</span>
-        <span>{{ max }}</span>
-      </div>
+    <!-- Value indicator -->
+    <div
+      v-if="min !== undefined && max !== undefined"
+      class="mt-3 flex items-center justify-between text-xs"
+    >
+      <span class="text-gray-500 dark:text-gray-400 font-medium">Min: {{ min }}</span>
+      <span
+        class="text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full"
+      >
+        Current: {{ modelValue || 0 }}
+      </span>
+      <span class="text-gray-500 dark:text-gray-400 font-medium">Max: {{ max }}</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+</style>
 
 <script setup>
 import { computed, ref } from 'vue'
@@ -124,11 +155,7 @@ const props = defineProps({
   },
   showStepButtons: {
     type: Boolean,
-    default: false,
-  },
-  showProgress: {
-    type: Boolean,
-    default: false,
+    default: true,
   },
   variant: {
     type: String,
@@ -143,48 +170,46 @@ const isFocused = ref(false)
 
 const inputClasses = computed(() => {
   const baseClasses = [
-    'block w-full px-4 py-3 text-sm font-medium',
+    'block w-full px-4 py-3.5 text-sm font-semibold',
     'bg-white dark:bg-gray-900',
     'border-2 rounded-xl',
-    'transition-all duration-200 ease-in-out',
+    'transition-all duration-300 ease-in-out',
     'placeholder-gray-400 dark:placeholder-gray-500',
     'focus:outline-none focus:ring-0',
+    'shadow-sm hover:shadow-md focus:shadow-lg',
   ]
 
   if (props.disabled) {
     baseClasses.push('opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800')
   }
 
-  if (props.showStepButtons && !props.disabled) {
-    baseClasses.push('pr-12')
-  } else if (props.suffix) {
-    baseClasses.push('pr-12')
-  }
+  // Always add right padding for suffix and/or step buttons
+  baseClasses.push('pr-20')
 
   if (props.error || props.variant === 'error') {
     baseClasses.push(
       'border-red-300 dark:border-red-600',
       'focus:border-red-500 dark:focus:border-red-400',
-      'focus:shadow-lg focus:shadow-red-500/20',
+      'focus:shadow-red-500/20',
     )
   } else if (props.variant === 'success') {
     baseClasses.push(
       'border-green-300 dark:border-green-600',
       'focus:border-green-500 dark:focus:border-green-400',
-      'focus:shadow-lg focus:shadow-green-500/20',
+      'focus:shadow-green-500/20',
     )
   } else if (props.variant === 'warning') {
     baseClasses.push(
       'border-yellow-300 dark:border-yellow-600',
       'focus:border-yellow-500 dark:focus:border-yellow-400',
-      'focus:shadow-lg focus:shadow-yellow-500/20',
+      'focus:shadow-yellow-500/20',
     )
   } else {
     baseClasses.push(
-      'border-gray-200 dark:border-gray-700',
-      'hover:border-gray-300 dark:hover:border-gray-600',
+      'border-blue-200 dark:border-blue-700',
+      'hover:border-blue-300 dark:hover:border-blue-600',
       'focus:border-blue-500 dark:focus:border-blue-400',
-      'focus:shadow-lg focus:shadow-blue-500/20',
+      'focus:shadow-blue-500/20',
     )
   }
 
@@ -212,19 +237,19 @@ const isAtMax = computed(() => {
   return props.max !== undefined && props.modelValue >= props.max
 })
 
-const progressPercentage = computed(() => {
-  if (props.min === undefined || props.max === undefined || !props.modelValue) {
-    return 0
-  }
-  return Math.max(
-    0,
-    Math.min(100, ((props.modelValue - props.min) / (props.max - props.min)) * 100),
-  )
-})
-
 const handleInput = (event) => {
-  const value = event.target.valueAsNumber
+  let value = event.target.valueAsNumber
   if (!isNaN(value)) {
+    // Apply max constraint
+    if (props.max !== undefined && value > props.max) {
+      value = props.max
+      event.target.value = value
+    }
+    // Apply min constraint
+    if (props.min !== undefined && value < props.min) {
+      value = props.min
+      event.target.value = value
+    }
     emit('update:modelValue', value)
   }
 }
