@@ -115,6 +115,10 @@ const showExportModal = ref(false)
 
 const { fetchSensorData, refreshData: apiRefreshData, fetchFileById, isLoading, error } = useApi()
 
+onMounted(() => {
+  refreshData()
+})
+
 function handleExport(exportOptions: any) {
   const sensorsList = [
     { name: 'temperature', label: 'Temperature', unit: '°C', selected: true },
@@ -163,11 +167,15 @@ async function refreshData() {
       sensors: ['air_temperature', 'air_humidity', 'air_co2', 'air_tvoc', 'air_pm25', 'air_pm10'],
     }
 
-    await apiRefreshData((airResponse) => {
-      updateAirData(airResponse)
-      updateSensorStatuses()
-      lastUpdated.value = formatCurrentTime()
-    }, params)
+    await apiRefreshData(
+      (airResponse) => {
+        updateAirData(airResponse)
+        updateSensorStatuses()
+        lastUpdated.value = formatCurrentTime()
+      },
+      fetchSensorData,
+      params,
+    )
   } catch (err) {
     console.error('Error refreshing air data:', err)
   } finally {
@@ -197,10 +205,6 @@ function changeTimeFrame(frame: string) {
   timeFrame.value = frame
   refreshData()
 }
-
-onMounted(() => {
-  refreshData()
-})
 
 function updateSensorStatuses() {
   updateSensorStatus(airData.value.temperature)
