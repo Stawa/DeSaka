@@ -289,13 +289,6 @@ const getStats = () => {
 const handleResize = () => {
   windowWidth.value = window.innerWidth
   devicePixelRatio.value = window.devicePixelRatio || 1
-
-  // Force chart re-render for optimal text clarity
-  nextTick(() => {
-    if (chartRef.value?.chart) {
-      chartRef.value.chart.resize()
-    }
-  })
 }
 
 watch(

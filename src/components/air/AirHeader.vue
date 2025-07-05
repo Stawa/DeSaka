@@ -1,54 +1,64 @@
+<script setup lang="ts">
+const props = defineProps({
+  lastUpdated: {
+    type: String,
+    default: '2 minutes ago',
+  },
+  isRefreshing: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['refresh', 'export'])
+
+const handleRefresh = () => {
+  if (!props.isRefreshing) {
+    emit('refresh')
+  }
+}
+
+const handleExport = () => {
+  emit('export')
+}
+</script>
+
 <template>
   <div
     class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden"
   >
-    <!-- Subtle accent bar -->
-    <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+    <!-- Accent bar -->
+    <div class="h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500"></div>
 
     <div class="p-6">
-      <!-- Main header layout -->
+      <!-- Header Section -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <!-- Left: Icon and Title -->
+        <!-- Icon + Title -->
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0 relative">
             <div
-              class="w-14 h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/20 rounded-2xl flex items-center justify-center ring-1 ring-emerald-200/50 dark:ring-emerald-700/30"
+              class="w-14 h-14 bg-gradient-to-br from-blue-100 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-800/20 rounded-2xl flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
             >
-              <svg
-                class="w-7 h-7 text-emerald-600 dark:text-emerald-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-                />
-              </svg>
+              <span class="text-2xl">🌬️</span>
             </div>
-            <!-- Subtle glow effect -->
-            <div class="absolute inset-0 bg-emerald-500/20 rounded-2xl blur-xl opacity-30"></div>
+            <div class="absolute inset-0 bg-blue-500/20 rounded-2xl blur-xl opacity-30"></div>
           </div>
 
           <div>
-            <h1
-              class="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight"
-            >
-              Environmental Dashboard
+            <h1 class="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-gray-100">
+              Air Quality Monitor
             </h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1 text-base">
-              Real-time monitoring and analytics for optimal plant growth
+              Real-time environmental air quality analysis and monitoring
             </p>
           </div>
         </div>
 
-        <!-- Right: Action buttons -->
+        <!-- Action Buttons -->
         <div class="flex items-center gap-3">
           <!-- Refresh -->
           <button
-            @click="refreshData"
+            @click="handleRefresh"
             class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
             :class="{ 'opacity-50 cursor-not-allowed': isRefreshing }"
             :disabled="isRefreshing"
@@ -72,7 +82,7 @@
 
           <!-- Export -->
           <button
-            @click="exportData"
+            @click="handleExport"
             class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <svg
@@ -93,11 +103,11 @@
         </div>
       </div>
 
-      <!-- Bottom section: Status and Stats -->
+      <!-- Footer Section -->
       <div
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700"
       >
-        <!-- Left: status -->
+        <!-- Update Time -->
         <div class="flex items-center gap-6 text-sm">
           <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <svg
@@ -113,15 +123,15 @@
                 d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span>Updated {{ lastUpdate }}</span>
+            <span>Updated {{ lastUpdated }}</span>
           </div>
         </div>
 
-        <!-- Right: Stats -->
+        <!-- Stats -->
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3">
             <div
-              class="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
+              class="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-800/20 rounded-xl flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
             >
               <svg
                 class="w-5 h-5 text-blue-600 dark:text-blue-400"
@@ -138,7 +148,7 @@
               </svg>
             </div>
             <div>
-              <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">6</div>
+              <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">8</div>
               <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">Active Sensors</div>
             </div>
           </div>
@@ -147,7 +157,7 @@
 
           <div class="flex items-center gap-3">
             <div
-              class="w-10 h-10 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/20 rounded-xl flex items-center justify-center ring-1 ring-emerald-200/50 dark:ring-emerald-700/30"
+              class="w-10 h-10 bg-gradient-to-br from-teal-100 to-cyan-50 dark:from-teal-900/30 dark:to-cyan-800/20 rounded-xl flex items-center justify-center ring-1 ring-teal-200/50 dark:ring-teal-700/30"
             >
               <svg
                 class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
@@ -164,7 +174,7 @@
               </svg>
             </div>
             <div>
-              <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">98%</div>
+              <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">97%</div>
               <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">System Health</div>
             </div>
           </div>
@@ -174,33 +184,14 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-
-defineProps({
-  lastUpdate: {
-    type: String,
-    default: '2 minutes ago',
-  },
-})
-
-const isRefreshing = ref(false)
-const emit = defineEmits(['export'])
-
-const refreshData = async () => {
-  if (isRefreshing.value) return
-  isRefreshing.value = true
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    console.log('Data refreshed.')
-  } catch (error) {
-    console.error('Failed to refresh data:', error)
-  } finally {
-    isRefreshing.value = false
+<style scoped>
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-const exportData = () => {
-  emit('export')
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
-</script>
+</style>

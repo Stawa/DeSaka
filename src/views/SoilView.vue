@@ -330,7 +330,12 @@ const soilHealthScore = computed(() => {
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       <!-- Page Header -->
-      <SoilHeader :last-updated="lastUpdated" :is-refreshing="isRefreshing" />
+      <SoilHeader
+        :last-updated="lastUpdated"
+        :is-refreshing="isRefreshing"
+        @refresh="refreshData"
+        @export="showExportModal = true"
+      />
 
       <!-- Soil Health Dashboard -->
       <SoilHealthDashboard :soil-data="soilData" :health-score="soilHealthScore" />

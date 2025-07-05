@@ -46,10 +46,21 @@ onUnmounted(() => {
           <!-- Mobile menu button -->
           <button
             @click="$emit('toggle-sidebar')"
-            class="lg:hidden btn btn-ghost btn-sm p-2"
+            class="lg:hidden relative inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 border border-gray-200/60 dark:border-gray-700/60 transition-all duration-300 group overflow-hidden backdrop-blur-sm"
             aria-label="Open main menu"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Hover background effect -->
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            ></div>
+
+            <!-- Icon -->
+            <svg
+              class="w-5 h-5 text-gray-600 dark:text-gray-400 relative z-10 transition-colors duration-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -57,6 +68,11 @@ onUnmounted(() => {
                 d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
+
+            <!-- Ripple effect on click -->
+            <div
+              class="absolute inset-0 rounded-xl opacity-0 group-active:opacity-20 bg-white dark:bg-gray-300 transition-opacity duration-150"
+            ></div>
           </button>
 
           <!-- Logo/Brand -->
@@ -88,18 +104,21 @@ onUnmounted(() => {
           <!-- Dark mode toggle -->
           <button
             @click="toggleDarkMode"
-            class="btn btn-ghost btn-sm p-2.5 relative overflow-hidden group"
+            class="relative inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 border border-gray-200/60 dark:border-gray-700/60 transition-all duration-300 group overflow-hidden backdrop-blur-sm"
             :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle dark mode"
           >
+            <!-- Hover background effect -->
             <div
-              class="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+              class="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             ></div>
+
+            <!-- Icon -->
             <svg
-              class="w-5 h-5 transition-all duration-300 relative z-10"
+              class="w-5 h-5 transition-all duration-500 relative z-10"
               :class="{
-                'text-amber-500 rotate-180': isDarkMode,
-                'text-gray-600 dark:text-gray-400': !isDarkMode,
+                'text-amber-500 rotate-180 scale-110': isDarkMode,
+                'text-gray-600 dark:text-gray-400 rotate-0 scale-100': !isDarkMode,
                 'animate-spin': isAnimating,
               }"
               fill="currentColor"
@@ -114,6 +133,11 @@ onUnmounted(() => {
                 d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
               />
             </svg>
+
+            <!-- Ripple effect on click -->
+            <div
+              class="absolute inset-0 rounded-xl opacity-0 group-active:opacity-20 bg-white dark:bg-gray-300 transition-opacity duration-150"
+            ></div>
           </button>
         </div>
       </div>

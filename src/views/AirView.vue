@@ -13,6 +13,7 @@ import {
   updateSensorStatus,
   formatSensorDataForExport,
 } from '@/scripts'
+import AirHeader from '@/components/air/AirHeader.vue'
 
 type DataPoint = { time: string; value: number }
 
@@ -162,15 +163,11 @@ async function refreshData() {
       sensors: ['air_temperature', 'air_humidity', 'air_co2', 'air_tvoc', 'air_pm25', 'air_pm10'],
     }
 
-    await apiRefreshData(
-      (airResponse) => {
-        updateAirData(airResponse)
-        updateSensorStatuses()
-        lastUpdated.value = formatCurrentTime()
-      },
-      fetchSensorData,
-      params,
-    )
+    await apiRefreshData((airResponse) => {
+      updateAirData(airResponse)
+      updateSensorStatuses()
+      lastUpdated.value = formatCurrentTime()
+    }, params)
   } catch (err) {
     console.error('Error refreshing air data:', err)
   } finally {
@@ -293,174 +290,296 @@ const healthStatus = computed(() => {
 </script>
 
 <template>
+  <!-- Main container matching SoilView design -->
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
     <div class="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      <!-- Enhanced Header Section -->
-      <div
-        class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in"
-      >
-        <!-- Dynamic Accent Bar -->
-        <div class="h-1.5 bg-gradient-to-r w-full" :class="healthStatus.accentColor"></div>
-
-        <div class="p-6 lg:p-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <!-- Header Content -->
-            <div class="flex items-start gap-4">
-              <div
-                class="w-16 h-16 rounded-2xl flex items-center justify-center ring-1 transition-all duration-300"
-                :class="[healthStatus.bgColor, 'ring-gray-200/50 dark:ring-gray-700/50']"
-              >
-                <span class="text-2xl">🌬️</span>
-              </div>
-              <div class="flex-1">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                  Air Quality Monitor
-                </h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-2 text-lg">
-                  Real-time environmental air quality analysis and monitoring
-                </p>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-3">
-              <button
-                @click="refreshData"
-                :disabled="isRefreshing"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                <span
-                  :class="[
-                    'w-4 h-4',
-                    isRefreshing ? 'mdi mdi-loading animate-spin' : 'mdi mdi-refresh',
-                  ]"
-                ></span>
-                {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
-              </button>
-              <button
-                @click="showExportModal = true"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <span class="mdi mdi-download w-4 h-4"></span>
-                Export Data
-              </button>
-            </div>
-          </div>
-
-          <!-- Status Bar -->
-          <div class="mt-6 pt-6 border-t border-gray-200/60 dark:border-gray-700/60">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div class="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-                <div class="flex items-center gap-2">
-                  <span class="mdi mdi-clock-outline"></span>
-                  <span>Last updated {{ lastUpdated }}</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-6 text-sm">
-                <div class="flex items-center gap-2">
-                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span class="text-gray-600 dark:text-gray-300">
-                    <span class="font-semibold text-gray-900 dark:text-gray-100">8</span>
-                    Active Sensors
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Page Header -->
+      <AirHeader
+        :last-updated="lastUpdated"
+        :is-refreshing="isRefreshing"
+        @refresh="refreshData"
+        @export="showExportModal = true"
+      />
 
       <!-- Air Quality Dashboard -->
       <div class="animate-fade-in" style="animation-delay: 0.1s">
         <AirQualityDashboard :air-data="airData" :healthScore="airQualityIndex" />
       </div>
 
-      <!-- Enhanced Air Trends Section -->
+      <!-- Air Analysis Insights -->
       <div
         class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in"
         style="animation-delay: 0.2s"
       >
-        <!-- Accent Bar -->
-        <div class="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500 w-full"></div>
+        <!-- Accent bar matching design -->
+        <div class="h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500"></div>
 
-        <div class="p-6 lg:p-8">
-          <!-- Section Header -->
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
-            <div class="flex items-start gap-4">
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+          <div class="flex items-center gap-4">
+            <div
+              class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
+            >
+              <span
+                class="mdi mdi-monitor-dashboard text-xl text-blue-600 dark:text-blue-400"
+              ></span>
+            </div>
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Air Analysis</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Comprehensive air quality insights and environmental conditions
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis Content -->
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Air Quality Card -->
+            <div
+              class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/30"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-white"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.951-.69l1.07-3.292z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-blue-900 dark:text-blue-100">Air Quality Index</h3>
+                  <p class="text-sm text-blue-700 dark:text-blue-300">
+                    {{ healthStatus.label }} conditions
+                  </p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-blue-800 dark:text-blue-200">Temperature</span>
+                  <span class="font-medium text-blue-900 dark:text-blue-100">
+                    {{ airData.temperature.value }}{{ airData.temperature.unit }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-blue-800 dark:text-blue-200">Humidity</span>
+                  <span class="font-medium text-blue-900 dark:text-blue-100">
+                    {{ airData.humidity.value }}{{ airData.humidity.unit }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-blue-800 dark:text-blue-200">CO₂ Level</span>
+                  <span class="font-medium text-blue-900 dark:text-blue-100">
+                    {{ airData.co2.value }}{{ airData.co2.unit }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Particulate Matter Card -->
+            <div
+              class="bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-900/20 dark:to-cyan-800/10 rounded-xl p-6 border border-cyan-200/50 dark:border-cyan-700/30"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center text-white"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 001.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.118l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-cyan-900 dark:text-cyan-100">Particulate Matter</h3>
+                  <p class="text-sm text-cyan-700 dark:text-cyan-300">Air pollution levels</p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-cyan-800 dark:text-cyan-200">PM2.5</span>
+                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
+                    {{ airData.pm25.value }}{{ airData.pm25.unit }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-cyan-800 dark:text-cyan-200">PM10</span>
+                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
+                    {{ airData.pm10.value }}{{ airData.pm10.unit }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-cyan-800 dark:text-cyan-200">TVOC</span>
+                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
+                    {{ airData.tvoc.value }}{{ airData.tvoc.unit }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations Section -->
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div
+              class="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 rounded-lg p-4 border border-green-200/50 dark:border-green-700/30"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span class="text-sm font-medium text-green-800 dark:text-green-200">
+                  {{ healthStatus.label }} Air Quality
+                </span>
+              </div>
+              <p class="text-xs text-green-700 dark:text-green-300">
+                Current air conditions are {{ healthStatus.label.toLowerCase() }} for indoor
+                environments.
+              </p>
+            </div>
+
+            <div
+              class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-4 border border-blue-200/50 dark:border-blue-700/30"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Monitor CO₂
+                </span>
+              </div>
+              <p class="text-xs text-blue-700 dark:text-blue-300">
+                CO₂ levels are {{ airData.co2.status }}. Ensure proper ventilation for optimal
+                conditions.
+              </p>
+            </div>
+
+            <div
+              class="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200/50 dark:border-purple-700/30"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span class="text-sm font-medium text-purple-800 dark:text-purple-200">
+                  Low Particulates
+                </span>
+              </div>
+              <p class="text-xs text-purple-700 dark:text-purple-300">
+                Particulate matter levels are within healthy ranges for indoor air quality.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Air Quality Trends Section -->
+      <div
+        class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in"
+        style="animation-delay: 0.3s"
+      >
+        <!-- Accent Line -->
+        <div class="h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500"></div>
+
+        <!-- Section Content -->
+        <div class="p-6">
+          <!-- Header -->
+          <div
+            class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6"
+          >
+            <!-- Title & Description -->
+            <div class="flex items-center space-x-4">
               <div
-                class="w-12 h-12 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
+                class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
               >
-                <span class="mdi mdi-chart-line text-xl text-blue-600 dark:text-blue-400"></span>
+                <svg
+                  class="w-6 h-6 text-blue-600 dark:text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
               </div>
               <div>
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Air Quality Trends
                 </h2>
-                <p class="text-gray-600 dark:text-gray-400 mt-1">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                   Historical analysis of environmental air quality parameters
                 </p>
               </div>
             </div>
 
-            <!-- Time Frame Selector -->
+            <!-- Timeframe Switch -->
             <div
-              class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700"
+              class="inline-flex bg-gray-100 dark:bg-gray-800 rounded-full p-1 border border-gray-200 dark:border-gray-700"
             >
-              <template v-for="frame in ['24h', '7d', '30d']" :key="frame">
-                <button
-                  @click="changeTimeFrame(frame)"
-                  :class="[
-                    'px-4 py-2 text-sm rounded-lg font-medium transition-all duration-200',
-                    timeFrame === frame
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700',
-                  ]"
-                >
-                  {{ frame }}
-                </button>
-              </template>
+              <button
+                v-for="(option, index) in ['24h', '7d', '30d']"
+                :key="option"
+                @click="changeTimeFrame(option)"
+                class="px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none"
+                :class="[
+                  timeFrame === option
+                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-200/50 dark:ring-blue-700/30'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400',
+                  index === 0 ? 'rounded-l-full' : '',
+                  index === 2 ? 'rounded-r-full' : '',
+                ]"
+              >
+                {{ option }}
+              </button>
             </div>
           </div>
 
           <!-- Charts Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Temperature Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.3s">
+            <div class="animate-fade-in" style="animation-delay: 0.4s">
               <SensorChart
                 title="Air Temperature"
                 :data="airData.temperature.history"
                 valueLabel="Temperature (°C)"
                 chartColor="#EF4444"
+                icon="mdi-weather-windy"
               />
             </div>
 
             <!-- Humidity Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.4s">
+            <div class="animate-fade-in" style="animation-delay: 0.5s">
               <SensorChart
                 title="Air Humidity"
                 :data="airData.humidity.history"
                 valueLabel="Humidity (%)"
                 chartColor="#3B82F6"
+                icon="mdi-water"
               />
             </div>
 
             <!-- CO₂ Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.5s">
+            <div class="animate-fade-in" style="animation-delay: 0.6s">
               <SensorChart
                 title="CO₂ Levels"
                 :data="airData.co2.history"
                 valueLabel="CO₂ (ppm)"
                 chartColor="#8B5CF6"
+                icon="mdi-molecule-co2"
               />
             </div>
 
             <!-- TVOC Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.6s">
+            <div class="animate-fade-in" style="animation-delay: 0.7s">
               <SensorChart
                 title="TVOC Levels"
                 :data="airData.tvoc.history"
                 valueLabel="TVOC (ppb)"
                 chartColor="#10B981"
+                icon="mdi-weather-fog"
               />
             </div>
           </div>
