@@ -3,6 +3,28 @@
  */
 
 /**
+ * Valid sensor status values
+ */
+export type SensorStatusValue = 'critical' | 'warning' | 'optimal'
+
+/**
+ * Valid health status colors
+ */
+interface HealthStatusColor {
+  color: string
+}
+
+/**
+ * Valid growth prediction values
+ */
+export type GrowthPrediction = 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Critical'
+
+/**
+ * Valid system status values
+ */
+export type SystemStatus = 'critical' | 'warning' | 'normal'
+
+/**
  * Calculate sensor status based on value and thresholds
  * @param value Current sensor value
  * @param min Minimum acceptable value
@@ -17,7 +39,7 @@ export function getSensorStatus(
   max: number,
   optimal_min: number,
   optimal_max: number,
-): 'critical' | 'warning' | 'optimal' {
+): SensorStatusValue {
   if (value < min || value > max) return 'critical'
   if (value >= optimal_min && value <= optimal_max) return 'optimal'
   return 'warning'
@@ -53,7 +75,7 @@ export function calculateParameterScore(
  * @param score Health score (0-100)
  * @returns Status object with color property
  */
-export function getHealthStatusColor(score: number): { color: string } {
+export function getHealthStatusColor(score: number): HealthStatusColor {
   if (score >= 90) {
     return { color: 'text-green-500 dark:text-green-400' }
   } else if (score >= 75) {
@@ -72,7 +94,7 @@ export function getHealthStatusColor(score: number): { color: string } {
  * @param score Plant health score (0-100)
  * @returns Growth prediction string
  */
-export function getGrowthPrediction(score: number): string {
+export function getGrowthPrediction(score: number): GrowthPrediction {
   if (score >= 90) return 'Excellent'
   if (score >= 75) return 'Good'
   if (score >= 60) return 'Fair'
@@ -85,7 +107,7 @@ export function getGrowthPrediction(score: number): string {
  * @param statuses Array of sensor status strings
  * @returns System status: 'critical', 'warning', or 'normal'
  */
-export function getSystemStatus(statuses: string[]): 'critical' | 'warning' | 'normal' {
+export function getSystemStatus(statuses: SensorStatusValue[]): SystemStatus {
   if (statuses.includes('critical')) return 'critical'
   if (statuses.includes('warning')) return 'warning'
   return 'normal'

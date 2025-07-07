@@ -14,6 +14,8 @@ import {
   formatSensorDataForExport,
 } from '@/scripts'
 import AirHeader from '@/components/air/AirHeader.vue'
+import type { SensorResponse } from '@/scripts/sensorDataUtils'
+import type { Air } from '@/composables/responseApi'
 
 type DataPoint = { time: string; value: number }
 
@@ -119,7 +121,16 @@ onMounted(() => {
   refreshData()
 })
 
-function handleExport(exportOptions: any) {
+/**
+ * Handle export of sensor data
+ * @param exportOptions Export configuration options
+ */
+function handleExport(exportOptions: {
+  format: 'csv' | 'json' | 'excel'
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>
+  dateRange: { start: string | null; end: string | null }
+  timeRange: { start: string; end: string }
+}) {
   const sensorsList = [
     { name: 'temperature', label: 'Temperature', unit: '°C', selected: true },
     { name: 'humidity', label: 'Humidity', unit: '%', selected: true },
@@ -183,10 +194,12 @@ async function refreshData() {
   }
 }
 
-function updateAirData(response: any) {
+/**
+ * Updates air data from API response
+ * @param response The API response containing sensor data
+ */
+function updateAirData(response: Record<string, SensorResponse>) {
   if (!response) return
-
-  const isFileApiFormat = response.temperature !== undefined || response.humidity !== undefined
 
   updateSensorDataFromResponse(
     airData.value.temperature,

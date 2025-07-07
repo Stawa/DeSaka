@@ -134,7 +134,14 @@ const handleRegularTimestamp = (timestamp: string): string => {
   }
 }
 
-const determineFileType = (fileData: any, fileName: string): string => {
+/**
+ * Determines the type of file data (air or soil) based on content and filename
+ * 
+ * @param fileData - The file data to analyze
+ * @param fileName - Name of the file
+ * @returns The determined file type ('air', 'soil', or 'unknown')
+ */
+const determineFileType = (fileData: Record<string, unknown>, fileName: string): string => {
   const hasHumidity = Object.keys(fileData).includes('humidity')
   const hasMoisture = Object.keys(fileData).includes('moisture')
   const hasTemperature = Object.keys(fileData).includes('temperature')
@@ -163,7 +170,15 @@ const mapSensorId = (apiSensorKey: string, fileType: string): string => {
   return sensorMapping[apiSensorKey] || apiSensorKey
 }
 
-const processSensorData = (fileData: any, apiSensorKey: string, sensorId: string): DataPoint[] => {
+/**
+ * Processes raw sensor data into standardized DataPoint format
+ * 
+ * @param fileData - Raw file data containing sensor readings
+ * @param apiSensorKey - The key in the file data that contains the sensor readings
+ * @param sensorId - Identifier for the sensor
+ * @returns Array of standardized DataPoint objects
+ */
+const processSensorData = (fileData: Record<string, unknown>, apiSensorKey: string, sensorId: string): DataPoint[] => {
   if (!fileData[apiSensorKey]?.history || !Array.isArray(fileData[apiSensorKey].history)) {
     return []
   }
@@ -179,7 +194,13 @@ const mergeAndSortSensorData = (existingData: DataPoint[], newData: DataPoint[])
   return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 }
 
-const processFileData = async (filesResponse: any): Promise<SensorData> => {
+/**
+ * Processes file response data into structured sensor data
+ * 
+ * @param filesResponse - Response containing file metadata
+ * @returns Promise resolving to structured sensor data
+ */
+const processFileData = async (filesResponse: { files: Array<{ id: string; name: string; modifiedTime: string }> }): Promise<SensorData> => {
   const sortedFiles = [...filesResponse.files].sort(
     (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
   )
@@ -521,7 +542,17 @@ const prepareExportData = () => {
   return { exportData, sensorInfo }
 }
 
-const handleExport = (exportOptions: any) => {
+/**
+ * Handles exporting sensor data based on provided options
+ * 
+ * @param exportOptions - Configuration for data export
+ */
+const handleExport = (exportOptions: {
+  format: 'csv' | 'json' | 'excel';
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>;
+  dateRange: { start: string | null; end: string | null };
+  timeRange?: { start: string; end: string };
+}) => {
   const { exportData, sensorInfo } = prepareExportData()
   handleDataExport(exportOptions, exportData, sensorInfo)
 }

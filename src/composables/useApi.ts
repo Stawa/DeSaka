@@ -24,15 +24,15 @@ import { ref, type Ref } from 'vue'
  */
 const API_CONFIG = {
   BASE_URL: 'https://desaka-api.vercel.app',
-  TIMEOUT: 10000, // 10 seconds
+  TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000, // 1 second
+  RETRY_DELAY: 1000,
 } as const
 
 /**
  * Type definitions for API responses
  */
-interface ApiResponse<T = unknown> {
+interface ApiResponse<T = Record<string, string | number | boolean>> {
   data?: T
   error?: string
   message?: string
@@ -47,7 +47,8 @@ interface SensorHistoryData {
 interface SensorApiResponse {
   unit?: string
   history?: SensorHistoryData[]
-  [key: string]: unknown
+  status?: string
+  [key: string]: string | number | boolean | SensorHistoryData[] | undefined
 }
 
 interface FileMetadata {
@@ -58,6 +59,17 @@ interface FileMetadata {
   modifiedTime: string
 }
 
+interface WhatsAppPayload {
+  phoneNumber: string
+  message: string
+}
+
+interface GmailPayload {
+  to: string
+  subject: string
+  text: string
+}
+
 /**
  * Custom error class for API-related errors
  */
@@ -65,7 +77,7 @@ class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public response?: unknown,
+    public response?: string | Record<string, string | number | boolean>,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -78,7 +90,7 @@ class ApiError extends Error {
  * @returns Object containing API methods and reactive state
  */
 export function useApi() {
-  // Reactive state for loading and error management
+  /** Reactive state for loading and error management */
   const isLoading: Ref<boolean> = ref(false)
   const error: Ref<Error | null> = ref(null)
 
@@ -90,7 +102,10 @@ export function useApi() {
    * @returns Promise resolving to parsed JSON response
    * @throws ApiError for HTTP errors or network issues
    */
-  async function fetchWithCors<T = unknown>(url: string, options: RequestInit = {}): Promise<T> {
+  async function fetchWithCors<T = Record<string, string | number | boolean>>(
+    url: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT)
 
@@ -170,7 +185,7 @@ export function useApi() {
         'Use fetchFileById() for actual data retrieval.',
       )
 
-      // Generate mock response structure
+      /** Generate mock response structure */
       const mockResponse: Record<string, SensorApiResponse> = {}
 
       if (options.sensors && options.sensors.length > 0) {
@@ -222,7 +237,9 @@ export function useApi() {
    * @param fileId - The unique identifier of the file to retrieve
    * @returns Promise resolving to parsed file content
    */
-  async function fetchFileById<T = unknown>(fileId: string): Promise<T> {
+  async function fetchFileById<T = Record<string, string | number | boolean>>(
+    fileId: string,
+  ): Promise<T> {
     if (!fileId || typeof fileId !== 'string') {
       throw new ApiError('Invalid file ID provided')
     }
@@ -253,7 +270,7 @@ export function useApi() {
    */
   async function updateFileById(
     fileId: string,
-    content: unknown,
+    content: Record<string, string | number | boolean | SensorHistoryData[]>,
     append = false,
   ): Promise<ApiResponse> {
     if (!fileId || typeof fileId !== 'string') {
@@ -309,14 +326,8 @@ export function useApi() {
    * @param payload - Object containing phone number and message
    * @returns Promise resolving to API response
    */
-  async function sendWhatsAppMessage({
-    phoneNumber,
-    message,
-  }: {
-    phoneNumber: string
-    message: string
-  }): Promise<ApiResponse> {
-    if (!phoneNumber || !message) {
+  async function sendWhatsAppMessage(payload: WhatsAppPayload): Promise<ApiResponse> {
+    if (!payload.phoneNumber || !payload.message) {
       throw new ApiError('Phone number and message are required')
     }
 
@@ -326,7 +337,7 @@ export function useApi() {
     try {
       const response = await fetchWithCors<ApiResponse>(`${API_CONFIG.BASE_URL}/whatsapp/send`, {
         method: 'POST',
-        body: JSON.stringify({ phoneNumber, message }),
+        body: JSON.stringify(payload),
       })
 
       return response
@@ -346,16 +357,8 @@ export function useApi() {
    * @param payload - Object containing email details
    * @returns Promise resolving to API response
    */
-  async function sendGmailMessage({
-    to,
-    subject,
-    text,
-  }: {
-    to: string
-    subject: string
-    text: string
-  }): Promise<ApiResponse> {
-    if (!to || !subject || !text) {
+  async function sendGmailMessage(payload: GmailPayload): Promise<ApiResponse> {
+    if (!payload.to || !payload.subject || !payload.text) {
       throw new ApiError('Email recipient, subject, and text are required')
     }
 
@@ -365,7 +368,7 @@ export function useApi() {
     try {
       const response = await fetchWithCors<ApiResponse>(`${API_CONFIG.BASE_URL}/gmail/send`, {
         method: 'POST',
-        body: JSON.stringify({ to, subject, text }),
+        body: JSON.stringify(payload),
       })
 
       return response
@@ -409,8 +412,6 @@ export function useApi() {
     }
   }
 
-  // Helper functions for mock data generation
-
   /**
    * Get default unit for a sensor type
    *
@@ -450,27 +451,27 @@ export function useApi() {
     return history
   }
 
-  // Return the public API interface
+  /** Return the public API interface */
   return {
-    // Reactive state
+    /** Reactive state */
     isLoading,
     error,
 
-    // Core API methods
+    /** Core API methods */
     fetchSensorData,
     fetchFiles,
     fetchFileById,
     updateFileById,
     appendSensorData,
 
-    // Communication methods
+    /** Communication methods */
     sendWhatsAppMessage,
     sendGmailMessage,
 
-    // Utility methods
+    /** Utility methods */
     refreshData,
 
-    // Configuration
+    /** Configuration */
     API_CONFIG,
   }
 }
@@ -478,5 +479,12 @@ export function useApi() {
 /**
  * Export types for external use
  */
-export type { ApiResponse, SensorApiResponse, FileMetadata, SensorHistoryData }
+export type {
+  ApiResponse,
+  SensorApiResponse,
+  FileMetadata,
+  SensorHistoryData,
+  WhatsAppPayload,
+  GmailPayload,
+}
 export { ApiError }

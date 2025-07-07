@@ -3,6 +3,11 @@
  */
 
 /**
+ * Valid timeframe options
+ */
+export type TimeframeOption = '24h' | '7d' | '30d'
+
+/**
  * Format a date as a time string with specified options
  * @param date The date to format
  * @param options Formatting options
@@ -33,7 +38,7 @@ export function formatCurrentTime(options: Intl.DateTimeFormatOptions = {}): str
  * @param timeframe The timeframe ('24h', '7d', or '30d')
  * @returns Formatted time label
  */
-export function getTimeLabel(date: Date, timeframe: string): string {
+export function getTimeLabel(date: Date, timeframe: TimeframeOption): string {
   if (timeframe === '24h') {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   } else if (timeframe === '7d') {

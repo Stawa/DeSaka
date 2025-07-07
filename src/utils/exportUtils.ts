@@ -3,6 +3,45 @@
  */
 
 /**
+ * Export data point interface
+ */
+interface ExportDataPoint {
+  timestamp: string
+  value: number
+}
+
+/**
+ * Sensor information interface
+ */
+interface SensorInfo {
+  name: string
+  unit: string
+}
+
+/**
+ * Export format type
+ */
+export type ExportFormat = 'csv' | 'json' | 'excel'
+
+/**
+ * Date range interface
+ */
+interface DateRange {
+  start: string
+  end: string
+}
+
+/**
+ * Export options interface
+ */
+interface ExportOptions {
+  format: ExportFormat
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>
+  dateRange: { start: string | null; end: string | null }
+  timeRange: { start: string; end: string }
+}
+
+/**
  * Export data as CSV file
  * @param data The data to export
  * @param filename The name of the file to download
@@ -10,10 +49,10 @@
  * @param sensorInfo Map of sensor information (name, unit)
  */
 export function exportAsCSV(
-  data: Record<string, Array<{ timestamp: string; value: number }>>,
+  data: Record<string, ExportDataPoint[]>,
   filename: string,
   sensors: string[],
-  sensorInfo: Record<string, { name: string; unit: string }>,
+  sensorInfo: Record<string, SensorInfo>,
 ): void {
   let csv = 'Timestamp'
   sensors.forEach((sensorId) => {
@@ -71,12 +110,19 @@ export function exportAsCSV(
  * @param sensorInfo Map of sensor information (name, unit)
  */
 export function exportAsJSON(
-  data: Record<string, Array<{ timestamp: string; value: number }>>,
+  data: Record<string, ExportDataPoint[]>,
   filename: string,
   sensors: string[],
-  sensorInfo: Record<string, { name: string; unit: string }>,
+  sensorInfo: Record<string, SensorInfo>,
 ): void {
-  const filteredData: Record<string, any> = {}
+  const filteredData: Record<
+    string,
+    {
+      name: string
+      unit: string
+      readings: ExportDataPoint[]
+    }
+  > = {}
 
   sensors.forEach((sensorId) => {
     if (data[sensorId]) {
@@ -114,10 +160,10 @@ export function exportAsJSON(
  * @param sensorInfo Map of sensor information (name, unit)
  */
 export function exportAsExcel(
-  data: Record<string, Array<{ timestamp: string; value: number }>>,
+  data: Record<string, ExportDataPoint[]>,
   filename: string,
   sensors: string[],
-  sensorInfo: Record<string, { name: string; unit: string }>,
+  sensorInfo: Record<string, SensorInfo>,
 ): void {
   exportAsCSV(data, filename, sensors, sensorInfo)
 }
@@ -145,7 +191,7 @@ function downloadFile(content: string, filename: string, contentType: string): v
  * @param dateRange The date range to format
  * @returns A string representation of the date range
  */
-export function formatDateRangeForFilename(dateRange: { start: string; end: string }): string {
+export function formatDateRangeForFilename(dateRange: DateRange): string {
   return `${dateRange.start}_to_${dateRange.end}`
 }
 
@@ -158,8 +204,8 @@ export function formatDateRangeForFilename(dateRange: { start: string; end: stri
  */
 export function generateExportFilename(
   dataType: string,
-  format: string,
-  dateRange: { start: string; end: string },
+  format: ExportFormat,
+  dateRange: DateRange,
 ): string {
   const dateStr = formatDateRangeForFilename(dateRange)
   return `${dataType}_data_${dateStr}.${format === 'excel' ? 'xlsx' : format}`
@@ -171,19 +217,15 @@ export function generateExportFilename(
  * @param options Export options including format, sensors, dateRange, and timeRange
  * @param exportData Optional data to export
  * @param sensorInfo Optional sensor information
+ * @returns Promise that resolves when export is complete
  */
 export async function handleDataExport(
-  options: {
-    format: string
-    sensors: any[]
-    dateRange: { start: string | null; end: string | null }
-    timeRange: { start: string; end: string }
-  },
-  exportData?: Record<string, Array<{ timestamp: string; value: number }>>,
-  sensorInfo?: Record<string, { name: string; unit: string }>
+  options: ExportOptions,
+  exportData?: Record<string, ExportDataPoint[]>,
+  sensorInfo?: Record<string, SensorInfo>,
 ): Promise<void> {
   try {
-    const dateRange = {
+    const dateRange: DateRange = {
       start:
         options.dateRange.start ??
         new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -191,9 +233,9 @@ export async function handleDataExport(
     }
 
     const sensorIds = options.sensors.map((s) => (typeof s === 'string' ? s : s.id))
-    
-    const sensorInfoToUse = sensorInfo || {};
-    
+
+    const sensorInfoToUse: Record<string, SensorInfo> = sensorInfo || {}
+
     if (!sensorInfo) {
       options.sensors.forEach((sensor) => {
         const id = typeof sensor === 'string' ? sensor : sensor.id
@@ -204,11 +246,11 @@ export async function handleDataExport(
       })
     }
 
-    let dataToExport = exportData;
-    
+    let dataToExport = exportData
+
     if (!dataToExport) {
-      dataToExport = {};
-      
+      dataToExport = {}
+
       sensorIds.forEach((id) => {
         dataToExport![id] = []
 

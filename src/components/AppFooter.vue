@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+/**
+ * Footer component for the application
+ * Displays branding, copyright information, and links
+ */
+
+/**
+ * Current year for copyright notice
+ * @constant {number}
+ */
 const currentYear = ref(new Date().getFullYear())
 </script>
 

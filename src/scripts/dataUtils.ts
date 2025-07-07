@@ -9,6 +9,11 @@ import { getTimeLabel } from './dateUtils'
 export type DataPoint = { time: string; value: number }
 
 /**
+ * Valid timeframe options
+ */
+export type Timeframe = '24h' | '7d' | '30d'
+
+/**
  * Generate mock data points based on timeframe
  * @param points Number of data points to generate
  * @param min Minimum value
@@ -20,7 +25,7 @@ export function generateMockData(
   points: number,
   min: number,
   max: number,
-  timeframe: string = '24h',
+  timeframe: Timeframe = '24h',
 ): DataPoint[] {
   const data: DataPoint[] = []
   const now = new Date()
@@ -43,7 +48,7 @@ export function generateMockData(
     const time = new Date(now.getTime() - i * interval)
     data.push({
       time: getTimeLabel(time, timeframe),
-      value: parseFloat((Math.random() * (max - min) + min).toFixed(1)),
+      value: Number.parseFloat((Math.random() * (max - min) + min).toFixed(1)),
     })
   }
 
@@ -66,7 +71,7 @@ export function generateTimeBasedData(
   min: number,
   max: number,
   endTime: Date,
-  timeframe: string,
+  timeframe: Timeframe,
 ): DataPoint[] {
   const data: DataPoint[] = []
   const msPerInterval = intervalMinutes * 60 * 1000
@@ -75,7 +80,7 @@ export function generateTimeBasedData(
     const time = new Date(endTime.getTime() - i * msPerInterval)
     data.push({
       time: getTimeLabel(time, timeframe),
-      value: parseFloat((Math.random() * (max - min) + min).toFixed(1)),
+      value: Number.parseFloat((Math.random() * (max - min) + min).toFixed(1)),
     })
   }
 
@@ -83,10 +88,15 @@ export function generateTimeBasedData(
 }
 
 /**
+ * Valid trend values
+ */
+export type TrendDirection = 'increasing' | 'decreasing' | 'stable'
+
+/**
  * Get a random trend value
  * @returns 'increasing', 'decreasing', or 'stable'
  */
-export function getRandomTrend(): 'increasing' | 'decreasing' | 'stable' {
+export function getRandomTrend(): TrendDirection {
   const rand = Math.random()
   if (rand > 0.66) return 'increasing'
   if (rand > 0.33) return 'decreasing'

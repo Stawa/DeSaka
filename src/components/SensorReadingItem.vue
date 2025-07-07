@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 import { getSensorIcon, getSensorLabel, getSensorDescription, getSensorColor } from '@/scripts'
 
+/**
+ * Component props definition
+ */
 const props = defineProps({
   sensorId: {
     type: String,
@@ -10,7 +13,7 @@ const props = defineProps({
   sensorData: {
     type: Object,
     required: true,
-  },
+  } as const,
   onClick: {
     type: Function,
     default: () => {},
@@ -22,6 +25,11 @@ const sensorLabel = computed(() => getSensorLabel(props.sensorId))
 const sensorDescription = computed(() => getSensorDescription(props.sensorId))
 const sensorColor = computed(() => getSensorColor(props.sensorId))
 
+/**
+ * Get styling information based on sensor status
+ * @param status - The current status of the sensor
+ * @returns Object containing styling classes for the status indicator
+ */
 const getStatusInfo = (status: string) => {
   const statusMap = {
     optimal: {
@@ -56,6 +64,9 @@ const getStatusInfo = (status: string) => {
   return statusMap[status as keyof typeof statusMap] || statusMap.normal
 }
 
+/**
+ * Computed property for the current sensor status styling
+ */
 const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
 </script>
 

@@ -97,7 +97,16 @@ onMounted(() => {
   refreshData()
 })
 
-function handleExport(exportOptions: any) {
+/**
+ * Handle export of soil sensor data
+ * @param exportOptions Export configuration options
+ */
+function handleExport(exportOptions: {
+  format: 'csv' | 'json' | 'excel';
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>;
+  dateRange: { start: string | null; end: string | null };
+  timeRange: { start: string; end: string };
+}) {
   const sensorsList = [
     {
       name: 'temperature',
@@ -140,7 +149,7 @@ function handleExport(exportOptions: any) {
     .filter((sensor) => sensor.selected)
     .forEach((sensor) => {
       const sensorPath = sensor.name.split('.')
-      let sensorData: any = soilData.value
+      let sensorData: Record<string, unknown> = soilData.value
 
       for (const path of sensorPath) {
         sensorData = sensorData[path]
@@ -227,10 +236,12 @@ function updateSensorTrends() {
   updateSensorTrend(soilData.value.nutrients.potassium)
 }
 
-function updateSoilData(response: any) {
+/**
+ * Updates soil data from API response
+ * @param response The API response containing sensor data
+ */
+function updateSoilData(response: Record<string, unknown>) {
   if (!response) return
-
-  const isFileApiFormat = response.temperature !== undefined || response.moisture !== undefined
 
   const sensorMappings = [
     { sensor: soilData.value.temperature, apiKey: 'soil_temperature', fileKey: 'temperature' },

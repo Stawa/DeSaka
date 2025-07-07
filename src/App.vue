@@ -8,12 +8,37 @@ import { ref, watch, onMounted, onErrorCaptured } from 'vue'
 import { usePreferredDark } from '@vueuse/core'
 import { navigateToErrorPage } from './utils/errorHandler'
 
+/**
+ * Main application component
+ * Handles layout, theme management, and error handling
+ */
+
+/**
+ * Sidebar visibility state
+ */
 const isSidebarOpen = ref(false)
+
+/**
+ * Sidebar collapsed state (minimized view)
+ */
 const isSidebarCollapsed = ref(false)
+
+/**
+ * Dark mode theme state
+ */
 const isDarkMode = ref(false)
 
+/**
+ * System preference for dark mode from @vueuse/core
+ */
 const prefersDark = usePreferredDark()
 
+/**
+ * Initialize application state on component mount
+ * - Load saved theme preference
+ * - Apply theme based on preference
+ * - Load saved sidebar state
+ */
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
@@ -29,21 +54,36 @@ onMounted(() => {
   }
 })
 
+/**
+ * Toggle sidebar open/closed state
+ */
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
 }
 
+/**
+ * Toggle sidebar collapsed/expanded state
+ * @param collapsed - Whether the sidebar should be collapsed
+ */
 const toggleSidebarCollapse = (collapsed: boolean) => {
   isSidebarCollapsed.value = collapsed
   localStorage.setItem('sidebarCollapsed', collapsed.toString())
 }
 
+/**
+ * Toggle between light and dark theme
+ * Saves preference to localStorage
+ */
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value
   localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light')
   applyTheme()
 }
 
+/**
+ * Apply the current theme to the document
+ * Adds or removes the 'dark' class from the HTML element
+ */
 const applyTheme = () => {
   if (isDarkMode.value) {
     document.documentElement.classList.add('dark')
@@ -52,12 +92,20 @@ const applyTheme = () => {
   }
 }
 
+/**
+ * Global error handler for the application
+ * Captures errors and redirects to error page
+ */
 onErrorCaptured((error, instance, info) => {
   console.error('Error captured in App.vue:', error, info)
   navigateToErrorPage('500', 'Application Error', error?.message || 'An unexpected error occurred')
   return false
 })
 
+/**
+ * Watch for system dark mode preference changes
+ * Only applies if user hasn't set a manual preference
+ */
 watch(prefersDark, (newValue) => {
   if (localStorage.getItem('theme') === null) {
     isDarkMode.value = newValue

@@ -179,21 +179,21 @@ async function updateHistoricalData(timeframe: string) {
     const soilResponse = await apiRefreshData(
       (data) => {
         if (data && data.soil_temperature && data.soil_temperature.history) {
-          historicalData.value.soilTemperature = data.soil_temperature.history.map((item: any) => ({
+          historicalData.value.soilTemperature = data.soil_temperature.history.map((item: { time: string; value: number }) => ({
             time: new Date(item.time).toLocaleString(),
             value: item.value,
           }))
         }
 
         if (data && data.soil_moisture && data.soil_moisture.history) {
-          historicalData.value.soilMoisture = data.soil_moisture.history.map((item: any) => ({
+          historicalData.value.soilMoisture = data.soil_moisture.history.map((item: { time: string; value: number }) => ({
             time: new Date(item.time).toLocaleString(),
             value: item.value,
           }))
         }
 
         if (data && data.soil_ph && data.soil_ph.history) {
-          historicalData.value.soilPH = data.soil_ph.history.map((item: any) => ({
+          historicalData.value.soilPH = data.soil_ph.history.map((item: { time: string; value: number }) => ({
             time: new Date(item.time).toLocaleString(),
             value: item.value,
           }))
@@ -206,14 +206,14 @@ async function updateHistoricalData(timeframe: string) {
     const airResponse = await apiRefreshData(
       (data) => {
         if (data && data.air_temperature && data.air_temperature.history) {
-          historicalData.value.airTemperature = data.air_temperature.history.map((item: any) => ({
+          historicalData.value.airTemperature = data.air_temperature.history.map((item: { time: string; value: number }) => ({
             time: new Date(item.time).toLocaleString(),
             value: item.value,
           }))
         }
 
         if (data && data.air_humidity && data.air_humidity.history) {
-          historicalData.value.airHumidity = data.air_humidity.history.map((item: any) => ({
+          historicalData.value.airHumidity = data.air_humidity.history.map((item: { time: string; value: number }) => ({
             time: new Date(item.time).toLocaleString(),
             value: item.value,
           }))
@@ -265,7 +265,17 @@ async function updateData() {
  *
  * @param exportOptions - Configuration for data export
  */
-function handleExport(exportOptions: any) {
+/**
+ * Export handler for data export functionality
+ *
+ * @param exportOptions - Configuration for data export
+ */
+function handleExport(exportOptions: {
+  format: 'csv' | 'json' | 'excel';
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>;
+  dateRange: { start: string | null; end: string | null };
+  timeRange: { start: string; end: string };
+}) {
   handleDataExport(exportOptions)
 }
 
@@ -276,7 +286,10 @@ function handleExport(exportOptions: any) {
  * @param soilResponse - Response from soil sensors API
  * @param airResponse - Response from air sensors API
  */
-function updateCurrentSensorValues(soilResponse: any, airResponse: any) {
+function updateCurrentSensorValues(
+  soilResponse: Record<string, unknown>,
+  airResponse: Record<string, unknown>
+) {
   const isFileApiFormat =
     soilResponse?.temperature !== undefined || airResponse?.temperature !== undefined
 

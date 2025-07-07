@@ -1,3 +1,8 @@
+/**
+ * Response API interfaces and utilities for sensor data handling
+ * Provides type-safe interfaces for API responses and data transformation utilities
+ */
+
 interface SoilReading {
   time: string
   value: number

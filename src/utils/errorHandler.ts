@@ -1,6 +1,9 @@
-import { type App } from 'vue'
+import type { App } from 'vue'
 import router from '../router'
 
+/**
+ * Error code constants
+ */
 export const ErrorCodes = {
   NOT_FOUND: '404',
   SERVER_ERROR: '500',
@@ -8,9 +11,17 @@ export const ErrorCodes = {
   FORBIDDEN: '403',
   BAD_REQUEST: '400',
   SERVICE_UNAVAILABLE: '503',
-}
+} as const
 
-export const ErrorMessages = {
+/**
+ * Error code type
+ */
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
+
+/**
+ * Error messages mapping
+ */
+export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCodes.NOT_FOUND]: 'Page Not Found',
   [ErrorCodes.SERVER_ERROR]: 'Internal Server Error',
   [ErrorCodes.UNAUTHORIZED]: 'Unauthorized Access',
@@ -19,7 +30,10 @@ export const ErrorMessages = {
   [ErrorCodes.SERVICE_UNAVAILABLE]: 'Service Unavailable',
 }
 
-export const ErrorDescriptions = {
+/**
+ * Error descriptions mapping
+ */
+export const ErrorDescriptions: Record<ErrorCode, string> = {
   [ErrorCodes.NOT_FOUND]: "The page you're looking for doesn't exist or has been moved.",
   [ErrorCodes.SERVER_ERROR]: "Something went wrong on our servers. We're working to fix the issue.",
   [ErrorCodes.UNAUTHORIZED]: 'You need to be logged in to access this page.',
@@ -29,21 +43,55 @@ export const ErrorDescriptions = {
     'The service is temporarily unavailable. Please try again later.',
 }
 
-export const navigateToErrorPage = (code: string, message?: string, description?: string) => {
+/**
+ * API error response interface
+ * Represents the structure of error responses from API calls
+ */
+interface ApiErrorResponse {
+  /** HTTP status code of the response */
+  status?: number
+  /** Response data containing error details */
+  data?: {
+    /** Error message from the API */
+    message?: string
+    /** Detailed error description */
+    description?: string
+  }
+}
+
+/**
+ * Enhanced error interface
+ * Extends the standard Error with additional API response information
+ */
+interface EnhancedError extends Error {
+  /** API response data attached to the error */
+  response?: ApiErrorResponse
+  /** Additional properties that might be present */
+  [key: string]: unknown
+}
+
+/**
+ * Navigate to error page with specified parameters
+ * @param code Error code
+ * @param message Optional custom error message
+ * @param description Optional custom error description
+ */
+export const navigateToErrorPage = (code: string, message?: string, description?: string): void => {
   router.push({
     name: 'error',
     query: {
       code,
-      message: message ?? ErrorMessages[code as keyof typeof ErrorMessages] ?? 'Error',
-      description:
-        description ??
-        ErrorDescriptions[code as keyof typeof ErrorDescriptions] ??
-        'An error occurred.',
+      message: message ?? ErrorMessages[code as ErrorCode] ?? 'Error',
+      description: description ?? ErrorDescriptions[code as ErrorCode] ?? 'An error occurred.',
     },
   })
 }
 
-export const setupGlobalErrorHandlers = (app: App) => {
+/**
+ * Setup global error handlers for the Vue application
+ * @param app Vue application instance
+ */
+export const setupGlobalErrorHandlers = (app: App): void => {
   app.config.errorHandler = (error, instance, info) => {
     console.error('Vue Error:', error)
     console.error('Error Info:', info)
@@ -67,20 +115,19 @@ export const setupGlobalErrorHandlers = (app: App) => {
 
 /**
  * Handle API errors and navigate to appropriate error page
+ * @param error The error object to handle
+ * @returns Promise that rejects with the original error
  */
-export const handleApiError = (error: Error & { response?: { status?: number; data?: { message?: string; description?: string } } }) => {
+export const handleApiError = (error: EnhancedError): Promise<Error> => {
   console.error('API Error:', error)
 
   const statusCode = error?.response?.status?.toString() ?? ErrorCodes.SERVER_ERROR
   const errorMessage =
-    error?.response?.data?.message ??
-    error?.message ??
-    ErrorMessages[statusCode as keyof typeof ErrorMessages]
+    error?.response?.data?.message ?? error?.message ?? ErrorMessages[statusCode as ErrorCode]
   const errorDescription =
-    error?.response?.data?.description ??
-    ErrorDescriptions[statusCode as keyof typeof ErrorDescriptions]
+    error?.response?.data?.description ?? ErrorDescriptions[statusCode as ErrorCode]
 
   navigateToErrorPage(statusCode, errorMessage, errorDescription)
-  
+
   return Promise.reject(error)
 }

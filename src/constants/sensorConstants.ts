@@ -5,10 +5,55 @@
  */
 
 /**
+ * Sensor status type definition
+ */
+export type SensorStatus = 'optimal' | 'normal' | 'warning' | 'critical' | 'inactive'
+
+/**
+ * Sensor trend type definition
+ */
+export type SensorTrend = 'increasing' | 'decreasing' | 'stable'
+
+/**
+ * Sensor category type definition
+ */
+export type SensorCategory = 'Soil' | 'Air' | 'Environment'
+
+/**
+ * Sensor status configuration interface
+ */
+interface SensorStatusConfig {
+  badge: string
+  dot: string
+  iconBg: string
+  iconColor: string
+  ring: string
+}
+
+/**
+ * Sensor trend configuration interface
+ */
+interface SensorTrendConfig {
+  icon: string
+  color: string
+  bg: string
+}
+
+/**
+ * Chart color theme interface
+ */
+interface ChartColorTheme {
+  primary: string
+  light: string
+  bg: string
+  gradient: [string, string, string]
+}
+
+/**
  * Sensor status configuration mapping
  * Defines visual styling for different sensor states
  */
-export const SENSOR_STATUS_CONFIG = {
+export const SENSOR_STATUS_CONFIG: Record<SensorStatus, SensorStatusConfig> = {
   optimal: {
     badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
     dot: 'bg-emerald-500',
@@ -50,7 +95,7 @@ export const SENSOR_STATUS_CONFIG = {
  * Sensor trend configuration mapping
  * Defines visual styling for different trend indicators
  */
-export const SENSOR_TREND_CONFIG = {
+export const SENSOR_TREND_CONFIG: Record<SensorTrend, SensorTrendConfig> = {
   increasing: {
     icon: 'mdi-trending-up',
     color: 'text-emerald-500',
@@ -72,7 +117,7 @@ export const SENSOR_TREND_CONFIG = {
  * Category color configuration mapping
  * Defines visual styling for different sensor categories
  */
-export const CATEGORY_COLOR_CONFIG = {
+export const CATEGORY_COLOR_CONFIG: Record<SensorCategory, string> = {
   Soil: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
   Air: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   Environment: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
@@ -82,7 +127,7 @@ export const CATEGORY_COLOR_CONFIG = {
  * Sensor icon mapping
  * Maps sensor types to their corresponding Material Design Icons
  */
-export const SENSOR_ICON_MAP = {
+export const SENSOR_ICON_MAP: Record<string, string> = {
   thermometer: 'mdi-thermometer',
   'water-percent': 'mdi-water-percent',
   flask: 'mdi-flask',
@@ -96,8 +141,8 @@ export const SENSOR_ICON_MAP = {
  * Provides fallback values for sensor properties
  */
 export const DEFAULT_SENSOR_CONFIG = {
-  status: 'inactive',
-  trend: 'stable',
+  status: 'inactive' as SensorStatus,
+  trend: 'stable' as SensorTrend,
   icon: 'mdi-circle',
   unit: '',
   value: 0,
@@ -112,18 +157,18 @@ export interface SensorDataStructure {
   name: string
   value: number
   unit: string
-  status: keyof typeof SENSOR_STATUS_CONFIG
+  status: SensorStatus
   icon: string
-  category: keyof typeof CATEGORY_COLOR_CONFIG
+  category: SensorCategory
   lastUpdate: string
-  trend: keyof typeof SENSOR_TREND_CONFIG
+  trend: SensorTrend
 }
 
 /**
  * Chart color themes for different sensors
  * Provides consistent color schemes across all charts
  */
-export const CHART_COLOR_THEMES = {
+export const CHART_COLOR_THEMES: Record<string, ChartColorTheme> = {
   '#10B981': {
     primary: '#10B981',
     light: '#34D399',

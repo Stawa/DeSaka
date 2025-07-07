@@ -12,14 +12,49 @@ import {
   DEFAULT_SENSOR_CONFIG,
   CHART_COLOR_THEMES,
   type SensorDataStructure,
+  type SensorStatus,
+  type SensorTrend,
+  type SensorCategory,
 } from '@/constants/sensorConstants'
+
+/**
+ * Raw sensor data interface
+ */
+interface RawSensorData {
+  [key: string]: {
+    value?: number
+    unit?: string
+    status?: string
+  }
+}
+
+/**
+ * Sensor mapping configuration interface
+ */
+interface SensorMapping {
+  id: string
+  name: string
+  icon: string
+  category: SensorCategory
+  dataKey: string
+}
+
+/**
+ * Chart color theme interface
+ */
+interface ChartColorTheme {
+  primary: string
+  light: string
+  bg: string
+  gradient: [string, string, string]
+}
 
 /**
  * Retrieves the status configuration for a given sensor status
  * @param status - The sensor status key
  * @returns The corresponding status configuration object
  */
-export function getSensorStatusConfig(status: keyof typeof SENSOR_STATUS_CONFIG) {
+export function getSensorStatusConfig(status: SensorStatus) {
   return SENSOR_STATUS_CONFIG[status] || SENSOR_STATUS_CONFIG.inactive
 }
 
@@ -28,7 +63,7 @@ export function getSensorStatusConfig(status: keyof typeof SENSOR_STATUS_CONFIG)
  * @param trend - The sensor trend key
  * @returns The corresponding trend configuration object
  */
-export function getSensorTrendConfig(trend: keyof typeof SENSOR_TREND_CONFIG) {
+export function getSensorTrendConfig(trend: SensorTrend) {
   return SENSOR_TREND_CONFIG[trend] || SENSOR_TREND_CONFIG.stable
 }
 
@@ -37,7 +72,7 @@ export function getSensorTrendConfig(trend: keyof typeof SENSOR_TREND_CONFIG) {
  * @param category - The sensor category key
  * @returns The corresponding category color configuration string
  */
-export function getCategoryColorConfig(category: keyof typeof CATEGORY_COLOR_CONFIG) {
+export function getCategoryColorConfig(category: SensorCategory): string {
   return CATEGORY_COLOR_CONFIG[category] || CATEGORY_COLOR_CONFIG.Environment
 }
 
@@ -47,7 +82,7 @@ export function getCategoryColorConfig(category: keyof typeof CATEGORY_COLOR_CON
  * @returns The corresponding MDI class name
  */
 export function getSensorIconClass(iconKey: string): string {
-  return SENSOR_ICON_MAP[iconKey as keyof typeof SENSOR_ICON_MAP] || DEFAULT_SENSOR_CONFIG.icon
+  return SENSOR_ICON_MAP[iconKey] || DEFAULT_SENSOR_CONFIG.icon
 }
 
 /**
@@ -55,10 +90,8 @@ export function getSensorIconClass(iconKey: string): string {
  * @param color - The color key for the theme
  * @returns The corresponding chart color theme object
  */
-export function getChartColorTheme(color: string) {
-  return (
-    CHART_COLOR_THEMES[color as keyof typeof CHART_COLOR_THEMES] || CHART_COLOR_THEMES['#10B981']
-  )
+export function getChartColorTheme(color: string): ChartColorTheme {
+  return CHART_COLOR_THEMES[color] || CHART_COLOR_THEMES['#10B981']
 }
 
 /**
@@ -66,48 +99,48 @@ export function getChartColorTheme(color: string) {
  * @param rawData - Raw sensor data from API or props
  * @returns Array of standardized sensor data structures
  */
-export function transformSensorData(rawData: Record<string, any>): SensorDataStructure[] {
-  const sensorMappings = [
+export function transformSensorData(rawData: RawSensorData): SensorDataStructure[] {
+  const sensorMappings: SensorMapping[] = [
     {
       id: 'soilTemperature',
       name: 'Soil Temperature',
       icon: 'thermometer',
-      category: 'Soil' as const,
+      category: 'Soil',
       dataKey: 'soilTemperature',
     },
     {
       id: 'soilMoisture',
       name: 'Soil Moisture',
       icon: 'water-percent',
-      category: 'Soil' as const,
+      category: 'Soil',
       dataKey: 'soilMoisture',
     },
     {
       id: 'soilPH',
       name: 'Soil pH Level',
       icon: 'flask',
-      category: 'Soil' as const,
+      category: 'Soil',
       dataKey: 'soilPH',
     },
     {
       id: 'airTemperature',
       name: 'Air Temperature',
       icon: 'weather-partly-cloudy',
-      category: 'Air' as const,
+      category: 'Air',
       dataKey: 'airTemperature',
     },
     {
       id: 'airHumidity',
       name: 'Air Humidity',
       icon: 'water',
-      category: 'Air' as const,
+      category: 'Air',
       dataKey: 'airHumidity',
     },
     {
       id: 'lightIntensity',
       name: 'Light Intensity',
       icon: 'white-balance-sunny',
-      category: 'Environment' as const,
+      category: 'Environment',
       dataKey: 'lightIntensity',
     },
   ]
@@ -117,12 +150,11 @@ export function transformSensorData(rawData: Record<string, any>): SensorDataStr
     name: mapping.name,
     value: rawData[mapping.dataKey]?.value || DEFAULT_SENSOR_CONFIG.value,
     unit: rawData[mapping.dataKey]?.unit || getDefaultUnit(mapping.id),
-    status: (rawData[mapping.dataKey]?.status ||
-      DEFAULT_SENSOR_CONFIG.status) as keyof typeof SENSOR_STATUS_CONFIG,
+    status: (rawData[mapping.dataKey]?.status || DEFAULT_SENSOR_CONFIG.status) as SensorStatus,
     icon: getSensorIconClass(mapping.icon),
     category: mapping.category,
-    lastUpdate: getRelativeTime(index + 1), // Mock relative time based on index
-    trend: DEFAULT_SENSOR_CONFIG.trend as keyof typeof SENSOR_TREND_CONFIG,
+    lastUpdate: getRelativeTime(index + 1),
+    trend: DEFAULT_SENSOR_CONFIG.trend,
   }))
 }
 
@@ -178,7 +210,7 @@ export function formatSensorValue(value: number | string, decimals = 1): string 
  * @param status - The status to validate
  * @returns Boolean indicating if the status is valid
  */
-export function isValidSensorStatus(status: string): status is keyof typeof SENSOR_STATUS_CONFIG {
+export function isValidSensorStatus(status: string): status is SensorStatus {
   return status in SENSOR_STATUS_CONFIG
 }
 
@@ -187,6 +219,6 @@ export function isValidSensorStatus(status: string): status is keyof typeof SENS
  * @param trend - The trend to validate
  * @returns Boolean indicating if the trend is valid
  */
-export function isValidSensorTrend(trend: string): trend is keyof typeof SENSOR_TREND_CONFIG {
+export function isValidSensorTrend(trend: string): trend is SensorTrend {
   return trend in SENSOR_TREND_CONFIG
 }

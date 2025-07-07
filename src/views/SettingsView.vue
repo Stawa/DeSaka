@@ -103,7 +103,14 @@ async function loadSettingsFromDrive() {
     if (response && Object.keys(response).length > 0) {
       const mergedSettings = JSON.parse(JSON.stringify(originalSettings))
 
-      const deepMerge = (target: any, source: any) => {
+      /**
+       * Deep merges source object into target object
+       * 
+       * @param target - The target object to merge into
+       * @param source - The source object to merge from
+       * @returns The merged target object
+       */
+      const deepMerge = (target: Record<string, unknown>, source: Record<string, unknown>) => {
         for (const key in source) {
           if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
             if (!target[key] || typeof target[key] !== 'object') {

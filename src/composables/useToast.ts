@@ -44,6 +44,17 @@ interface ToastConfig {
 }
 
 /**
+ * Toast type styling configuration interface
+ */
+interface ToastTypeConfig {
+  icon: string
+  bgColor: string
+  borderColor: string
+  textColor: string
+  iconColor: string
+}
+
+/**
  * Default toast configuration
  */
 const DEFAULT_TOAST_CONFIG: ToastConfig = {
@@ -57,7 +68,7 @@ const DEFAULT_TOAST_CONFIG: ToastConfig = {
 /**
  * Toast type configuration for styling and icons
  */
-const TOAST_TYPE_CONFIG = {
+const TOAST_TYPE_CONFIG: Record<ToastType, ToastTypeConfig> = {
   success: {
     icon: 'mdi-check-circle',
     bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
@@ -94,13 +105,13 @@ const TOAST_TYPE_CONFIG = {
  * @returns Object containing toast state and methods
  */
 export function useToast() {
-  // Reactive toast state
+  /** Reactive toast state */
   const toast: Ref<ToastConfig> = ref({ ...DEFAULT_TOAST_CONFIG })
 
-  // Toast queue for managing multiple toasts
+  /** Toast queue for managing multiple toasts */
   const toastQueue: Ref<ToastConfig[]> = ref([])
 
-  // Active timeout reference for cleanup
+  /** Active timeout reference for cleanup */
   let activeTimeout: NodeJS.Timeout | null = null
 
   /**
@@ -117,7 +128,7 @@ export function useToast() {
     timeout = 3000,
     options: Partial<ToastConfig> = {},
   ): void => {
-    // Validate input parameters
+    /** Validate input parameters */
     if (!message || typeof message !== 'string') {
       console.warn('[Toast] Invalid message provided:', message)
       return
@@ -128,16 +139,16 @@ export function useToast() {
       type = 'info'
     }
 
-    // Clear any existing timeout
+    /** Clear any existing timeout */
     if (activeTimeout) {
       clearTimeout(activeTimeout)
       activeTimeout = null
     }
 
-    // Generate unique ID for the toast
+    /** Generate unique ID for the toast */
     const toastId = generateToastId()
 
-    // Create new toast configuration
+    /** Create new toast configuration */
     const newToast: ToastConfig = {
       show: true,
       message,
@@ -148,20 +159,20 @@ export function useToast() {
       ...options,
     }
 
-    // Update reactive toast state
+    /** Update reactive toast state */
     toast.value = newToast
 
-    // Add to queue for potential future use
+    /** Add to queue for potential future use */
     toastQueue.value.push(newToast)
 
-    // Set up auto-dismiss if timeout is specified
+    /** Set up auto-dismiss if timeout is specified */
     if (timeout > 0) {
       activeTimeout = setTimeout(() => {
         hideToast()
       }, timeout)
     }
 
-    // Log toast display for debugging
+    /** Log toast display for debugging */
     console.log(`[Toast] Displaying ${type} toast:`, message)
   }
 
@@ -171,17 +182,17 @@ export function useToast() {
   const hideToast = (): void => {
     toast.value.show = false
 
-    // Clear timeout if active
+    /** Clear timeout if active */
     if (activeTimeout) {
       clearTimeout(activeTimeout)
       activeTimeout = null
     }
 
-    // Remove from queue after animation completes
+    /** Remove from queue after animation completes */
     setTimeout(() => {
       toast.value = { ...DEFAULT_TOAST_CONFIG }
       toastQueue.value = toastQueue.value.filter((t) => t.id !== toast.value.id)
-    }, 300) // Allow time for exit animation
+    }, 300)
   }
 
   /**
@@ -243,11 +254,9 @@ export function useToast() {
    * @param type - The toast type
    * @returns Styling configuration object
    */
-  const getToastTypeConfig = (type: ToastType) => {
+  const getToastTypeConfig = (type: ToastType): ToastTypeConfig => {
     return TOAST_TYPE_CONFIG[type] || TOAST_TYPE_CONFIG.info
   }
-
-  // Helper functions
 
   /**
    * Validate if a string is a valid toast type
@@ -268,27 +277,27 @@ export function useToast() {
     return `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
 
-  // Return the public API
+  /** Return the public API */
   return {
-    // Reactive state
+    /** Reactive state */
     toast,
     toastQueue,
 
-    // Core methods
+    /** Core methods */
     showToast,
     hideToast,
     clearAllToasts,
 
-    // Convenience methods
+    /** Convenience methods */
     showSuccess,
     showError,
     showWarning,
     showInfo,
 
-    // Utility methods
+    /** Utility methods */
     getToastTypeConfig,
 
-    // Configuration
+    /** Configuration */
     TOAST_TYPE_CONFIG,
   }
 }
@@ -296,4 +305,4 @@ export function useToast() {
 /**
  * Export types for external use
  */
-export type { ToastConfig }
+export type { ToastConfig, ToastTypeConfig }

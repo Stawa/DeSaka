@@ -29,7 +29,7 @@ export interface SensorData {
 export interface SensorResponse {
   history?: { time: string; value: number }[]
   unit?: string
-  [key: string]: any
+  [key: string]: string | number | boolean | { time: string; value: number }[] | undefined
 }
 
 /**
@@ -41,7 +41,7 @@ export interface SensorResponse {
  */
 export function updateSensorDataFromResponse(
   sensorData: SensorData,
-  response: any,
+  response: Record<string, SensorResponse>,
   sensorKey: string,
   fileApiKey?: string,
 ): void {
@@ -54,12 +54,12 @@ export function updateSensorDataFromResponse(
     if (responseData.history && responseData.history.length > 0) {
       const latestReading = responseData.history[responseData.history.length - 1]
       sensorData.value = latestReading.value
-      sensorData.history = responseData.history.map((item: any) => ({
+      sensorData.history = responseData.history.map((item: { time: string; value: number }) => ({
         time: new Date(item.time).toLocaleString(),
         value: item.value,
       }))
     }
-    if (responseData.unit) {
+    if (responseData.unit && typeof responseData.unit === 'string') {
       sensorData.unit = responseData.unit
     }
   }
@@ -105,18 +105,40 @@ export function updateSensorTrend(sensorData: SensorData): void {
 }
 
 /**
+ * Export data structure interface
+ */
+interface ExportData {
+  timestamp: string
+  value: number
+}
+
+/**
+ * Sensor info structure interface
+ */
+interface SensorInfo {
+  name: string
+  unit: string
+}
+
+/**
  * Format sensor data for export
  * @param sensorData The sensor data object
  * @param sensorName The name of the sensor for the export
  * @returns Formatted export data and sensor info
  */
-export function formatSensorDataForExport(sensorData: SensorData, sensorName: string) {
-  const exportData = sensorData.history.map((point) => ({
+export function formatSensorDataForExport(
+  sensorData: SensorData,
+  sensorName: string,
+): {
+  exportData: ExportData[]
+  sensorInfo: SensorInfo
+} {
+  const exportData: ExportData[] = sensorData.history.map((point) => ({
     timestamp: point.time,
     value: point.value,
   }))
 
-  const sensorInfo = {
+  const sensorInfo: SensorInfo = {
     name: sensorName,
     unit: sensorData.unit,
   }
@@ -124,17 +146,25 @@ export function formatSensorDataForExport(sensorData: SensorData, sensorName: st
   return { exportData, sensorInfo }
 }
 
+/**
+ * Date range interface
+ */
 interface DateRange {
   startDate: string
   endDate: string
 }
 
 /**
+ * Valid timeframe options
+ */
+type TimeframeOption = '24h' | '7d' | '30d'
+
+/**
  * Get date range parameters based on timeframe
  * @param timeframe The timeframe ('24h', '7d', or '30d')
  * @returns Object with startDate and endDate strings
  */
-export function getDateRangeFromTimeframe(timeframe: string): DateRange {
+export function getDateRangeFromTimeframe(timeframe: TimeframeOption): DateRange {
   const endDate = new Date().toISOString().split('T')[0]
   const startDate = new Date()
 
