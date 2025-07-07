@@ -136,7 +136,7 @@ interface DateRange {
  */
 export function getDateRangeFromTimeframe(timeframe: string): DateRange {
   const endDate = new Date().toISOString().split('T')[0]
-  let startDate = new Date()
+  const startDate = new Date()
 
   if (timeframe === '7d') {
     startDate.setDate(startDate.getDate() - 7)

@@ -192,7 +192,7 @@ export async function handleDataExport(
 
     const sensorIds = options.sensors.map((s) => (typeof s === 'string' ? s : s.id))
     
-    let sensorInfoToUse = sensorInfo || {};
+    const sensorInfoToUse = sensorInfo || {};
     
     if (!sensorInfo) {
       options.sensors.forEach((sensor) => {

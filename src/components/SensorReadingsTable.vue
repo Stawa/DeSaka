@@ -1,144 +1,90 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+/**
+ * SensorReadingsTable Component
+ *
+ * A table-based layout component for displaying sensor readings in a structured,
+ * data-dense format. This component provides an alternative view to the grid layout,
+ * offering better data comparison and detailed information display.
+ *
+ * Features:
+ * - Responsive table design with horizontal scrolling on mobile
+ * - Consistent styling with status indicators and category badges
+ * - Interactive rows with hover effects and click handling
+ * - Accessibility support with proper table semantics
+ * - Reuses centralized sensor data transformation logic
+ */
 
-const props = defineProps({
-  sensorData: {
-    type: Object,
-    required: true,
-  },
-  onSensorClick: {
-    type: Function,
-    default: () => {},
-  },
+import { computed } from 'vue'
+import {
+  transformSensorData,
+  getSensorStatusConfig,
+  getCategoryColorConfig,
+} from '@/utils/sensorHelpers'
+import { type SensorDataStructure } from '@/constants/sensorConstants'
+
+/**
+ * Component props interface
+ */
+interface Props {
+  /** Raw sensor data object from API or parent component */
+  sensorData: Record<string, unknown>
+  /** Optional callback function for sensor row click events */
+  onSensorClick?: (sensorId: string) => void
+}
+
+/**
+ * Define component props with defaults
+ */
+const props = withDefaults(defineProps<Props>(), {
+  onSensorClick: () => {},
 })
 
-const tableData = computed(() => [
-  {
-    id: 'soilTemperature',
-    name: 'Soil Temperature',
-    value: props.sensorData.soilTemperature?.value || 0,
-    unit: props.sensorData.soilTemperature?.unit || '°C',
-    status: props.sensorData.soilTemperature?.status || 'inactive',
-    icon: 'mdi-thermometer',
-    category: 'Soil',
-    lastUpdate: '2 min ago',
-  },
-  {
-    id: 'soilMoisture',
-    name: 'Soil Moisture',
-    value: props.sensorData.soilMoisture?.value || 0,
-    unit: props.sensorData.soilMoisture?.unit || '%',
-    status: props.sensorData.soilMoisture?.status || 'inactive',
-    icon: 'mdi-water-percent',
-    category: 'Soil',
-    lastUpdate: '1 min ago',
-  },
-  {
-    id: 'soilPH',
-    name: 'Soil pH Level',
-    value: props.sensorData.soilPH?.value || 0,
-    unit: props.sensorData.soilPH?.unit || 'pH',
-    status: props.sensorData.soilPH?.status || 'inactive',
-    icon: 'mdi-flask',
-    category: 'Soil',
-    lastUpdate: '3 min ago',
-  },
-  {
-    id: 'airTemperature',
-    name: 'Air Temperature',
-    value: props.sensorData.airTemperature?.value || 0,
-    unit: props.sensorData.airTemperature?.unit || '°C',
-    status: props.sensorData.airTemperature?.status || 'inactive',
-    icon: 'mdi-weather-partly-cloudy',
-    category: 'Air',
-    lastUpdate: '1 min ago',
-  },
-  {
-    id: 'airHumidity',
-    name: 'Air Humidity',
-    value: props.sensorData.airHumidity?.value || 0,
-    unit: props.sensorData.airHumidity?.unit || '%',
-    status: props.sensorData.airHumidity?.status || 'inactive',
-    icon: 'mdi-water',
-    category: 'Air',
-    lastUpdate: '2 min ago',
-  },
-  {
-    id: 'lightIntensity',
-    name: 'Light Intensity',
-    value: props.sensorData.lightIntensity?.value || 0,
-    unit: props.sensorData.lightIntensity?.unit || 'lux',
-    status: props.sensorData.lightIntensity?.status || 'inactive',
-    icon: 'mdi-white-balance-sunny',
-    category: 'Environment',
-    lastUpdate: '1 min ago',
-  },
-])
+/**
+ * Computed property for table data
+ * Transforms raw sensor data into standardized table row data
+ */
+const tableData = computed((): SensorDataStructure[] => {
+  return transformSensorData(props.sensorData)
+})
 
-const getStatusConfig = (status: string) => {
-  const configs = {
-    optimal: {
-      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-      dot: 'bg-emerald-500',
-      iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',
-      iconColor: 'text-emerald-600 dark:text-emerald-400',
-    },
-    warning: {
-      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-      dot: 'bg-amber-500',
-      iconBg: 'bg-amber-50 dark:bg-amber-900/20',
-      iconColor: 'text-amber-600 dark:text-amber-400',
-    },
-    critical: {
-      badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-      dot: 'bg-red-500',
-      iconBg: 'bg-red-50 dark:bg-red-900/20',
-      iconColor: 'text-red-600 dark:text-red-400',
-    },
-    inactive: {
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-      dot: 'bg-gray-400',
-      iconBg: 'bg-gray-50 dark:bg-gray-800/30',
-      iconColor: 'text-gray-500 dark:text-gray-400',
-    },
+/**
+ * Handles sensor row click events
+ * Delegates to the provided onSensorClick callback with the sensor category
+ *
+ * @param sensorCategory - The category of the clicked sensor row
+ */
+const handleSensorClick = (sensorCategory: string): void => {
+  if (props.onSensorClick) {
+    props.onSensorClick(sensorCategory.toLowerCase())
   }
-  return configs[status as keyof typeof configs] || configs.inactive
-}
-
-const getCategoryColor = (category: string) => {
-  const colors = {
-    Soil: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-    Air: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    Environment: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-  }
-  return colors[category as keyof typeof colors] || colors.Environment
-}
-
-const handleSensorClick = (sensorId: string) => {
-  props.onSensorClick(sensorId)
 }
 </script>
 
 <template>
   <div
     class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden"
+    role="region"
+    aria-label="Sensor readings table"
   >
-    <!-- Subtle accent bar -->
-    <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+    <!-- Visual Accent Bar -->
+    <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-600" aria-hidden="true"></div>
 
-    <!-- Header -->
+    <!-- Header Section -->
     <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <!-- Title Section -->
+        <!-- Title Section with Icon -->
         <div class="flex items-center gap-4">
+          <!-- Header Icon Container -->
           <div
             class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/20 flex items-center justify-center ring-1 ring-emerald-200/50 dark:ring-emerald-700/30"
+            aria-hidden="true"
           >
             <svg
               class="w-6 h-6 text-emerald-600 dark:text-emerald-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -148,6 +94,8 @@ const handleSensorClick = (sensorId: string) => {
               />
             </svg>
           </div>
+
+          <!-- Header Text Content -->
           <div>
             <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Sensor Readings</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -158,56 +106,78 @@ const handleSensorClick = (sensorId: string) => {
       </div>
     </div>
 
-    <!-- Table -->
+    <!-- Table Container with Horizontal Scroll -->
     <div class="overflow-x-auto">
-      <table class="w-full">
+      <table class="w-full" role="table" aria-label="Sensor readings data">
+        <!-- Table Header -->
         <thead class="bg-gray-50/50 dark:bg-gray-800/50">
-          <tr>
+          <tr role="row">
             <th
               class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              scope="col"
             >
               Sensor
             </th>
             <th
               class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              scope="col"
             >
               Category
             </th>
             <th
               class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              scope="col"
             >
               Current Value
             </th>
             <th
               class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              scope="col"
             >
               Status
             </th>
             <th
               class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              scope="col"
             >
               Last Update
             </th>
           </tr>
         </thead>
+
+        <!-- Table Body -->
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Individual Sensor Rows -->
           <tr
             v-for="sensor in tableData"
             :key="sensor.id"
-            class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors duration-200 cursor-pointer"
-            @click="handleSensorClick(sensor.category.toLowerCase())"
+            class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors duration-200 cursor-pointer focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50"
+            @click="handleSensorClick(sensor.category)"
+            @keydown.enter="handleSensorClick(sensor.category)"
+            @keydown.space.prevent="handleSensorClick(sensor.category)"
+            role="row"
+            tabindex="0"
+            :aria-label="`${sensor.name} sensor row, click to view details`"
           >
-            <!-- Sensor Name -->
-            <td class="px-6 py-4 whitespace-nowrap">
+            <!-- Sensor Name and Icon Cell -->
+            <td class="px-6 py-4 whitespace-nowrap" role="gridcell">
               <div class="flex items-center gap-3">
+                <!-- Sensor Icon -->
                 <div
                   class="w-10 h-10 rounded-xl flex items-center justify-center ring-1 ring-gray-200/50 dark:ring-gray-700/30"
-                  :class="getStatusConfig(sensor.status).iconBg"
+                  :class="getSensorStatusConfig(sensor.status).iconBg"
+                  aria-hidden="true"
                 >
                   <span
-                    :class="[sensor.icon, 'mdi text-lg', getStatusConfig(sensor.status).iconColor]"
+                    :class="[
+                      sensor.icon,
+                      'mdi text-lg',
+                      getSensorStatusConfig(sensor.status).iconColor,
+                    ]"
                   ></span>
                 </div>
+
+                <!-- Sensor Information -->
                 <div>
                   <div class="font-medium text-gray-900 dark:text-gray-100">
                     {{ sensor.name }}
@@ -217,20 +187,20 @@ const handleSensorClick = (sensorId: string) => {
               </div>
             </td>
 
-            <!-- Category -->
-            <td class="px-6 py-4 whitespace-nowrap">
+            <!-- Category Badge Cell -->
+            <td class="px-6 py-4 whitespace-nowrap" role="gridcell">
               <span
                 class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-                :class="getCategoryColor(sensor.category)"
+                :class="getCategoryColorConfig(sensor.category)"
               >
                 {{ sensor.category }}
               </span>
             </td>
 
-            <!-- Current Value -->
-            <td class="px-6 py-4 whitespace-nowrap">
+            <!-- Current Value Cell -->
+            <td class="px-6 py-4 whitespace-nowrap" role="gridcell">
               <div class="flex items-baseline gap-1">
-                <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <span class="text-lg font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
                   {{ sensor.value }}
                 </span>
                 <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -239,46 +209,107 @@ const handleSensorClick = (sensorId: string) => {
               </div>
             </td>
 
-            <!-- Status -->
-            <td class="px-6 py-4 whitespace-nowrap">
+            <!-- Status Badge Cell -->
+            <td class="px-6 py-4 whitespace-nowrap" role="gridcell">
               <div
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                :class="getStatusConfig(sensor.status).badge"
+                :class="getSensorStatusConfig(sensor.status).badge"
               >
                 <div
                   class="w-1.5 h-1.5 rounded-full"
-                  :class="getStatusConfig(sensor.status).dot"
+                  :class="getSensorStatusConfig(sensor.status).dot"
+                  aria-hidden="true"
                 ></div>
                 {{ sensor.status.charAt(0).toUpperCase() + sensor.status.slice(1) }}
               </div>
             </td>
 
-            <!-- Last Update -->
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            <!-- Last Update Cell -->
+            <td
+              class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+              role="gridcell"
+            >
               {{ sensor.lastUpdate }}
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Empty State (shown when no sensor data is available) -->
+      <div v-if="tableData.length === 0" class="text-center py-12" role="status" aria-live="polite">
+        <div
+          class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-4"
+        >
+          <svg
+            class="w-8 h-8 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          No sensor data available
+        </h3>
+        <p class="text-gray-500 dark:text-gray-400">
+          Sensor readings will appear here when data becomes available.
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Smooth transitions for table interactions */
+/**
+ * Component-specific styles for table interactions and accessibility
+ */
+
+/* Enhanced table row interactions */
 tbody tr {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hover effects for better UX */
+/* Subtle hover effects for better user experience */
 tbody tr:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Focus states for accessibility */
-tbody tr:focus-within {
+/* Accessibility: Focus states for keyboard navigation */
+tbody tr:focus {
   outline: 2px solid theme('colors.emerald.500');
   outline-offset: -2px;
+}
+
+/* Typography: Tabular numbers for consistent digit alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Accessibility: Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  tbody tr {
+    transition: none;
+  }
+
+  tbody tr:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Responsive design: Ensure table scrolls horizontally on small screens */
+@media (max-width: 640px) {
+  table {
+    min-width: 600px;
+  }
 }
 </style>

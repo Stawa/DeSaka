@@ -93,7 +93,7 @@ const getThemeColor = (color: string) => {
   return colors[color as keyof typeof colors] || colors['#10B981']
 }
 
-const createGradient = (theme: any): CanvasGradient | string => {
+const createGradient = (theme: unknown): CanvasGradient | string => {
   const canvas = chartRef.value?.$el?.querySelector('canvas')
   if (!canvas) return theme.bg
 
@@ -451,8 +451,8 @@ onMounted(() => {
       <div v-else class="h-full chart-container">
         <component
           :is="chartType === 'line' ? Line : Bar"
-          :data="chartData as any"
-          :options="chartOptions as any"
+          :data="chartData as unknown"
+          :options="chartOptions as unknown"
           ref="chartRef"
         />
       </div>

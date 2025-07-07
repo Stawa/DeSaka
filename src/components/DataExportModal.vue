@@ -204,6 +204,7 @@ const getFormatDescription = (format: string) => {
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
       >
+        <!-- eslint-disable-next-line vue/require-toggle-inside-transition -->
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal"></div>
       </Transition>
 
