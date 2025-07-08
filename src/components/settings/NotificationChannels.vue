@@ -35,7 +35,7 @@
           icon="mdi-email-outline"
           label="Email Notifications"
           description="Receive alerts and updates via email"
-          v-model:enabled="settings.notifications.emailEnabled"
+          v-model:enabled="emailEnabled"
         >
           <template #extra>
             <div class="mt-6 space-y-6">
@@ -95,15 +95,15 @@
 
               <!-- Email List -->
               <div>
-                <div v-if="settings.notifications.emails.length > 0" class="space-y-3">
+                <div v-if="emails.length > 0" class="space-y-3">
                   <div class="flex items-center justify-between mb-3">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Recipients ({{ settings.notifications.emails.length }})
+                      Recipients ({{ emails.length }})
                     </span>
                   </div>
                   <transition-group name="email-list" tag="div" class="space-y-3">
                     <div
-                      v-for="email in settings.notifications.emails"
+                      v-for="email in emails"
                       :key="email"
                       class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 group hover:shadow-md transition-all duration-200"
                     >
@@ -151,7 +151,7 @@
           icon="mdi-whatsapp"
           label="WhatsApp Notifications"
           description="Instant alerts via WhatsApp messaging"
-          v-model:enabled="settings.notifications.smsEnabled"
+          v-model:enabled="smsEnabled"
         />
       </div>
 
@@ -161,20 +161,27 @@
           icon="mdi-cellphone-message"
           label="Push Notifications"
           description="Real-time browser notifications"
-          v-model:enabled="settings.notifications.pushEnabled"
+          v-model:enabled="pushEnabled"
         />
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import NotificationItem from './NotificationItem.vue'
 
 const props = defineProps({
   settings: {
-    type: Object,
+    type: Object as () => {
+      notifications: {
+        emailEnabled: boolean
+        smsEnabled: boolean
+        pushEnabled: boolean
+        emails: string[]
+      }
+    },
     required: true,
   },
 })
@@ -199,33 +206,82 @@ watch(newEmailTag, () => {
   }
 })
 
-function validateEmail(email) {
-  if (!email) return false
+const emailEnabled = computed({
+  get: () => props.settings.notifications.emailEnabled,
+  set: (val: boolean) => {
+    emit('update:settings', {
+      ...props.settings,
+      notifications: {
+        ...props.settings.notifications,
+        emailEnabled: val,
+      },
+    })
+  },
+})
+
+const smsEnabled = computed({
+  get: () => props.settings.notifications.smsEnabled,
+  set: (val: boolean) => {
+    emit('update:settings', {
+      ...props.settings,
+      notifications: {
+        ...props.settings.notifications,
+        smsEnabled: val,
+      },
+    })
+  },
+})
+
+const pushEnabled = computed({
+  get: () => props.settings.notifications.pushEnabled,
+  set: (val: boolean) => {
+    emit('update:settings', {
+      ...props.settings,
+      notifications: {
+        ...props.settings.notifications,
+        pushEnabled: val,
+      },
+    })
+  },
+})
+
+const emails = computed(() => props.settings.notifications.emails)
+
+function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 }
 
 function addEmailTag() {
   const email = newEmailTag.value.trim()
+  if (!validateEmail(email)) return
 
-  if (!email || !validateEmail(email)) return
-
-  if (props.settings.notifications.emails.includes(email)) {
+  if (emails.value.includes(email)) {
     showDuplicateError.value = true
     return
   }
 
-  props.settings.notifications.emails.push(email)
+  emit('update:settings', {
+    ...props.settings,
+    notifications: {
+      ...props.settings.notifications,
+      emails: [...emails.value, email],
+    },
+  })
+
   newEmailTag.value = ''
 }
 
-function removeEmailTag(email) {
-  const index = props.settings.notifications.emails.indexOf(email)
-  if (index > -1) {
-    props.settings.notifications.emails.splice(index, 1)
-  }
+function removeEmailTag(email: string) {
+  emit('update:settings', {
+    ...props.settings,
+    notifications: {
+      ...props.settings.notifications,
+      emails: emails.value.filter((e) => e !== email),
+    },
+  })
 }
 
-function handleTagKeydown(e, type) {
+function handleTagKeydown(e: KeyboardEvent, type: string) {
   if (e.key === 'Enter' && type === 'email') {
     e.preventDefault()
     addEmailTag()
@@ -241,17 +297,14 @@ function handleTagKeydown(e, type) {
 .email-list-leave-active {
   transition: all 0.3s ease;
 }
-
 .email-list-enter-from {
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
 }
-
 .email-list-leave-to {
   opacity: 0;
   transform: translateX(20px) scale(0.95);
 }
-
 .email-list-move {
   transition: transform 0.3s ease;
 }

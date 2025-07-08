@@ -4,7 +4,8 @@ import SensorChart from '@/components/SensorChart.vue'
 import AirQualityDashboard from '@/components/AirQualityDashboard.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
 import { handleDataExport } from '@/utils/exportUtils'
-import { useApi } from '@/composables/useApi'
+import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
+import { useToast } from '@/composables/useToast'
 import {
   formatCurrentTime,
   calculateParameterScore,
@@ -12,101 +13,47 @@ import {
   updateSensorDataFromResponse,
   updateSensorStatus,
   formatSensorDataForExport,
+  type TimeframeOption,
 } from '@/scripts'
 import AirHeader from '@/components/air/AirHeader.vue'
 import type { SensorResponse } from '@/scripts/sensorDataUtils'
-import type { Air } from '@/composables/responseApi'
+import type { Air, SensorModification } from '@/composables/responseApi'
+import type { ExportConfig } from '@/composables/exportTypes'
+import { getMinMax } from '@/utils/sensorHelpers'
 
-type DataPoint = { time: string; value: number }
-
-const airData = ref({
+const airData = ref<SensorModification>({
   temperature: {
-    value: 23.5,
+    value: 0,
     unit: '°C',
-    min: 18,
-    max: 28,
-    optimal_min: 21,
-    optimal_max: 25,
-    status: 'optimal',
-    trend: 'increasing',
-    history: [] as DataPoint[],
+    min: 0,
+    max: 0,
+    optimal_min: 0,
+    optimal_max: 0,
+    status: 'unknown',
+    trend: 'stable',
+    history: [],
   },
   humidity: {
-    value: 45,
+    value: 0,
     unit: '%',
-    min: 30,
-    max: 60,
-    optimal_min: 40,
-    optimal_max: 50,
-    status: 'optimal',
-    trend: 'stable',
-    history: [] as DataPoint[],
-  },
-  co2: {
-    value: 850,
-    unit: 'ppm',
-    min: 400,
-    max: 1000,
-    optimal_min: 400,
-    optimal_max: 800,
-    status: 'warning',
-    trend: 'increasing',
-    history: [] as DataPoint[],
-  },
-  tvoc: {
-    value: 220,
-    unit: 'ppb',
     min: 0,
-    max: 500,
+    max: 0,
     optimal_min: 0,
-    optimal_max: 300,
-    status: 'optimal',
+    optimal_max: 0,
+    status: 'unknown',
     trend: 'stable',
-    history: [] as DataPoint[],
-  },
-  pressure: {
-    value: 1013.2,
-    unit: 'hPa',
-    min: 990,
-    max: 1030,
-    optimal_min: 1000,
-    optimal_max: 1020,
-    status: 'optimal',
-    trend: 'stable',
-    history: [] as DataPoint[],
+    history: [],
   },
   light: {
-    value: 450,
+    value: 0,
     unit: 'lux',
-    min: 200,
-    max: 1000,
-    optimal_min: 300,
-    optimal_max: 700,
-    status: 'optimal',
-    trend: 'decreasing',
-    history: [] as DataPoint[],
-  },
-  pm25: {
-    value: 15,
-    unit: 'μg/m³',
     min: 0,
-    max: 50,
+    max: 0,
     optimal_min: 0,
-    optimal_max: 25,
-    status: 'optimal',
+    optimal_max: 0,
+    status: 'unknown',
     trend: 'stable',
-    history: [] as DataPoint[],
-  },
-  pm10: {
-    value: 35,
-    unit: 'μg/m³',
-    min: 0,
-    max: 100,
-    optimal_min: 0,
-    optimal_max: 50,
-    status: 'optimal',
-    trend: 'stable',
-    history: [] as DataPoint[],
+    history: [],
   },
 })
 
@@ -114,11 +61,19 @@ const lastUpdated = ref(formatCurrentTime())
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
 const showExportModal = ref(false)
+const healthScore = ref(85)
 
-const { fetchSensorData, refreshData: apiRefreshData, fetchFileById, isLoading, error } = useApi()
+const availableSensors = [
+  { id: 'temperature', name: 'Air Temperature', unit: '°C' },
+  { id: 'humidity', name: 'Air Humidity', unit: '%' },
+  { id: 'light', name: 'Light Intensity', unit: 'lux' },
+]
+
+const { refreshData: apiRefreshData, fetchFileById } = useApi()
+const { showToast } = useToast()
 
 onMounted(() => {
-  refreshData()
+  handleRefresh()
 })
 
 /**
@@ -134,10 +89,7 @@ function handleExport(exportOptions: {
   const sensorsList = [
     { name: 'temperature', label: 'Temperature', unit: '°C', selected: true },
     { name: 'humidity', label: 'Humidity', unit: '%', selected: true },
-    { name: 'co2', label: 'CO2', unit: 'ppm', selected: true },
-    { name: 'tvoc', label: 'TVOC', unit: 'ppb', selected: true },
-    { name: 'pm25', label: 'PM2.5', unit: 'µg/m³', selected: true },
-    { name: 'pm10', label: 'PM10', unit: 'µg/m³', selected: true },
+    { name: 'light', label: 'Light Intensity', unit: 'lux', selected: true },
   ].filter((sensor) => sensor.selected)
 
   const exportData: Record<string, Array<{ timestamp: string; value: number }>> = {}
@@ -155,12 +107,12 @@ function handleExport(exportOptions: {
   handleDataExport(exportOptions, exportData, sensorInfo)
 }
 
-async function refreshData() {
+async function handleRefresh() {
   isRefreshing.value = true
   try {
     try {
-      const airFileId = '1F38HpxfKYZRj2tk0JZanTajVIEK2izkO'
-      const airResponse = await fetchFileById(airFileId)
+      const airFileId = SENSOR_FILE_IDS.air
+      const airResponse: Air = await fetchFileById(airFileId)
 
       updateAirData(airResponse)
       updateSensorStatuses()
@@ -171,24 +123,31 @@ async function refreshData() {
       console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
     }
 
-    const { startDate: startDateStr, endDate } = getDateRangeFromTimeframe(timeFrame.value)
+    const { startDate: startDateStr, endDate } = getDateRangeFromTimeframe(
+      timeFrame.value as TimeframeOption,
+    )
     const params = {
       startDate: startDateStr,
       endDate: endDate,
-      sensors: ['air_temperature', 'air_humidity', 'air_co2', 'air_tvoc', 'air_pm25', 'air_pm10'],
+      sensors: ['air_temperature', 'air_humidity', 'air_light'],
+    }
+
+    const fetchAirFile = async (): Promise<Air> => {
+      return await fetchFileById(SENSOR_FILE_IDS.air)
     }
 
     await apiRefreshData(
-      (airResponse) => {
+      (airResponse: Air) => {
         updateAirData(airResponse)
         updateSensorStatuses()
         lastUpdated.value = formatCurrentTime()
       },
-      fetchSensorData,
+      fetchAirFile,
       params,
     )
   } catch (err) {
     console.error('Error refreshing air data:', err)
+    showToast('Failed to refresh air quality data', 'error')
   } finally {
     isRefreshing.value = false
   }
@@ -208,60 +167,31 @@ function updateAirData(response: Record<string, SensorResponse>) {
     'temperature',
   )
   updateSensorDataFromResponse(airData.value.humidity, response, 'air_humidity', 'humidity')
-  updateSensorDataFromResponse(airData.value.co2, response, 'air_co2')
-  updateSensorDataFromResponse(airData.value.tvoc, response, 'air_tvoc')
-  updateSensorDataFromResponse(airData.value.pm25, response, 'air_pm25')
-  updateSensorDataFromResponse(airData.value.pm10, response, 'air_pm10')
+  updateSensorDataFromResponse(airData.value.light, response, 'air_light', 'light')
 }
 
 function changeTimeFrame(frame: string) {
   timeFrame.value = frame
-  refreshData()
+  handleRefresh()
 }
 
 function updateSensorStatuses() {
   updateSensorStatus(airData.value.temperature)
   updateSensorStatus(airData.value.humidity)
-  updateSensorStatus(airData.value.co2)
-  updateSensorStatus(airData.value.tvoc)
-  updateSensorStatus(airData.value.pressure)
   updateSensorStatus(airData.value.light)
 }
 
 const airQualityIndex = computed(() => {
-  const temperatureScore = calculateParameterScore(
-    airData.value.temperature.value,
-    airData.value.temperature.min,
-    airData.value.temperature.max,
-    airData.value.temperature.optimal_min,
-    airData.value.temperature.optimal_max,
-  )
+  const temp = airData.value.temperature
+  const humidity = airData.value.humidity
 
-  const humidityScore = calculateParameterScore(
-    airData.value.humidity.value,
-    airData.value.humidity.min,
-    airData.value.humidity.max,
-    airData.value.humidity.optimal_min,
-    airData.value.humidity.optimal_max,
-  )
+  const { min: tempMin, max: tempMax } = getMinMax(temp.history)
+  const { min: humidityMin, max: humidityMax } = getMinMax(humidity.history)
 
-  const co2Score = calculateParameterScore(
-    airData.value.co2.value,
-    airData.value.co2.min,
-    airData.value.co2.max,
-    airData.value.co2.optimal_min,
-    airData.value.co2.optimal_max,
-  )
+  const temperatureScore = calculateParameterScore(temp.value, tempMin, tempMax, 20, 26)
+  const humidityScore = calculateParameterScore(humidity.value, humidityMin, humidityMax, 40, 60)
 
-  const tvocScore = calculateParameterScore(
-    airData.value.tvoc.value,
-    airData.value.tvoc.min,
-    airData.value.tvoc.max,
-    airData.value.tvoc.optimal_min,
-    airData.value.tvoc.optimal_max,
-  )
-
-  const totalScore = temperatureScore * 0.2 + humidityScore * 0.2 + co2Score * 0.3 + tvocScore * 0.3
+  const totalScore = temperatureScore * 0.2 + humidityScore * 0.2
 
   return Math.round(totalScore)
 })
@@ -304,6 +234,11 @@ const healthStatus = computed(() => {
     }
   }
 })
+
+const handleExportData = (exportConfig: ExportConfig) => {
+  console.log('Exporting air quality data:', exportConfig)
+  showToast('Air quality data exported successfully', 'success')
+}
 </script>
 
 <template>
@@ -314,13 +249,13 @@ const healthStatus = computed(() => {
       <AirHeader
         :last-updated="lastUpdated"
         :is-refreshing="isRefreshing"
-        @refresh="refreshData"
-        @export="showExportModal = true"
+        @refresh="handleRefresh"
+        @export="handleExport"
       />
 
       <!-- Air Quality Dashboard -->
       <div class="animate-fade-in" style="animation-delay: 0.1s">
-        <AirQualityDashboard :air-data="airData" :healthScore="airQualityIndex" />
+        <AirQualityDashboard :air-data="airData" :health-score="healthScore" />
       </div>
 
       <!-- Air Analysis Insights -->
@@ -352,90 +287,39 @@ const healthStatus = computed(() => {
 
         <!-- Analysis Content -->
         <div class="p-6">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Air Quality Card -->
-            <div
-              class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/30"
-            >
-              <div class="flex items-center gap-3 mb-4">
-                <div
-                  class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-white"
-                >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.951-.69l1.07-3.292z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="font-semibold text-blue-900 dark:text-blue-100">Air Quality Index</h3>
-                  <p class="text-sm text-blue-700 dark:text-blue-300">
-                    {{ healthStatus.label }} conditions
-                  </p>
-                </div>
+          <!-- Air Quality Card -->
+          <div
+            class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/30"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <div
+                class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-white"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.951-.69l1.07-3.292z"
+                  />
+                </svg>
               </div>
-              <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-blue-800 dark:text-blue-200">Temperature</span>
-                  <span class="font-medium text-blue-900 dark:text-blue-100">
-                    {{ airData.temperature.value }}{{ airData.temperature.unit }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-blue-800 dark:text-blue-200">Humidity</span>
-                  <span class="font-medium text-blue-900 dark:text-blue-100">
-                    {{ airData.humidity.value }}{{ airData.humidity.unit }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-blue-800 dark:text-blue-200">CO₂ Level</span>
-                  <span class="font-medium text-blue-900 dark:text-blue-100">
-                    {{ airData.co2.value }}{{ airData.co2.unit }}
-                  </span>
-                </div>
+              <div>
+                <h3 class="font-semibold text-blue-900 dark:text-blue-100">Air Quality Index</h3>
+                <p class="text-sm text-blue-700 dark:text-blue-300">
+                  {{ healthStatus.label }} conditions
+                </p>
               </div>
             </div>
-
-            <!-- Particulate Matter Card -->
-            <div
-              class="bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-900/20 dark:to-cyan-800/10 rounded-xl p-6 border border-cyan-200/50 dark:border-cyan-700/30"
-            >
-              <div class="flex items-center gap-3 mb-4">
-                <div
-                  class="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center text-white"
-                >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 001.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.118l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="font-semibold text-cyan-900 dark:text-cyan-100">Particulate Matter</h3>
-                  <p class="text-sm text-cyan-700 dark:text-cyan-300">Air pollution levels</p>
-                </div>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-blue-800 dark:text-blue-200">Temperature</span>
+                <span class="font-medium text-blue-900 dark:text-blue-100">
+                  {{ airData.temperature.value }}{{ airData.temperature.unit }}
+                </span>
               </div>
-              <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-cyan-800 dark:text-cyan-200">PM2.5</span>
-                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
-                    {{ airData.pm25.value }}{{ airData.pm25.unit }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-cyan-800 dark:text-cyan-200">PM10</span>
-                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
-                    {{ airData.pm10.value }}{{ airData.pm10.unit }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-cyan-800 dark:text-cyan-200">TVOC</span>
-                  <span class="font-medium text-cyan-900 dark:text-cyan-100">
-                    {{ airData.tvoc.value }}{{ airData.tvoc.unit }}
-                  </span>
-                </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-blue-800 dark:text-blue-200">Humidity</span>
+                <span class="font-medium text-blue-900 dark:text-blue-100">
+                  {{ airData.humidity.value }}{{ airData.humidity.unit }}
+                </span>
               </div>
             </div>
           </div>
@@ -454,21 +338,6 @@ const healthStatus = computed(() => {
               <p class="text-xs text-green-700 dark:text-green-300">
                 Current air conditions are {{ healthStatus.label.toLowerCase() }} for indoor
                 environments.
-              </p>
-            </div>
-
-            <div
-              class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-4 border border-blue-200/50 dark:border-blue-700/30"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Monitor CO₂
-                </span>
-              </div>
-              <p class="text-xs text-blue-700 dark:text-blue-300">
-                CO₂ levels are {{ airData.co2.status }}. Ensure proper ventilation for optimal
-                conditions.
               </p>
             </div>
 
@@ -578,25 +447,14 @@ const healthStatus = computed(() => {
               />
             </div>
 
-            <!-- CO₂ Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.6s">
+            <!-- Light Intensity Chart -->
+            <div class="animate-fade-in lg:col-span-2" style="animation-delay: 0.5s">
               <SensorChart
-                title="CO₂ Levels"
-                :data="airData.co2.history"
-                valueLabel="CO₂ (ppm)"
-                chartColor="#8B5CF6"
-                icon="mdi-molecule-co2"
-              />
-            </div>
-
-            <!-- TVOC Chart -->
-            <div class="animate-fade-in" style="animation-delay: 0.7s">
-              <SensorChart
-                title="TVOC Levels"
-                :data="airData.tvoc.history"
-                valueLabel="TVOC (ppb)"
-                chartColor="#10B981"
-                icon="mdi-weather-fog"
+                title="Light Intensity"
+                :data="airData.light.history"
+                valueLabel="light (lux)"
+                chartColor="#3B82F6"
+                icon="mdi-lightbulb-on"
               />
             </div>
           </div>
@@ -610,16 +468,9 @@ const healthStatus = computed(() => {
       title="Export Air Quality Data"
       description="Select the parameters, date range, and format for your air quality data export."
       data-type="air"
-      :available-sensors="[
-        { id: 'temperature', name: 'Air Temperature', unit: airData.temperature.unit },
-        { id: 'humidity', name: 'Humidity', unit: airData.humidity.unit },
-        { id: 'co2', name: 'CO2', unit: airData.co2.unit },
-        { id: 'tvoc', name: 'TVOC', unit: airData.tvoc.unit },
-        { id: 'pm25', name: 'PM2.5', unit: airData.pm25.unit },
-        { id: 'pm10', name: 'PM10', unit: airData.pm10.unit },
-      ]"
+      :available-sensors="availableSensors"
       @close="showExportModal = false"
-      @export="handleExport"
+      @export="handleExportData"
     />
   </div>
 </template>

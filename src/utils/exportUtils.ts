@@ -34,7 +34,7 @@ interface DateRange {
 /**
  * Export options interface
  */
-interface ExportOptions {
+export interface ExportOptions {
   format: ExportFormat
   sensors: Array<{ id: string; name?: string; unit?: string } | string>
   dateRange: { start: string | null; end: string | null }

@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * Toast Notification Composable
  *

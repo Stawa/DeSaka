@@ -20,7 +20,7 @@ import {
 /**
  * Raw sensor data interface
  */
-interface RawSensorData {
+export interface RawSensorData {
   [key: string]: {
     value?: number
     unit?: string
@@ -148,9 +148,9 @@ export function transformSensorData(rawData: RawSensorData): SensorDataStructure
   return sensorMappings.map((mapping, index) => ({
     id: mapping.id,
     name: mapping.name,
-    value: rawData[mapping.dataKey]?.value || DEFAULT_SENSOR_CONFIG.value,
-    unit: rawData[mapping.dataKey]?.unit || getDefaultUnit(mapping.id),
-    status: (rawData[mapping.dataKey]?.status || DEFAULT_SENSOR_CONFIG.status) as SensorStatus,
+    value: rawData[mapping.dataKey]?.value ?? DEFAULT_SENSOR_CONFIG.value,
+    unit: rawData[mapping.dataKey]?.unit ?? getDefaultUnit(mapping.id),
+    status: (rawData[mapping.dataKey]?.status ?? DEFAULT_SENSOR_CONFIG.status) as SensorStatus,
     icon: getSensorIconClass(mapping.icon),
     category: mapping.category,
     lastUpdate: getRelativeTime(index + 1),
@@ -221,4 +221,16 @@ export function isValidSensorStatus(status: string): status is SensorStatus {
  */
 export function isValidSensorTrend(trend: string): trend is SensorTrend {
   return trend in SENSOR_TREND_CONFIG
+}
+
+export function getMinMax(history: { time: string; value: number }[]): {
+  min: number
+  max: number
+} {
+  if (history.length === 0) return { min: 0, max: 0 }
+  const values = history.map((r) => r.value)
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values),
+  }
 }

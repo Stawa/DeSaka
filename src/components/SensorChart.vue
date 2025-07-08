@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,8 +12,11 @@ import {
   Legend,
   Filler,
 } from 'chart.js'
-import type { ChartDataset } from 'chart.js'
+import type { ChartData, ChartDataset, ChartOptions, Point } from 'chart.js'
 import { Line, Bar } from 'vue-chartjs'
+
+type LineDataset = ChartDataset<'line', (number | Point | null)[]>
+type BarDataset = ChartDataset<'bar', (number | [number, number] | null)[]>
 
 ChartJS.register(
   CategoryScale,
@@ -63,7 +66,7 @@ const getFontSizes = () => {
   }
 }
 
-const getThemeColor = (color: string) => {
+const getThemeColor = (color: string): ThemeColor => {
   const colors = {
     '#10B981': {
       primary: '#10B981',
@@ -93,7 +96,14 @@ const getThemeColor = (color: string) => {
   return colors[color as keyof typeof colors] || colors['#10B981']
 }
 
-const createGradient = (theme: unknown): CanvasGradient | string => {
+interface ThemeColor {
+  primary: string
+  light: string
+  bg: string
+  gradient: string[]
+}
+
+const createGradient = (theme: ThemeColor): CanvasGradient | string => {
   const canvas = chartRef.value?.$el?.querySelector('canvas')
   if (!canvas) return theme.bg
 
@@ -108,21 +118,27 @@ const createGradient = (theme: unknown): CanvasGradient | string => {
 }
 
 const chartData = computed(() => {
-  const theme = getThemeColor(props.chartColor || '#10B981')
-  const currentType = chartType.value
+  return chartType.value === 'line'
+    ? (generateLineChartData() as ChartData<'line'>)
+    : (generateBarChartData() as ChartData<'bar'>)
+})
 
-  const datasets: ChartDataset<'line' | 'bar', number[]>[] = [
+function generateLineChartData(): ChartData<'line'> {
+  const theme = getThemeColor(props.chartColor || '#10B981')
+  const labels = props.data.map((item) => item.time)
+
+  const datasets: LineDataset[] = [
     {
-      type: currentType,
+      type: 'line',
       label: props.valueLabel,
       data: props.data.map((item) => item.value),
       borderColor: theme.primary,
-      backgroundColor: currentType === 'bar' ? theme.bg : createGradient(theme),
-      borderWidth: currentType === 'line' ? 2.5 : 0,
+      backgroundColor: createGradient(theme),
+      borderWidth: 2.5,
       tension: 0.3,
-      fill: currentType === 'line',
-      pointRadius: currentType === 'line' ? (isMobile.value || isTablet.value ? 3 : 0) : 0,
-      pointHoverRadius: currentType === 'line' ? 6 : 0,
+      fill: true,
+      pointRadius: isMobile.value || isTablet.value ? 3 : 0,
+      pointHoverRadius: 6,
       pointBackgroundColor: theme.primary,
       pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
@@ -133,13 +149,42 @@ const chartData = computed(() => {
     },
   ]
 
-  return {
-    labels: props.data.map((item) => item.time),
-    datasets,
-  }
-})
+  return { labels, datasets }
+}
+
+function generateBarChartData(): ChartData<'bar'> {
+  const theme = getThemeColor(props.chartColor || '#10B981')
+  const labels = props.data.map((item) => item.time)
+
+  const datasets: BarDataset[] = [
+    {
+      type: 'bar',
+      label: props.valueLabel,
+      data: props.data.map((item) => item.value),
+      backgroundColor: theme.bg,
+      borderColor: theme.primary,
+      borderWidth: 0,
+    },
+  ]
+
+  return { labels, datasets }
+}
 
 const chartOptions = computed(() => {
+  return chartType.value === 'line'
+    ? (generateLineOptions() as ChartOptions<'line'>)
+    : (generateBarOptions() as ChartOptions<'bar'>)
+})
+
+function generateLineOptions(): ChartOptions<'line'> {
+  return generateBaseOptions<'line'>()
+}
+
+function generateBarOptions(): ChartOptions<'bar'> {
+  return generateBaseOptions<'bar'>()
+}
+
+function generateBaseOptions<T extends 'line' | 'bar'>(): ChartOptions<T> {
   const isDarkMode =
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   const gridColor = isDarkMode ? 'rgba(71, 85, 105, 0.1)' : 'rgba(148, 163, 184, 0.1)'
@@ -153,12 +198,10 @@ const chartOptions = computed(() => {
     devicePixelRatio: Math.max(devicePixelRatio.value, 2),
     animation: {
       duration: 600,
-      easing: 'easeOutQuart' as const,
+      easing: 'easeOutQuart',
     },
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: false },
       tooltip: {
         enabled: true,
         backgroundColor: tooltipBg,
@@ -170,13 +213,13 @@ const chartOptions = computed(() => {
         cornerRadius: 8,
         titleFont: {
           size: fontSizes.tooltip.title,
-          weight: '600' as const,
+          weight: 'bold',
           family:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
         bodyFont: {
           size: fontSizes.tooltip.body,
-          weight: '500' as const,
+          weight: 'normal',
           family:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
@@ -184,8 +227,8 @@ const chartOptions = computed(() => {
         caretPadding: 6,
         usePointStyle: false,
         callbacks: {
-          title: (tooltipItems: Array<{ label: string }>) => tooltipItems[0].label,
-          label: (context: { parsed: { y: number }; dataset: { label?: string } }) => {
+          title: (tooltipItems: { label: string }[]) => tooltipItems[0].label,
+          label: (context: { parsed: { y: number } }) => {
             const value = context.parsed.y?.toFixed(1) || '0'
             return `${value}${props.valueUnit ? ` ${props.valueUnit}` : ''}`
           },
@@ -194,12 +237,8 @@ const chartOptions = computed(() => {
     },
     scales: {
       x: {
-        grid: {
-          display: false,
-        },
-        border: {
-          display: false,
-        },
+        grid: { display: false },
+        border: { display: false },
         ticks: {
           maxRotation: 0,
           autoSkip: true,
@@ -207,20 +246,18 @@ const chartOptions = computed(() => {
           color: tickColor,
           font: {
             size: fontSizes.tick,
-            weight: '500' as const,
+            weight: 'normal',
             family:
               '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             lineHeight: 1.2,
           },
           padding: 8,
-          align: 'center' as const,
+          align: 'center',
         },
       },
       y: {
         beginAtZero: true,
-        border: {
-          display: false,
-        },
+        border: { display: false },
         grid: {
           color: gridColor,
           drawBorder: false,
@@ -229,7 +266,7 @@ const chartOptions = computed(() => {
         ticks: {
           font: {
             size: fontSizes.tick,
-            weight: '500' as const,
+            weight: 'normal',
             family:
               '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             lineHeight: 1.2,
@@ -237,33 +274,20 @@ const chartOptions = computed(() => {
           color: tickColor,
           padding: 8,
           maxTicksLimit: isMobile.value || isTablet.value ? 4 : 5,
-          align: 'end' as const,
-          callback: (value: number) => {
-            const formatted = value.toFixed(value % 1 === 0 ? 0 : 1)
+          align: 'end',
+          callback: (tickValue: string | number) => {
+            const n = typeof tickValue === 'number' ? tickValue : Number(tickValue)
+            const formatted = n.toFixed(n % 1 === 0 ? 0 : 1)
             return `${formatted}${props.valueUnit ? ` ${props.valueUnit}` : ''}`
           },
         },
       },
     },
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
-    elements: {
-      point: {
-        hoverBorderWidth: 2,
-      },
-    },
-    layout: {
-      padding: {
-        top: 12,
-        right: 12,
-        bottom: 12,
-        left: 12,
-      },
-    },
-  }
-})
+    interaction: { mode: 'index', intersect: false },
+    elements: { point: { hoverBorderWidth: 2 } },
+    layout: { padding: { top: 12, right: 12, bottom: 12, left: 12 } },
+  } as unknown as ChartOptions<T>
+}
 
 const toggleChartType = () => {
   chartType.value = chartType.value === 'line' ? 'bar' : 'line'
@@ -449,10 +473,16 @@ onMounted(() => {
 
       <!-- Chart component with enhanced canvas rendering -->
       <div v-else class="h-full chart-container">
-        <component
-          :is="chartType === 'line' ? Line : Bar"
-          :data="chartData as unknown"
-          :options="chartOptions as unknown"
+        <Line
+          v-if="chartType === 'line'"
+          :data="chartData as ChartData<'line'>"
+          :options="chartOptions as ChartOptions<'line'>"
+          ref="chartRef"
+        />
+        <Bar
+          v-else
+          :data="chartData as ChartData<'bar'>"
+          :options="chartOptions as ChartOptions<'bar'>"
           ref="chartRef"
         />
       </div>

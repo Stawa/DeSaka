@@ -5,7 +5,7 @@ import SensorReadingsGrid from '../components/SensorReadingsGrid.vue'
 import SensorReadingsTable from '../components/SensorReadingsTable.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
 import { handleDataExport } from '@/utils/exportUtils'
-import { useApi } from '@/composables/useApi'
+import { SENSOR_FILE_IDS, useApi, type SensorApiResponse } from '@/composables/useApi'
 import HomeHeader from '@/components/home/HomeHeader.vue'
 import SensorTrends from '@/components/home/SensorTrends.vue'
 import PlantAnalysis from '@/components/home/PlantAnalysis.vue'
@@ -16,45 +16,26 @@ import {
   getGrowthPrediction,
   getSystemStatus,
   formatCurrentTime,
+  type SensorStatusValue,
 } from '@/scripts'
 import {
   mapReadableHistory,
   type Air,
   type SensorReading,
   type Soil,
+  type SensorItems,
 } from '@/composables/responseApi'
+import { getMinMax } from '@/utils/sensorHelpers'
 
-/**
- * Dashboard View Component
- *
- * Main dashboard interface providing comprehensive environmental monitoring
- * Features:
- * - Real-time sensor data display
- * - Plant health analysis and scoring
- * - Historical trend visualization
- * - Data export functionality
- * - Responsive design for all screen sizes
- * - Automatic data refresh capabilities
- */
-
-/**
- * Reactive state management for dashboard functionality
- */
 const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
 const showExportModal = ref(false)
 
-/**
- * Window resize handler for responsive behavior
- */
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
 }
 
-/**
- * Component lifecycle management
- */
 onMounted(() => {
   window.addEventListener('resize', updateWindowWidth)
   updateData()
@@ -64,9 +45,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth)
 })
 
-/**
- * TypeScript interfaces for type safety
- */
 type SensorDataItem = { value: number; unit: string; status: string }
 type SensorDataType = {
   [key: string]: SensorDataItem
@@ -88,10 +66,6 @@ type HistoricalDataType = {
   airHumidity: HistoricalDataItem
 }
 
-/**
- * Reactive sensor data with default values
- * Provides fallback data for initial render and error states
- */
 const sensorData = ref<SensorDataType>({
   soilTemperature: { value: 24.5, unit: '°C', status: 'normal' },
   soilMoisture: { value: 65, unit: '%', status: 'normal' },
@@ -101,36 +75,31 @@ const sensorData = ref<SensorDataType>({
   lightIntensity: { value: 850, unit: 'lux', status: 'normal' },
 })
 
-/**
- * Historical data storage for trend analysis
- */
 const historicalData = ref<HistoricalDataType>({
   soilTemperature: [],
   soilMoisture: [],
   soilPH: [],
   airTemperature: [],
   airHumidity: [],
+  lightIntensity: [],
 })
 
-/**
- * API composable for data fetching
- */
-const { fetchSensorData, refreshData: apiRefreshData, fetchFileById } = useApi()
-type HistoricalKey = 'soilTemperature' | 'soilMoisture' | 'airTemperature' | 'airHumidity'
+const { refreshData: apiRefreshData, fetchFileById } = useApi()
+type HistoricalKey =
+  | 'soilTemperature'
+  | 'soilMoisture'
+  | 'soilPH'
+  | 'airTemperature'
+  | 'airHumidity'
+  | 'lightIntensity'
 
-/**
- * Updates historical data based on selected timeframe
- * Implements data fetching with fallback mechanisms for reliability
- *
- * @param timeframe - Time period for historical data ('24h', '7d', '30d')
- */
 async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
   isRefreshing.value = true
 
   try {
-    const soilFileId = '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG'
-    const airFileId = '1F38HpxfKYZRj2tk0JZanTajVIEK2izkO'
+    const soilFileId = SENSOR_FILE_IDS.soil
+    const airFileId = SENSOR_FILE_IDS.air
 
     const soilResponse: Soil = await fetchFileById(soilFileId)
     const airResponse: Air = await fetchFileById(airFileId)
@@ -138,8 +107,10 @@ async function updateHistoricalData(timeframe: string) {
     const sensorMap: [HistoricalKey, SensorReading[] | undefined][] = [
       ['soilTemperature', soilResponse?.temperature?.history],
       ['soilMoisture', soilResponse?.moisture?.history],
+      ['soilPH', soilResponse?.ph?.history],
       ['airTemperature', airResponse?.temperature?.history],
       ['airHumidity', airResponse?.humidity?.history],
+      ['lightIntensity', airResponse?.light_intensity?.history],
     ]
 
     for (const [key, history] of sensorMap) {
@@ -149,8 +120,7 @@ async function updateHistoricalData(timeframe: string) {
     }
 
     updateCurrentSensorValues(soilResponse, airResponse)
-  } catch (fileErr) {
-    console.warn('Could not fetch from file endpoints, falling back to sensors endpoint:', fileErr)
+  } catch {
     const endDate = new Date().toISOString().split('T')[0]
     let startDate = new Date()
 
@@ -173,53 +143,71 @@ async function updateHistoricalData(timeframe: string) {
     const airParams = {
       startDate: startDateStr,
       endDate: endDate,
-      sensors: ['air_temperature', 'air_humidity'],
+      sensors: ['air_temperature', 'air_humidity', 'light_intensity'],
+    }
+
+    const fetchAirFile = async (): Promise<SensorApiResponse> => {
+      return await fetchFileById(SENSOR_FILE_IDS.air)
+    }
+
+    const fetchSoilFile = async (): Promise<SensorApiResponse> => {
+      return await fetchFileById(SENSOR_FILE_IDS.soil)
     }
 
     const soilResponse = await apiRefreshData(
       (data) => {
         if (data && data.soil_temperature && data.soil_temperature.history) {
-          historicalData.value.soilTemperature = data.soil_temperature.history.map((item: { time: string; value: number }) => ({
-            time: new Date(item.time).toLocaleString(),
-            value: item.value,
-          }))
+          historicalData.value.soilTemperature = data.soil_temperature.history.map(
+            (item: { time: string; value: number }) => ({
+              time: new Date(item.time).toLocaleString(),
+              value: item.value,
+            }),
+          )
         }
 
         if (data && data.soil_moisture && data.soil_moisture.history) {
-          historicalData.value.soilMoisture = data.soil_moisture.history.map((item: { time: string; value: number }) => ({
-            time: new Date(item.time).toLocaleString(),
-            value: item.value,
-          }))
+          historicalData.value.soilMoisture = data.soil_moisture.history.map(
+            (item: { time: string; value: number }) => ({
+              time: new Date(item.time).toLocaleString(),
+              value: item.value,
+            }),
+          )
         }
 
         if (data && data.soil_ph && data.soil_ph.history) {
-          historicalData.value.soilPH = data.soil_ph.history.map((item: { time: string; value: number }) => ({
-            time: new Date(item.time).toLocaleString(),
-            value: item.value,
-          }))
+          historicalData.value.soilPH = data.soil_ph.history.map(
+            (item: { time: string; value: number }) => ({
+              time: new Date(item.time).toLocaleString(),
+              value: item.value,
+            }),
+          )
         }
       },
-      fetchSensorData,
+      fetchSoilFile,
       soilParams,
     )
 
     const airResponse = await apiRefreshData(
       (data) => {
         if (data && data.air_temperature && data.air_temperature.history) {
-          historicalData.value.airTemperature = data.air_temperature.history.map((item: { time: string; value: number }) => ({
-            time: new Date(item.time).toLocaleString(),
-            value: item.value,
-          }))
+          historicalData.value.airTemperature = data.air_temperature.history.map(
+            (item: { time: string; value: number }) => ({
+              time: new Date(item.time).toLocaleString(),
+              value: item.value,
+            }),
+          )
         }
 
         if (data && data.air_humidity && data.air_humidity.history) {
-          historicalData.value.airHumidity = data.air_humidity.history.map((item: { time: string; value: number }) => ({
-            time: new Date(item.time).toLocaleString(),
-            value: item.value,
-          }))
+          historicalData.value.airHumidity = data.air_humidity.history.map(
+            (item: { time: string; value: number }) => ({
+              time: new Date(item.time).toLocaleString(),
+              value: item.value,
+            }),
+          )
         }
       },
-      fetchSensorData,
+      fetchAirFile,
       airParams,
     )
 
@@ -229,25 +217,12 @@ async function updateHistoricalData(timeframe: string) {
   }
 }
 
-/**
- * Last update timestamp for user feedback
- */
 const lastUpdate: Ref<string> = ref(formatCurrentTime({ second: '2-digit' }))
 
-/**
- * Opens detailed sensor view (placeholder for future implementation)
- *
- * @param sensorId - Unique identifier for the sensor
- */
 function openSensorDetails(sensorId: string) {
   console.log(`Opening details for sensor: ${sensorId}`)
-  // Future implementation: Navigate to detailed sensor view
 }
 
-/**
- * Main data refresh function
- * Coordinates all data updates and manages loading states
- */
 async function updateData() {
   isRefreshing.value = true
   try {
@@ -260,40 +235,22 @@ async function updateData() {
   }
 }
 
-/**
- * Export handler for data export functionality
- *
- * @param exportOptions - Configuration for data export
- */
-/**
- * Export handler for data export functionality
- *
- * @param exportOptions - Configuration for data export
- */
 function handleExport(exportOptions: {
-  format: 'csv' | 'json' | 'excel';
-  sensors: Array<{ id: string; name?: string; unit?: string } | string>;
-  dateRange: { start: string | null; end: string | null };
-  timeRange: { start: string; end: string };
+  format: 'csv' | 'json' | 'excel'
+  sensors: Array<{ id: string; name?: string; unit?: string } | string>
+  dateRange: { start: string | null; end: string | null }
+  timeRange: { start: string; end: string }
 }) {
   handleDataExport(exportOptions)
 }
 
-/**
- * Updates current sensor values from API responses
- * Handles both file API and sensors API formats for maximum compatibility
- *
- * @param soilResponse - Response from soil sensors API
- * @param airResponse - Response from air sensors API
- */
 function updateCurrentSensorValues(
-  soilResponse: Record<string, unknown>,
-  airResponse: Record<string, unknown>
+  soilResponse: Record<string, SensorItems>,
+  airResponse: Record<string, SensorItems>,
 ) {
   const isFileApiFormat =
     soilResponse?.temperature !== undefined || airResponse?.temperature !== undefined
 
-  // Update soil temperature sensor
   if (isFileApiFormat && soilResponse?.temperature?.history?.length > 0) {
     const latestReading =
       soilResponse.temperature.history[soilResponse.temperature.history.length - 1]
@@ -306,7 +263,6 @@ function updateCurrentSensorValues(
     sensorData.value.soilTemperature.unit = soilResponse.soil_temperature.unit || '°C'
   }
 
-  // Update soil moisture sensor
   if (isFileApiFormat && soilResponse?.moisture?.history?.length > 0) {
     const latestReading = soilResponse.moisture.history[soilResponse.moisture.history.length - 1]
     sensorData.value.soilMoisture.value = latestReading.value
@@ -318,14 +274,12 @@ function updateCurrentSensorValues(
     sensorData.value.soilMoisture.unit = soilResponse.soil_moisture.unit || '%'
   }
 
-  // Update soil pH sensor
   if (soilResponse?.soil_ph?.history?.length > 0) {
     const latestReading = soilResponse.soil_ph.history[soilResponse.soil_ph.history.length - 1]
     sensorData.value.soilPH.value = latestReading.value
     sensorData.value.soilPH.unit = soilResponse.soil_ph.unit || 'pH'
   }
 
-  // Update air temperature sensor
   if (isFileApiFormat && airResponse?.temperature?.history?.length > 0) {
     const latestReading =
       airResponse.temperature.history[airResponse.temperature.history.length - 1]
@@ -338,7 +292,6 @@ function updateCurrentSensorValues(
     sensorData.value.airTemperature.unit = airResponse.air_temperature.unit || '°C'
   }
 
-  // Update air humidity sensor
   if (isFileApiFormat && airResponse?.humidity?.history?.length > 0) {
     const latestReading = airResponse.humidity.history[airResponse.humidity.history.length - 1]
     sensorData.value.airHumidity.value = latestReading.value
@@ -350,112 +303,92 @@ function updateCurrentSensorValues(
     sensorData.value.airHumidity.unit = airResponse.air_humidity.unit || '%'
   }
 
-  // Update sensor statuses based on optimal ranges for plant growth
   sensorData.value.soilTemperature.status = getSensorStatus(
     sensorData.value.soilTemperature.value,
-    15, // minimum acceptable
-    32, // maximum acceptable
-    20, // optimal minimum
-    28, // optimal maximum
+    15,
+    32,
+    20,
+    28,
   )
   sensorData.value.soilMoisture.status = getSensorStatus(
     sensorData.value.soilMoisture.value,
-    30, // minimum acceptable
-    85, // maximum acceptable
-    40, // optimal minimum
-    75, // optimal maximum
+    30,
+    85,
+    40,
+    75,
   )
-  sensorData.value.soilPH.status = getSensorStatus(
-    sensorData.value.soilPH.value,
-    5, // minimum acceptable
-    8, // maximum acceptable
-    5.5, // optimal minimum
-    7.5, // optimal maximum
-  )
+  sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 8, 5.5, 7.5)
   sensorData.value.airTemperature.status = getSensorStatus(
     sensorData.value.airTemperature.value,
-    15, // minimum acceptable
-    35, // maximum acceptable
-    20, // optimal minimum
-    30, // optimal maximum
+    15,
+    35,
+    20,
+    30,
   )
   sensorData.value.airHumidity.status = getSensorStatus(
     sensorData.value.airHumidity.value,
-    30, // minimum acceptable
-    90, // maximum acceptable
-    40, // optimal minimum
-    80, // optimal maximum
+    30,
+    90,
+    40,
+    80,
   )
 
   lastUpdate.value = formatCurrentTime({ second: '2-digit' })
 }
 
-/**
- * Computed plant health score based on weighted sensor parameters
- * Uses scientific ranges for optimal plant growth conditions
- */
 const plantHealthScore = computed(() => {
-  const soilTempScore = calculateParameterScore(
-    sensorData.value.soilTemperature.value,
-    22, // optimal minimum
-    26, // optimal maximum
-    15, // acceptable minimum
-    32, // acceptable maximum
-  )
+  const soilTempValue = sensorData.value.soilTemperature.value
+  const soilMoistureValue = sensorData.value.soilMoisture.value
+  const soilPHValue = sensorData.value.soilPH.value
+  const airTempValue = sensorData.value.airTemperature.value
+  const airHumidityValue = sensorData.value.airHumidity.value
+
+  const soilTempHistory = historicalData.value.soilTemperature
+  const soilMoistureHistory = historicalData.value.soilMoisture
+  const soilPHHistory = historicalData.value.soilPH
+  const airTempHistory = historicalData.value.airTemperature
+  const airHumidityHistory = historicalData.value.airHumidity
+
+  const { min: soilTempMin, max: soilTempMax } = getMinMax(soilTempHistory)
+  const { min: soilMoistureMin, max: soilMoistureMax } = getMinMax(soilMoistureHistory)
+  const { min: soilPHMin, max: soilPHMax } = getMinMax(soilPHHistory)
+  const { min: airTempMin, max: airTempMax } = getMinMax(airTempHistory)
+  const { min: airHumidityMin, max: airHumidityMax } = getMinMax(airHumidityHistory)
+
+  const soilTempScore = calculateParameterScore(soilTempValue, 22, 26, soilTempMin, soilTempMax)
   const soilMoistureScore = calculateParameterScore(
-    sensorData.value.soilMoisture.value,
-    60, // optimal minimum
-    70, // optimal maximum
-    30, // acceptable minimum
-    85, // acceptable maximum
+    soilMoistureValue,
+    60,
+    70,
+    soilMoistureMin,
+    soilMoistureMax,
   )
-  const soilPHScore = calculateParameterScore(
-    sensorData.value.soilPH.value,
-    6.5, // optimal minimum
-    7.0, // optimal maximum
-    5.0, // acceptable minimum
-    8.0, // acceptable maximum
-  )
-  const airTempScore = calculateParameterScore(
-    sensorData.value.airTemperature.value,
-    24, // optimal minimum
-    28, // optimal maximum
-    15, // acceptable minimum
-    35, // acceptable maximum
-  )
+  const soilPHScore = calculateParameterScore(soilPHValue, 6.5, 7.0, soilPHMin, soilPHMax)
+  const airTempScore = calculateParameterScore(airTempValue, 24, 28, airTempMin, airTempMax)
   const airHumidityScore = calculateParameterScore(
-    sensorData.value.airHumidity.value,
-    65, // optimal minimum
-    75, // optimal maximum
-    30, // acceptable minimum
-    90, // acceptable maximum
+    airHumidityValue,
+    65,
+    75,
+    airHumidityMin,
+    airHumidityMax,
   )
 
-  // Weighted calculation based on parameter importance for plant health
   const totalScore =
-    soilTempScore * 0.2 + // 20% weight - soil temperature
-    soilMoistureScore * 0.3 + // 30% weight - soil moisture (most critical)
-    soilPHScore * 0.2 + // 20% weight - soil pH
-    airTempScore * 0.15 + // 15% weight - air temperature
-    airHumidityScore * 0.15 // 15% weight - air humidity
+    soilTempScore * 0.2 +
+    soilMoistureScore * 0.3 +
+    soilPHScore * 0.2 +
+    airTempScore * 0.15 +
+    airHumidityScore * 0.15
 
   return Math.round(totalScore)
 })
 
-/**
- * Computed growth prediction based on health score
- * Provides actionable insights for plant care
- */
 const growthPrediction = computed(() => {
   return getGrowthPrediction(plantHealthScore.value)
 })
 
-/**
- * Computed system status based on all sensor statuses
- * Provides overall system health indicator
- */
 const systemStatus = computed(() => {
-  const statuses = Object.values(sensorData.value).map((item) => item.status)
+  const statuses = Object.values(sensorData.value).map((item) => item.status as SensorStatusValue)
   return getSystemStatus(statuses)
 })
 </script>

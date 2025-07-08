@@ -1,6 +1,7 @@
 /**
  * Sensor data utilities for handling API responses and data processing
  */
+import type { SensorReading } from '@/composables/responseApi'
 import { getSensorStatus } from './sensorUtils'
 
 /**
@@ -21,15 +22,24 @@ export interface SensorData {
   status?: string
   trend?: string
   history: DataPoint[]
+  latest?: DataPoint
 }
 
 /**
  * Type definition for sensor data response from API
  */
 export interface SensorResponse {
-  history?: { time: string; value: number }[]
+  history?: SensorReading[]
   unit?: string
-  [key: string]: string | number | boolean | { time: string; value: number }[] | undefined
+}
+
+interface SensorModificationItem extends SensorData {
+  min: number
+  max: number
+  optimal_min: number
+  optimal_max: number
+  status: 'optimal' | 'warning' | 'critical' | 'unknown'
+  trend: 'increasing' | 'decreasing' | 'stable'
 }
 
 /**
@@ -40,7 +50,7 @@ export interface SensorResponse {
  * @param fileApiKey The key for the sensor in the file API response
  */
 export function updateSensorDataFromResponse(
-  sensorData: SensorData,
+  sensorData: SensorModificationItem,
   response: Record<string, SensorResponse>,
   sensorKey: string,
   fileApiKey?: string,
@@ -50,19 +60,24 @@ export function updateSensorDataFromResponse(
   const isFileApiFormat = fileApiKey && response[fileApiKey] !== undefined
   const responseData = isFileApiFormat ? response[fileApiKey] : response[sensorKey]
 
-  if (responseData) {
-    if (responseData.history && responseData.history.length > 0) {
-      const latestReading = responseData.history[responseData.history.length - 1]
-      sensorData.value = latestReading.value
-      sensorData.history = responseData.history.map((item: { time: string; value: number }) => ({
-        time: new Date(item.time).toLocaleString(),
-        value: item.value,
-      }))
-    }
-    if (responseData.unit && typeof responseData.unit === 'string') {
-      sensorData.unit = responseData.unit
-    }
-  }
+  if (!responseData) return
+
+  const latestReading = responseData.history?.[responseData.history.length - 1]
+
+  sensorData.value = latestReading?.value ?? 0
+  sensorData.history =
+    responseData.history?.map((item) => ({
+      time: new Date(item.time).toLocaleString(),
+      value: item.value,
+    })) ?? []
+
+  sensorData.unit = responseData.unit ?? sensorData.unit
+  sensorData.min = sensorData.min ?? 0
+  sensorData.max = sensorData.max ?? 0
+  sensorData.optimal_min = sensorData.optimal_min ?? 0
+  sensorData.optimal_max = sensorData.optimal_max ?? 0
+  sensorData.status = sensorData.status ?? 'unknown'
+  sensorData.trend = sensorData.trend ?? 'stable'
 }
 
 /**

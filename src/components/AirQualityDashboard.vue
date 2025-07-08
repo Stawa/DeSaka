@@ -83,6 +83,30 @@ const healthStatus = computed(() => {
     }
   }
 })
+
+const sensorStatusClasses: Record<string, { bg: string; text: string }> = {
+  optimal: {
+    bg: 'bg-gradient-to-r from-emerald-500 to-emerald-400',
+    text: 'text-emerald-600 dark:text-emerald-400',
+  },
+  warning: {
+    bg: 'bg-gradient-to-r from-amber-500 to-amber-400',
+    text: 'text-amber-600 dark:text-amber-400',
+  },
+  critical: {
+    bg: 'bg-gradient-to-r from-red-500 to-red-400',
+    text: 'text-red-600 dark:text-red-400',
+  },
+}
+
+function getSensorClass(status?: string) {
+  return (
+    sensorStatusClasses[status ?? ''] ?? {
+      bg: '',
+      text: '',
+    }
+  )
+}
 </script>
 
 <template>
@@ -394,13 +418,7 @@ const healthStatus = computed(() => {
                   <div class="text-right">
                     <div
                       class="text-xl font-bold"
-                      :class="{
-                        'text-emerald-600 dark:text-emerald-400':
-                          airData.temperature.status === 'optimal',
-                        'text-amber-600 dark:text-amber-400':
-                          airData.temperature.status === 'warning',
-                        'text-red-600 dark:text-red-400': airData.temperature.status === 'critical',
-                      }"
+                      :class="getSensorClass(airData.humidity.status).text"
                     >
                       {{ airData.temperature.value }}{{ airData.temperature.unit }}
                     </div>
@@ -416,14 +434,7 @@ const healthStatus = computed(() => {
                 >
                   <div
                     class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                    :class="{
-                      'bg-gradient-to-r from-emerald-500 to-emerald-400':
-                        airData.temperature.status === 'optimal',
-                      'bg-gradient-to-r from-amber-500 to-amber-400':
-                        airData.temperature.status === 'warning',
-                      'bg-gradient-to-r from-red-500 to-red-400':
-                        airData.temperature.status === 'critical',
-                    }"
+                    :class="getSensorClass(airData.temperature.status).bg"
                     :style="{
                       width: `${Math.min(((airData.temperature.value - airData.temperature.min) / (airData.temperature.max - airData.temperature.min)) * 100, 100)}%`,
                     }"
@@ -462,12 +473,7 @@ const healthStatus = computed(() => {
                   <div class="text-right">
                     <div
                       class="text-xl font-bold"
-                      :class="{
-                        'text-emerald-600 dark:text-emerald-400':
-                          airData.humidity.status === 'optimal',
-                        'text-amber-600 dark:text-amber-400': airData.humidity.status === 'warning',
-                        'text-red-600 dark:text-red-400': airData.humidity.status === 'critical',
-                      }"
+                      :class="getSensorClass(airData.humidity.status).text"
                     >
                       {{ airData.humidity.value }}{{ airData.humidity.unit }}
                     </div>
@@ -482,14 +488,7 @@ const healthStatus = computed(() => {
                 >
                   <div
                     class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                    :class="{
-                      'bg-gradient-to-r from-emerald-500 to-emerald-400':
-                        airData.humidity.status === 'optimal',
-                      'bg-gradient-to-r from-amber-500 to-amber-400':
-                        airData.humidity.status === 'warning',
-                      'bg-gradient-to-r from-red-500 to-red-400':
-                        airData.humidity.status === 'critical',
-                    }"
+                    :class="getSensorClass(airData.humidity.status).bg"
                     :style="{
                       width: `${Math.min(((airData.humidity.value - airData.humidity.min) / (airData.humidity.max - airData.humidity.min)) * 100, 100)}%`,
                     }"
@@ -497,138 +496,61 @@ const healthStatus = computed(() => {
                 </div>
               </div>
 
-              <!-- CO₂ Level Parameter -->
-              <div
-                class="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900/20 dark:to-gray-800/10 rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-              >
-                <div class="flex items-center justify-between mb-4">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900/30 dark:to-gray-800/20 flex items-center justify-center ring-1 ring-gray-200/50 dark:ring-gray-700/30"
-                    >
-                      <svg
-                        class="w-6 h-6 text-gray-600 dark:text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="font-semibold text-gray-900 dark:text-gray-100">CO₂ Level</div>
-                      <div class="text-xs text-gray-700 dark:text-gray-300">
-                        Carbon dioxide concentration
-                      </div>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <div
-                      class="text-xl font-bold"
-                      :class="{
-                        'text-emerald-600 dark:text-emerald-400': airData.co2.status === 'optimal',
-                        'text-amber-600 dark:text-amber-400': airData.co2.status === 'warning',
-                        'text-red-600 dark:text-red-400': airData.co2.status === 'critical',
-                      }"
-                    >
-                      {{ airData.co2.value }}{{ airData.co2.unit }}
-                    </div>
-                    <div class="text-xs text-gray-700 dark:text-gray-300 capitalize">
-                      {{ airData.co2.status }}
-                    </div>
-                  </div>
-                </div>
-
+              <div class="lg:col-span-2">
+                <!-- Light Intensity Level Parameter -->
                 <div
-                  class="relative h-2 bg-gray-100 dark:bg-gray-900/30 rounded-full overflow-hidden"
+                  class="bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900/20 dark:to-gray-800/10 rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/30 transition-all duration-300 hover:shadow-lg"
                 >
-                  <div
-                    class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                    :class="{
-                      'bg-gradient-to-r from-emerald-500 to-emerald-400':
-                        airData.co2.status === 'optimal',
-                      'bg-gradient-to-r from-amber-500 to-amber-400':
-                        airData.co2.status === 'warning',
-                      'bg-gradient-to-r from-red-500 to-red-400': airData.co2.status === 'critical',
-                    }"
-                    :style="{
-                      width: `${Math.min(((airData.co2.value - airData.co2.min) / (airData.co2.max - airData.co2.min)) * 100, 100)}%`,
-                    }"
-                  ></div>
-                </div>
-              </div>
-
-              <!-- TVOC Level Parameter -->
-              <div
-                class="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 rounded-xl p-6 border border-purple-200/50 dark:border-purple-700/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-              >
-                <div class="flex items-center justify-between mb-4">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/20 flex items-center justify-center ring-1 ring-purple-200/50 dark:ring-purple-700/30"
-                    >
-                      <svg
-                        class="w-6 h-6 text-purple-600 dark:text-purple-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900/30 dark:to-gray-800/20 flex items-center justify-center ring-1 ring-gray-200/50 dark:ring-gray-700/30"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="font-semibold text-purple-900 dark:text-purple-100">
-                        TVOC Level
+                        <svg
+                          class="w-6 h-6 text-gray-600 dark:text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                          />
+                        </svg>
                       </div>
-                      <div class="text-xs text-purple-700 dark:text-purple-300">
-                        Total volatile organic compounds
+                      <div>
+                        <div class="font-semibold text-gray-900 dark:text-gray-100">
+                          Light Intensity Level
+                        </div>
+                        <div class="text-xs text-gray-700 dark:text-gray-300">Light Intensity</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div
+                        class="text-xl font-bold"
+                        :class="getSensorClass(airData.light.status).text"
+                      >
+                        {{ airData.light.value }}{{ airData.light.unit }}
+                      </div>
+                      <div class="text-xs text-gray-700 dark:text-gray-300 capitalize">
+                        {{ airData.light.status }}
                       </div>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <div
-                      class="text-xl font-bold"
-                      :class="{
-                        'text-emerald-600 dark:text-emerald-400': airData.tvoc.status === 'optimal',
-                        'text-amber-600 dark:text-amber-400': airData.tvoc.status === 'warning',
-                        'text-red-600 dark:text-red-400': airData.tvoc.status === 'critical',
-                      }"
-                    >
-                      {{ airData.tvoc.value }}{{ airData.tvoc.unit }}
-                    </div>
-                    <div class="text-xs text-purple-700 dark:text-purple-300 capitalize">
-                      {{ airData.tvoc.status }}
-                    </div>
-                  </div>
-                </div>
 
-                <div
-                  class="relative h-2 bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden"
-                >
                   <div
-                    class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
-                    :class="{
-                      'bg-gradient-to-r from-emerald-500 to-emerald-400':
-                        airData.tvoc.status === 'optimal',
-                      'bg-gradient-to-r from-amber-500 to-amber-400':
-                        airData.tvoc.status === 'warning',
-                      'bg-gradient-to-r from-red-500 to-red-400':
-                        airData.tvoc.status === 'critical',
-                    }"
-                    :style="{
-                      width: `${Math.min(((airData.tvoc.value - airData.tvoc.min) / (airData.tvoc.max - airData.tvoc.min)) * 100, 100)}%`,
-                    }"
-                  ></div>
+                    class="relative h-2 bg-gray-100 dark:bg-gray-900/30 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
+                      :class="getSensorClass(airData.light.status).bg"
+                      :style="{
+                        width: `${Math.min(((airData.light.value - airData.light.min) / (airData.light.max - airData.light.min)) * 100, 100)}%`,
+                      }"
+                    ></div>
+                  </div>
                 </div>
               </div>
             </div>

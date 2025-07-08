@@ -16,7 +16,7 @@
 
 import { computed } from 'vue'
 import SensorCard from './SensorCard.vue'
-import { transformSensorData } from '@/utils/sensorHelpers'
+import { transformSensorData, type RawSensorData } from '@/utils/sensorHelpers'
 import { type SensorDataStructure } from '@/constants/sensorConstants'
 
 /**
@@ -24,7 +24,7 @@ import { type SensorDataStructure } from '@/constants/sensorConstants'
  */
 interface Props {
   /** Raw sensor data object from API or parent component */
-  sensorData: Record<string, unknown>
+  sensorData: RawSensorData
   /** Optional callback function for sensor click events */
   onSensorClick?: (sensorId: string) => void
 }

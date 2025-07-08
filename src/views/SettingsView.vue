@@ -6,6 +6,7 @@ import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 import ThresholdInputGroup from '@/components/settings/ThresholdInputGroup.vue'
 import NotificationChannels from '@/components/settings/NotificationChannels.vue'
 import 'vue3-toastify/dist/index.css'
+import type { Settings } from '@/composables/responseApi'
 
 const activeTab = ref('general')
 const setActiveTab = (tab: string) => {
@@ -20,10 +21,9 @@ const isResettingSettings = ref(false)
 const { fetchFileById, updateFileById } = useApi()
 
 const SETTINGS_FILE_ID = '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu'
-
 const newEmailTag = ref('')
 
-const originalSettings = {
+const originalSettings: Settings = {
   general: {
     dataRefreshInterval: 5,
     dataRetentionPeriod: 30,
@@ -36,36 +36,19 @@ const originalSettings = {
     smsEnabled: false,
     pushEnabled: true,
     emails: [],
+    phones: [],
   },
   thresholds: {
-    soilTemperature: {
-      min: 10,
-      max: 30,
-    },
-    soilMoisture: {
-      min: 20,
-      max: 80,
-    },
-    soilPH: {
-      min: 5.5,
-      max: 7.5,
-    },
-    airTemperature: {
-      min: 18,
-      max: 30,
-    },
-    airHumidity: {
-      min: 30,
-      max: 70,
-    },
-    lightIntensity: {
-      min: 1000,
-      max: 10000,
-    },
+    soilTemperature: { min: 10, max: 30 },
+    soilMoisture: { min: 20, max: 80 },
+    soilPH: { min: 5.5, max: 7.5 },
+    airTemperature: { min: 18, max: 30 },
+    airHumidity: { min: 30, max: 70 },
+    lightIntensity: { min: 1000, max: 10000 },
   },
 }
 
-const settings = ref(JSON.parse(JSON.stringify(originalSettings)))
+const settings = ref<Settings>(structuredClone(originalSettings))
 
 const tabs = [
   {
@@ -88,6 +71,26 @@ const tabs = [
   },
 ]
 
+function deepMerge<T>(target: T, source: Partial<T>): T {
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const sourceValue = source[key]
+    const targetValue = target[key]
+    if (
+      sourceValue &&
+      typeof sourceValue === 'object' &&
+      !Array.isArray(sourceValue) &&
+      targetValue &&
+      typeof targetValue === 'object' &&
+      !Array.isArray(targetValue)
+    ) {
+      deepMerge(targetValue, sourceValue)
+    } else if (sourceValue !== undefined) {
+      target[key] = sourceValue as T[keyof T]
+    }
+  }
+  return target
+}
+
 onMounted(async () => {
   await loadSettingsFromDrive()
 })
@@ -95,61 +98,27 @@ onMounted(async () => {
 async function loadSettingsFromDrive() {
   try {
     isLoadingSettings.value = true
-    console.log('[loadSettingsFromDrive] Fetching settings from Google Drive')
-
-    const response = await fetchFileById(SETTINGS_FILE_ID)
-    console.log('[loadSettingsFromDrive] Response:', response)
+    const response: Partial<Settings> = await fetchFileById(SETTINGS_FILE_ID)
 
     if (response && Object.keys(response).length > 0) {
-      const mergedSettings = JSON.parse(JSON.stringify(originalSettings))
-
-      /**
-       * Deep merges source object into target object
-       * 
-       * @param target - The target object to merge into
-       * @param source - The source object to merge from
-       * @returns The merged target object
-       */
-      const deepMerge = (target: Record<string, unknown>, source: Record<string, unknown>) => {
-        for (const key in source) {
-          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-            if (!target[key] || typeof target[key] !== 'object') {
-              target[key] = {}
-            }
-            deepMerge(target[key], source[key])
-          } else {
-            target[key] = source[key]
-          }
-        }
-        return target
-      }
-
-      for (const key in response) {
-        if (key in mergedSettings) {
-          if (typeof response[key] === 'object' && !Array.isArray(response[key])) {
-            deepMerge(mergedSettings[key as keyof typeof mergedSettings], response[key])
-          } else {
-            mergedSettings[key as keyof typeof mergedSettings] = response[key]
-          }
-        }
-      }
+      const mergedSettings: Settings = JSON.parse(JSON.stringify(originalSettings))
+      deepMerge(mergedSettings, response)
 
       settings.value = JSON.parse(JSON.stringify(mergedSettings))
       Object.assign(originalSettings, JSON.parse(JSON.stringify(mergedSettings)))
-      console.log('[loadSettingsFromDrive] Settings loaded and merged with defaults')
+
       toast.success('Settings loaded successfully', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
       })
     } else {
-      console.log('[loadSettingsFromDrive] No settings found, using defaults')
       toast.info('Using default settings', {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 3000,
       })
     }
   } catch (err) {
-    console.error('Error loading settings from Google Drive:', err)
+    console.error('Error loading settings:', err)
     toast.error('Failed to load settings', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
@@ -162,17 +131,15 @@ async function loadSettingsFromDrive() {
 async function saveSettingsToDrive() {
   try {
     isSavingSettings.value = true
-    const plainSettings = JSON.parse(JSON.stringify(settings.value))
-    console.log('[saveSettingsToDrive] Sending settings:', plainSettings)
+    await updateFileById(SETTINGS_FILE_ID, JSON.parse(JSON.stringify(settings.value)), false)
 
-    await updateFileById(SETTINGS_FILE_ID, plainSettings, false)
     toast.success('Settings saved successfully', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
     })
     return true
   } catch (err) {
-    console.error('Error saving settings to Google Drive:', err)
+    console.error('Error saving settings:', err)
     toast.error('Failed to save settings', {
       position: toast.POSITION.TOP_RIGHT,
       autoClose: 3000,
@@ -192,10 +159,10 @@ watch(
 )
 
 const addEmailTag = () => {
-  if (!newEmailTag.value) return
-
   const email = newEmailTag.value.trim()
-  if (email && !settings.value.notifications.emails.includes(email) && validateEmail(email)) {
+  if (!email) return
+
+  if (validateEmail(email) && !settings.value.notifications.emails.includes(email)) {
     settings.value.notifications.emails.push(email)
     newEmailTag.value = ''
   } else if (!validateEmail(email)) {
@@ -213,27 +180,17 @@ const removeEmailTag = (email: string) => {
   }
 }
 
-const handleTagKeydown = (event: KeyboardEvent, type: 'email') => {
+const handleTagKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
-    if (type === 'email') {
-      addEmailTag()
-    }
+    addEmailTag()
   }
 }
 
-const validateEmail = (email: string) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
+const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
-const emailsValid = computed(() => {
-  return settings.value.notifications.emails.every((email: string) => validateEmail(email))
-})
-
-const formValid = computed(() => {
-  return emailsValid.value
-})
+const emailsValid = computed(() => settings.value.notifications.emails.every(validateEmail))
+const formValid = computed(() => emailsValid.value)
 
 const saveSettings = async () => {
   if (!formValid.value) {
@@ -244,13 +201,9 @@ const saveSettings = async () => {
     return
   }
 
-  console.log('[saveSettings] Current settings:', settings.value)
-
-  const savedToDrive = await saveSettingsToDrive()
-
-  if (savedToDrive) {
+  if (await saveSettingsToDrive()) {
     Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
-    settingsModified.value = false
+    settings.value = JSON.parse(JSON.stringify(originalSettings))
   }
 }
 
@@ -258,8 +211,7 @@ const resetSettings = async () => {
   if (confirm('Are you sure you want to reset all settings to default values?')) {
     try {
       isResettingSettings.value = true
-      settings.value = JSON.parse(JSON.stringify(originalSettings))
-
+      settings.value = structuredClone(originalSettings)
       await saveSettingsToDrive()
 
       toast.info('Settings reset to defaults', {
@@ -279,15 +231,13 @@ const resetSettings = async () => {
 }
 
 const cancelChanges = () => {
-  if (settingsModified.value) {
-    if (confirm('Discard unsaved changes?')) {
-      settings.value = JSON.parse(JSON.stringify(originalSettings))
-      settingsModified.value = false
-      toast.info('Changes discarded', {
-        position: toast.POSITION.TOP_RIGHT,
-        autoClose: 3000,
-      })
-    }
+  if (settingsModified.value && confirm('Discard unsaved changes?')) {
+    settings.value = structuredClone(originalSettings)
+    settingsModified.value = false
+    toast.info('Changes discarded', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
   }
 }
 </script>

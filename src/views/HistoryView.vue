@@ -4,14 +4,14 @@ import HistoryLists from '@/components/history/HistoryLists.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
 import HistoryHeader from '@/components/history/HistoryHeader.vue'
 import { formatSensorDataForExport } from '@/scripts'
-import { handleDataExport } from '@/utils/exportUtils'
-import { useApi } from '@/composables/useApi'
+import { handleDataExport, type ExportOptions } from '@/utils/exportUtils'
+import { useApi, type FileMetadata } from '@/composables/useApi'
+import type { SensorReading } from '@/composables/responseApi'
 
 const { fetchFiles, fetchFileById } = useApi()
 
 const activeTab = ref('date-range')
 const screenWidth = ref(0)
-const chartLayout = ref(window.innerWidth >= 768 ? 'grid' : 'list')
 const showExportModal = ref(false)
 
 const dateRange = ref({
@@ -50,7 +50,7 @@ type SensorData = {
 const historicalData = ref<SensorData>({})
 const isLoading = ref(false)
 const apiError = ref<string | null>(null)
-const availableFiles = ref<Array<{ id: string; name: string; modifiedTime: string }>>([])
+const availableFiles = ref<FileMetadata[]>([])
 
 const sensorMapping: Record<string, string> = {
   ph: 'soil_ph',
@@ -94,7 +94,6 @@ const handleSoilSensorTimestamp = (timestamp: string): string => {
     const date = new Date(Number(timestamp))
     return !isNaN(date.getTime()) ? date.toISOString() : timestamp
   }
-
   if (typeof timestamp === 'string') {
     const date = new Date(timestamp)
     if (!isNaN(date.getTime())) return date.toISOString()
@@ -117,7 +116,6 @@ const handleSoilSensorTimestamp = (timestamp: string): string => {
       return !isNaN(date.getTime()) ? date.toISOString() : timestamp
     }
   }
-
   return timestamp
 }
 
@@ -128,106 +126,66 @@ const handleRegularTimestamp = (timestamp: string): string => {
       return !isNaN(date.getTime()) ? date.toISOString() : timestamp
     }
     return timestamp
-  } catch (error) {
-    console.error('Error standardizing timestamp:', timestamp, error)
+  } catch {
     return timestamp
   }
 }
 
-/**
- * Determines the type of file data (air or soil) based on content and filename
- * 
- * @param fileData - The file data to analyze
- * @param fileName - Name of the file
- * @returns The determined file type ('air', 'soil', or 'unknown')
- */
 const determineFileType = (fileData: Record<string, unknown>, fileName: string): string => {
-  const hasHumidity = Object.keys(fileData).includes('humidity')
-  const hasMoisture = Object.keys(fileData).includes('moisture')
-  const hasTemperature = Object.keys(fileData).includes('temperature')
+  const hasHumidity = 'humidity' in fileData
+  const hasMoisture = 'moisture' in fileData
+  const hasTemperature = 'temperature' in fileData
 
   if (hasHumidity) return 'air'
   if (hasMoisture) return 'soil'
-
   if (hasTemperature) {
     if (fileName.toLowerCase().includes('soil')) return 'soil'
     if (fileName.toLowerCase().includes('air')) return 'air'
   }
-
-  if (fileName.toLowerCase().includes('soil')) return 'soil'
-  if (fileName.toLowerCase().includes('air')) return 'air'
-
-  return hasTemperature ? 'soil' : 'unknown'
+  return 'unknown'
 }
 
-const mapSensorId = (apiSensorKey: string, fileType: string): string => {
-  if (apiSensorKey === 'temperature') {
-    return fileType === 'air' ? 'air_temperature' : 'soil_temperature'
-  }
-  if (apiSensorKey === 'moisture') return 'soil_moisture'
-  if (apiSensorKey === 'humidity') return 'air_humidity'
-
-  return sensorMapping[apiSensorKey] || apiSensorKey
+const mapSensorId = (key: string, type: string): string => {
+  if (key === 'temperature') return type === 'air' ? 'air_temperature' : 'soil_temperature'
+  if (key === 'moisture') return 'soil_moisture'
+  if (key === 'humidity') return 'air_humidity'
+  return sensorMapping[key] || key
 }
 
-/**
- * Processes raw sensor data into standardized DataPoint format
- * 
- * @param fileData - Raw file data containing sensor readings
- * @param apiSensorKey - The key in the file data that contains the sensor readings
- * @param sensorId - Identifier for the sensor
- * @returns Array of standardized DataPoint objects
- */
-const processSensorData = (fileData: Record<string, unknown>, apiSensorKey: string, sensorId: string): DataPoint[] => {
-  if (!fileData[apiSensorKey]?.history || !Array.isArray(fileData[apiSensorKey].history)) {
-    return []
-  }
-
-  return fileData[apiSensorKey].history.map((point: { time: string; value: number }) => ({
+const processSensorData = (
+  fileData: Record<string, unknown>,
+  apiSensorKey: string,
+  sensorId: string,
+): DataPoint[] => {
+  const section = fileData[apiSensorKey] as { history?: SensorReading[] }
+  if (!section || !Array.isArray(section.history)) return []
+  return section.history.map((point) => ({
     timestamp: standardizeTimestamp(point.time, sensorId),
     value: typeof point.value === 'number' ? point.value : parseFloat(point.value),
   }))
 }
 
-const mergeAndSortSensorData = (existingData: DataPoint[], newData: DataPoint[]): DataPoint[] => {
-  const merged = [...existingData, ...newData]
-  return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-}
+const mergeAndSortSensorData = (a: DataPoint[], b: DataPoint[]) =>
+  [...a, ...b].sort((x, y) => new Date(x.timestamp).getTime() - new Date(y.timestamp).getTime())
 
-/**
- * Processes file response data into structured sensor data
- * 
- * @param filesResponse - Response containing file metadata
- * @returns Promise resolving to structured sensor data
- */
-const processFileData = async (filesResponse: { files: Array<{ id: string; name: string; modifiedTime: string }> }): Promise<SensorData> => {
-  const sortedFiles = [...filesResponse.files].sort(
+const processFileData = async (files: FileMetadata[]): Promise<SensorData> => {
+  const sorted = [...files].sort(
     (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
   )
-
   const data: SensorData = {}
-  selectedSensors.value.forEach((sensorId) => {
-    data[sensorId] = []
-  })
+  selectedSensors.value.forEach((id) => (data[id] = []))
 
-  const fetchPromises = sortedFiles.map((file) => fetchFileById(file.id))
-  const fileDataArray = await Promise.all(fetchPromises)
+  const fileDataArray = await Promise.all(sorted.map((file) => fetchFileById(file.id)))
 
   fileDataArray.forEach((fileData, index) => {
-    const fileName = sortedFiles[index]?.name || 'unknown'
+    const fileName = sorted[index]?.name || 'unknown'
     const fileType = determineFileType(fileData, fileName)
 
-    Object.keys(fileData).forEach((apiSensorKey) => {
-      const sensorId = mapSensorId(apiSensorKey, fileType)
-
-      if (selectedSensors.value.includes(sensorId)) {
-        const sensorData = processSensorData(fileData, apiSensorKey, sensorId)
-
-        if (sensorData.length > 0) {
-          data[sensorId] = data[sensorId]
-            ? mergeAndSortSensorData(data[sensorId], sensorData)
-            : sensorData
-        }
+    Object.keys(fileData).forEach((key) => {
+      const id = mapSensorId(key, fileType)
+      if (selectedSensors.value.includes(id)) {
+        const d = processSensorData(fileData, key, id)
+        data[id] = mergeAndSortSensorData(data[id], d)
       }
     })
   })
@@ -235,36 +193,22 @@ const processFileData = async (filesResponse: { files: Array<{ id: string; name:
   return data
 }
 
-const generateMockDataPoint = (sensorId: string, timestamp: string): DataPoint => {
-  const config = mockValueRanges[sensorId as keyof typeof mockValueRanges] || {
-    base: 0,
-    range: 100,
-  }
-  const value = config.base + Math.random() * config.range
-
-  return {
-    timestamp,
-    value: parseFloat(value.toFixed(1)),
-  }
-}
-
 const generateMockData = () => {
-  console.warn('Using mock data as fallback')
-  const data: SensorData = {}
+  console.warn('Using mock data fallback.')
   const now = new Date()
-  const startDate = new Date(dateRange.value.start)
-  const daysDiff = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  const start = new Date(dateRange.value.start)
+  const days = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  const data: SensorData = {}
 
   availableSensors.forEach((sensor) => {
     data[sensor.id] = []
-
-    for (let i = 0; i <= daysDiff; i++) {
-      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000)
-      const dateStr = date.toISOString().split('T')[0]
-
-      for (let hour = 0; hour < 24; hour++) {
-        const timestamp = `${dateStr}T${hour.toString().padStart(2, '0')}:00:00`
-        data[sensor.id].push(generateMockDataPoint(sensor.id, timestamp))
+    for (let i = 0; i <= days; i++) {
+      const day = new Date(start.getTime() + i * 86400000)
+      for (let h = 0; h < 24; h++) {
+        const timestamp = `${day.toISOString().split('T')[0]}T${String(h).padStart(2, '0')}:00:00Z`
+        const config = mockValueRanges[sensor.id as keyof typeof mockValueRanges]
+        const value = config.base + Math.random() * config.range
+        data[sensor.id].push({ timestamp, value: parseFloat(value.toFixed(1)) })
       }
     }
   })
@@ -274,21 +218,13 @@ const generateMockData = () => {
 
 const fetchHistoricalData = async () => {
   isLoading.value = true
-  apiError.value = null
-
   try {
-    const filesResponse = await fetchFiles()
-    if (filesResponse?.files) {
-      availableFiles.value = filesResponse.files
-
-      if (availableFiles.value.length > 0) {
-        const data = await processFileData(filesResponse)
-        historicalData.value = data
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching historical data:', error)
-    apiError.value = error instanceof Error ? error.message : 'Failed to fetch data'
+    const files = await fetchFiles()
+    availableFiles.value = files
+    historicalData.value = await processFileData(files)
+  } catch (err) {
+    console.error('Data fetch error:', err)
+    apiError.value = err instanceof Error ? err.message : 'Unknown error'
     generateMockData()
   } finally {
     isLoading.value = false
@@ -544,17 +480,12 @@ const prepareExportData = () => {
 
 /**
  * Handles exporting sensor data based on provided options
- * 
+ *
  * @param exportOptions - Configuration for data export
  */
-const handleExport = (exportOptions: {
-  format: 'csv' | 'json' | 'excel';
-  sensors: Array<{ id: string; name?: string; unit?: string } | string>;
-  dateRange: { start: string | null; end: string | null };
-  timeRange?: { start: string; end: string };
-}) => {
+const handleExport = (config: ExportOptions) => {
   const { exportData, sensorInfo } = prepareExportData()
-  handleDataExport(exportOptions, exportData, sensorInfo)
+  handleDataExport(config, exportData, sensorInfo)
 }
 
 onMounted(() => {

@@ -3,40 +3,86 @@
  * Provides type-safe interfaces for API responses and data transformation utilities
  */
 
-interface SoilReading {
-  time: string
+interface SensorData {
   value: number
-}
-
-interface SoilSensor {
   unit: string
-  history: SoilReading[]
-}
-
-interface Soil {
-  temperature: SoilSensor
-  moisture: SoilSensor
-}
-
-interface AirReading {
-  time: string
-  value: number
-}
-
-interface AirSensor {
-  unit: string
-  history: AirReading[]
-}
-
-interface Air {
-  temperature: AirSensor
-  humidity: AirSensor
-  co2: AirSensor
+  history: { time: string; value: number }[]
 }
 
 interface SensorReading {
   time: string
   value: number
+}
+
+interface SensorItems {
+  unit: string
+  history: SensorReading[]
+}
+
+interface Soil {
+  temperature: SensorItems
+  moisture: SensorItems
+  ph: SensorItems
+  [key: string]: SensorItems
+}
+
+interface Air {
+  temperature: SensorItems
+  humidity: SensorItems
+  light: SensorItems
+  [key: string]: SensorItems
+}
+
+interface SensorModificationItem {
+  value: number
+  unit: string
+  history: { time: string; value: number }[]
+  min: number
+  max: number
+  optimal_min: number
+  optimal_max: number
+  status: 'optimal' | 'warning' | 'critical' | 'unknown'
+  trend: 'increasing' | 'decreasing' | 'stable'
+}
+
+interface SensorModification {
+  [key: string]: SensorModificationItem
+}
+
+interface GeneralSettings {
+  dataRefreshInterval: number
+  dataRetentionPeriod: number
+  timezone: string
+  dateFormat: string
+  timeFormat: string
+}
+
+interface NotificationSettings {
+  emailEnabled: boolean
+  smsEnabled: boolean
+  pushEnabled: boolean
+  emails: string[]
+  phones: string[]
+}
+
+interface ThresholdRange {
+  min: number
+  max: number
+}
+
+interface ThresholdSettings {
+  soilTemperature: ThresholdRange
+  soilMoisture: ThresholdRange
+  soilPH: ThresholdRange
+  airTemperature: ThresholdRange
+  airHumidity: ThresholdRange
+  lightIntensity: ThresholdRange
+}
+
+interface Settings {
+  general: GeneralSettings
+  notifications: NotificationSettings
+  thresholds: ThresholdSettings
 }
 
 /**
@@ -61,5 +107,5 @@ function mapReadableHistory(history: SensorReading[]): { time: string; value: nu
   }))
 }
 
-export type { Soil, SoilSensor, SoilReading, Air, AirSensor, AirReading, SensorReading }
+export type { Soil, Air, SensorReading, Settings, SensorItems, SensorData, SensorModification }
 export { mapReadableHistory }

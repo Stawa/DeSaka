@@ -19,6 +19,11 @@
 
 import { ref, type Ref } from 'vue'
 
+const SENSOR_FILE_IDS: Record<string, string> = {
+  air: '1WljLGjVfMa5DWtS33GYGmsTNjbBxl0K_',
+  soil: '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG',
+}
+
 /**
  * API configuration constants
  */
@@ -32,7 +37,7 @@ const API_CONFIG = {
 /**
  * Type definitions for API responses
  */
-interface ApiResponse<T = Record<string, string | number | boolean>> {
+interface ApiResponse<T = Record<string, number | boolean>> {
   data?: T
   error?: string
   message?: string
@@ -44,11 +49,13 @@ interface SensorHistoryData {
   value: number
 }
 
-interface SensorApiResponse {
-  unit?: string
-  history?: SensorHistoryData[]
-  status?: string
-  [key: string]: string | number | boolean | SensorHistoryData[] | undefined
+export interface SensorFieldData {
+  unit: string
+  history: SensorHistoryData[]
+}
+
+export interface SensorApiResponse {
+  [key: string]: SensorFieldData
 }
 
 interface FileMetadata {
@@ -59,17 +66,6 @@ interface FileMetadata {
   modifiedTime: string
 }
 
-interface WhatsAppPayload {
-  phoneNumber: string
-  message: string
-}
-
-interface GmailPayload {
-  to: string
-  subject: string
-  text: string
-}
-
 /**
  * Custom error class for API-related errors
  */
@@ -77,7 +73,7 @@ class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public response?: string | Record<string, string | number | boolean>,
+    public response?: string | Record<string, number | boolean>,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -156,56 +152,6 @@ export function useApi() {
       }
 
       throw new ApiError('Unknown error occurred')
-    }
-  }
-
-  /**
-   * Fetch sensor data with mock fallback
-   *
-   * Note: The current API does not support the /sensors endpoint.
-   * This method provides a mock implementation for development purposes.
-   *
-   * @param options - Filtering options for sensor data
-   * @returns Promise resolving to sensor data object
-   */
-  async function fetchSensorData(
-    options: {
-      startDate?: string
-      endDate?: string
-      sensors?: string[]
-    } = {},
-  ): Promise<Record<string, SensorApiResponse>> {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      console.warn(
-        '[API] The /sensors endpoint is not supported by the current API implementation.',
-        'Returning mock data for development purposes.',
-        'Use fetchFileById() for actual data retrieval.',
-      )
-
-      /** Generate mock response structure */
-      const mockResponse: Record<string, SensorApiResponse> = {}
-
-      if (options.sensors && options.sensors.length > 0) {
-        options.sensors.forEach((sensorId) => {
-          mockResponse[sensorId] = {
-            unit: getSensorUnit(sensorId),
-            history: generateMockHistory(),
-            status: 'unknown',
-          }
-        })
-      }
-
-      return mockResponse
-    } catch (err) {
-      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
-      error.value = apiError
-      console.error('[API] Error fetching sensor data:', apiError)
-      throw apiError
-    } finally {
-      isLoading.value = false
     }
   }
 
@@ -307,82 +253,6 @@ export function useApi() {
   }
 
   /**
-   * Append sensor data to a file
-   *
-   * @param fileId - The unique identifier of the file to update
-   * @param sensorData - Object containing sensor data to append
-   * @returns Promise resolving to API response
-   */
-  async function appendSensorData(
-    fileId: string,
-    sensorData: Record<string, { time: string; value: number }>,
-  ): Promise<ApiResponse> {
-    return updateFileById(fileId, sensorData, true)
-  }
-
-  /**
-   * Send WhatsApp message via API
-   *
-   * @param payload - Object containing phone number and message
-   * @returns Promise resolving to API response
-   */
-  async function sendWhatsAppMessage(payload: WhatsAppPayload): Promise<ApiResponse> {
-    if (!payload.phoneNumber || !payload.message) {
-      throw new ApiError('Phone number and message are required')
-    }
-
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const response = await fetchWithCors<ApiResponse>(`${API_CONFIG.BASE_URL}/whatsapp/send`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
-
-      return response
-    } catch (err) {
-      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
-      error.value = apiError
-      console.error('[API] Error sending WhatsApp message:', apiError)
-      throw apiError
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /**
-   * Send email via Gmail API
-   *
-   * @param payload - Object containing email details
-   * @returns Promise resolving to API response
-   */
-  async function sendGmailMessage(payload: GmailPayload): Promise<ApiResponse> {
-    if (!payload.to || !payload.subject || !payload.text) {
-      throw new ApiError('Email recipient, subject, and text are required')
-    }
-
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const response = await fetchWithCors<ApiResponse>(`${API_CONFIG.BASE_URL}/gmail/send`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
-
-      return response
-    } catch (err) {
-      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
-      error.value = apiError
-      console.error('[API] Error sending Gmail message:', apiError)
-      throw apiError
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /**
    * Generic data refresh utility
    *
    * @param callback - Function to handle the fetched data
@@ -412,45 +282,6 @@ export function useApi() {
     }
   }
 
-  /**
-   * Get default unit for a sensor type
-   *
-   * @param sensorId - The sensor identifier
-   * @returns The appropriate unit string
-   */
-  function getSensorUnit(sensorId: string): string {
-    const unitMap: Record<string, string> = {
-      soilTemperature: '°C',
-      soilMoisture: '%',
-      soilPH: 'pH',
-      airTemperature: '°C',
-      airHumidity: '%',
-      lightIntensity: 'lux',
-    }
-
-    return unitMap[sensorId] || ''
-  }
-
-  /**
-   * Generate mock sensor history data
-   *
-   * @returns Array of mock sensor readings
-   */
-  function generateMockHistory(): SensorHistoryData[] {
-    const history: SensorHistoryData[] = []
-    const now = new Date()
-
-    for (let i = 23; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-      history.push({
-        time: time.toISOString(),
-        value: Math.random() * 100,
-      })
-    }
-
-    return history
-  }
-
   /** Return the public API interface */
   return {
     /** Reactive state */
@@ -458,33 +289,17 @@ export function useApi() {
     error,
 
     /** Core API methods */
-    fetchSensorData,
     fetchFiles,
     fetchFileById,
     updateFileById,
-    appendSensorData,
-
-    /** Communication methods */
-    sendWhatsAppMessage,
-    sendGmailMessage,
 
     /** Utility methods */
     refreshData,
-
-    /** Configuration */
-    API_CONFIG,
   }
 }
 
 /**
  * Export types for external use
  */
-export type {
-  ApiResponse,
-  SensorApiResponse,
-  FileMetadata,
-  SensorHistoryData,
-  WhatsAppPayload,
-  GmailPayload,
-}
-export { ApiError }
+export type { ApiResponse, FileMetadata, SensorHistoryData }
+export { ApiError, SENSOR_FILE_IDS }

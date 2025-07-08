@@ -19,6 +19,7 @@ import {
   transformSensorData,
   getSensorStatusConfig,
   getCategoryColorConfig,
+  type RawSensorData,
 } from '@/utils/sensorHelpers'
 import { type SensorDataStructure } from '@/constants/sensorConstants'
 
@@ -27,7 +28,7 @@ import { type SensorDataStructure } from '@/constants/sensorConstants'
  */
 interface Props {
   /** Raw sensor data object from API or parent component */
-  sensorData: Record<string, unknown>
+  sensorData: RawSensorData
   /** Optional callback function for sensor row click events */
   onSensorClick?: (sensorId: string) => void
 }
