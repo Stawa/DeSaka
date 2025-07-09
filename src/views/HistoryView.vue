@@ -702,37 +702,37 @@ onMounted(() => {
               </div>
 
               <!-- Sensor Grid -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div
                   v-for="sensor in availableSensors"
                   :key="sensor.id"
                   @click="toggleSensor(sensor.id)"
-                  class="group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105"
+                  class="group cursor-pointer p-3 rounded-lg border transition-all duration-200 hover:scale-[1.02]"
                   :class="{
-                    'border-emerald-200 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10':
+                    'border-emerald-300 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-900/20 shadow-md shadow-emerald-500/10':
                       selectedSensors.includes(sensor.id),
-                    'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white/50 dark:bg-gray-800/50':
+                    'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white/40 dark:bg-gray-800/40':
                       !selectedSensors.includes(sensor.id),
                   }"
                 >
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
                     <div class="relative">
                       <div
-                        class="w-4 h-4 rounded-full shadow-sm"
+                        class="w-3.5 h-3.5 rounded-full shadow-sm"
                         :style="{ backgroundColor: sensor.color }"
                       ></div>
                       <div
                         v-if="selectedSensors.includes(sensor.id)"
-                        class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center"
+                        class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full flex items-center justify-center"
                       >
-                        <span class="mdi mdi-check text-white text-xs"></span>
+                        <span class="mdi mdi-check text-white text-[10px]"></span>
                       </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate">
+                      <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {{ sensor.name }}
                       </h4>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">{{ sensor.unit }}</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ sensor.unit }}</p>
                     </div>
                   </div>
                 </div>

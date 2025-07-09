@@ -165,8 +165,10 @@ export function useApi() {
     error.value = null
 
     try {
-      const response = await fetchWithCors<FileMetadata[]>(`${API_CONFIG.BASE_URL}/drive/files`)
-      return response
+      const response = await fetchWithCors<{ files: FileMetadata[] }>(
+        `${API_CONFIG.BASE_URL}/drive/files`,
+      )
+      return response.files
     } catch (err) {
       const apiError = err instanceof ApiError ? err : new ApiError(String(err))
       error.value = apiError
