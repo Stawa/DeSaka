@@ -5,7 +5,7 @@
         <div
           class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-200 shadow-lg group-hover:scale-105"
           :class="
-            enabled
+            modelValue
               ? 'bg-gradient-to-br from-emerald-500 to-teal-600 ring-2 ring-emerald-200 dark:ring-emerald-800'
               : 'bg-gray-100 dark:bg-gray-800 ring-2 ring-gray-200 dark:ring-gray-700'
           "
@@ -15,7 +15,7 @@
               'mdi',
               icon,
               'text-xl transition-colors duration-200',
-              enabled ? 'text-white' : 'text-gray-400 dark:text-gray-500',
+              modelValue ? 'text-white' : 'text-gray-400 dark:text-gray-500',
             ]"
           ></span>
         </div>
@@ -29,19 +29,18 @@
               <div
                 :class="[
                   'w-2 h-2 rounded-full transition-colors duration-200',
-                  enabled ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400',
+                  modelValue ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400',
                 ]"
-                :aria-label="enabled ? 'Active' : 'Inactive'"
               ></div>
               <span
                 :class="[
                   'text-xs font-medium',
-                  enabled
+                  modelValue
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-gray-500 dark:text-gray-400',
                 ]"
               >
-                {{ enabled ? 'Active' : 'Inactive' }}
+                {{ modelValue ? 'Active' : 'Inactive' }}
               </span>
             </div>
           </div>
@@ -54,13 +53,8 @@
       <div class="flex-shrink-0">
         <label class="relative inline-flex items-center cursor-pointer group/toggle">
           <span class="sr-only">Toggle {{ label }}</span>
-          <input
-            type="checkbox"
-            class="sr-only peer"
-            :checked="enabled"
-            @change="$emit('update:enabled', ($event.target as HTMLInputElement).checked)"
-            v-model="modelValue"
-          />
+          <!-- ✅ Bind to modelValue only -->
+          <input type="checkbox" class="sr-only peer" v-model="modelValue" />
           <div
             class="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer dark:bg-gray-700 peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-teal-600 transition-all duration-300 group-hover/toggle:shadow-lg"
           ></div>
@@ -70,7 +64,7 @@
             <span
               :class="[
                 'mdi text-xs transition-all duration-200',
-                enabled ? 'mdi-check text-emerald-600' : 'mdi-close text-gray-400',
+                modelValue ? 'mdi-check text-emerald-600' : 'mdi-close text-gray-400',
               ]"
             ></span>
           </div>
@@ -79,7 +73,7 @@
     </div>
 
     <div
-      v-if="$slots.extra && enabled"
+      v-if="$slots.extra && modelValue"
       class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 transition-all duration-300"
     >
       <slot name="extra" />
@@ -90,17 +84,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  icon: String,
-  label: String,
-  description: String,
-  enabled: Boolean,
-})
+const props = defineProps<{
+  icon: string
+  label: string
+  description: string
+  enabled: boolean
+}>()
 
-const emit = defineEmits(['update:enabled'])
+const emit = defineEmits<{
+  (e: 'update:enabled', value: boolean): void
+}>()
 
 const modelValue = computed({
   get: () => props.enabled,
-  set: (value) => emit('update:enabled', value),
+  set: (val) => emit('update:enabled', val),
 })
 </script>

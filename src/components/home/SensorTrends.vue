@@ -4,13 +4,19 @@ import SensorChart from '../SensorChart.vue'
 
 interface Props {
   refreshInterval?: number
+  sensorData?: Record<string, { value: number; unit: string; status: string }>
+  historicalData?: Record<string, Array<{ time: string; value: number }>>
+  trendTimeframe?: '24h' | '7d' | '30d'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   refreshInterval: 30000,
+  sensorData: () => ({}),
+  historicalData: () => ({}),
+  trendTimeframe: '24h',
 })
 
-const trendTimeframe = ref<'24h' | '7d' | '30d'>('24h')
+const trendTimeframe = ref<'24h' | '7d' | '30d'>(props.trendTimeframe)
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 const isLoading = ref(false)
 const lastUpdated = ref<Date>(new Date())
@@ -52,9 +58,36 @@ const sensors = {
     variance: 6,
     icon: 'mdi-sun-thermometer',
   },
+  airHumidity: {
+    title: 'Air Humidity',
+    valueLabel: 'Humidity',
+    color: '#3B82F6',
+    unit: '%',
+    baseValue: 60,
+    variance: 10,
+    icon: 'mdi-water-percent',
+  },
 }
 
-const historicalData = ref<Record<string, Array<{ time: string; value: number }>>>({})
+// Get actual values from sensorData if available
+const getSensorValue = (key: string) => {
+  if (props.sensorData && props.sensorData[key]) {
+    return props.sensorData[key].value
+  }
+  return sensors[key as keyof typeof sensors]?.baseValue || 0
+}
+
+// Get actual units from sensorData if available
+const getSensorUnit = (key: string) => {
+  if (props.sensorData && props.sensorData[key]) {
+    return props.sensorData[key].unit
+  }
+  return sensors[key as keyof typeof sensors]?.unit || ''
+}
+
+const historicalData = ref<Record<string, Array<{ time: string; value: number }>>>(
+  props.historicalData || {},
+)
 
 const isMobile = computed(() => windowWidth.value < 640)
 const isTablet = computed(() => windowWidth.value >= 640 && windowWidth.value < 1024)
@@ -80,6 +113,7 @@ const formattedLastUpdated = computed(() => {
   })
 })
 
+// Only use mock data if no historical data is provided
 const generateMockData = (timeframe: string, baseValue: number, variance: number) => {
   const now = new Date()
   const pointsMap = { '24h': 12, '7d': 7, '30d': 15 }
@@ -105,15 +139,25 @@ const updateHistoricalData = async (timeframe: '24h' | '7d' | '30d') => {
   isLoading.value = true
   trendTimeframe.value = timeframe
 
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Emit event to parent component to update historical data
+  emit('update-historical-data', timeframe)
 
-  const newData: Record<string, Array<{ time: string; value: number }>> = {}
+  // If no historical data is provided by parent, generate mock data
+  if (Object.keys(props.historicalData || {}).length === 0) {
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-  Object.entries(sensors).forEach(([key, config]) => {
-    newData[key] = generateMockData(timeframe, config.baseValue, config.variance)
-  })
+    const newData: Record<string, Array<{ time: string; value: number }>> = {}
 
-  historicalData.value = newData
+    Object.entries(sensors).forEach(([key, config]) => {
+      newData[key] = generateMockData(timeframe, config.baseValue, config.variance)
+    })
+
+    historicalData.value = newData
+  } else {
+    // Use the data provided by parent
+    historicalData.value = props.historicalData || {}
+  }
+
   lastUpdated.value = new Date()
   isLoading.value = false
 }
@@ -122,10 +166,18 @@ const handleResize = () => {
   windowWidth.value = window.innerWidth
 }
 
+const emit = defineEmits<{
+  (e: 'update-historical-data', timeframe: '24h' | '7d' | '30d'): void
+}>()
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', handleResize)
-    updateHistoricalData('24h')
+
+    // Only call updateHistoricalData if no data is provided
+    if (Object.keys(props.historicalData || {}).length === 0) {
+      updateHistoricalData(trendTimeframe.value)
+    }
 
     const interval = setInterval(() => {
       updateHistoricalData(trendTimeframe.value)
@@ -243,8 +295,9 @@ defineExpose({
             :title="config.title"
             :valueLabel="config.valueLabel"
             :chartColor="config.color"
-            :valueUnit="config.unit"
+            :valueUnit="getSensorUnit(sensorKey)"
             :icon="config.icon"
+            :currentValue="getSensorValue(sensorKey)"
           />
         </div>
       </div>

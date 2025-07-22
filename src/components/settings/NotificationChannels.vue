@@ -41,31 +41,39 @@
             <div class="mt-6 space-y-6">
               <!-- Email Input -->
               <div>
-                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <label
+                  for="email-recipients"
+                  class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3"
+                >
                   Email Recipients
                 </label>
                 <div class="flex flex-col sm:flex-row gap-3">
                   <div class="flex-1 relative">
                     <input
-                      v-model="newEmailTag"
-                      @keydown="handleTagKeydown($event, 'email')"
+                      id="email-recipients"
+                      :value="props.newEmailTag"
+                      @input="
+                        ($event) =>
+                          emit('update:newEmailTag', ($event.target as HTMLInputElement).value)
+                      "
+                      @keydown="props.handleTagKeydown($event)"
                       type="email"
                       placeholder="Enter email address"
                       class="w-full px-4 py-3 text-sm bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-0 focus:border-emerald-500 dark:focus:border-emerald-400 text-gray-900 dark:text-gray-100 placeholder-gray-400 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
                       :class="emailInputClasses"
                     />
                     <div
-                      v-if="newEmailTag && !validateEmail(newEmailTag)"
+                      v-if="props.newEmailTag && !props.validateEmail(props.newEmailTag)"
                       class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none"
                     >
                       <span class="mdi mdi-alert-circle text-red-400"></span>
                     </div>
                   </div>
                   <button
-                    @click="addEmailTag"
+                    @click="() => props.addEmailTag()"
                     type="button"
                     class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                    :disabled="!newEmailTag || !validateEmail(newEmailTag)"
+                    :disabled="!props.newEmailTag || !props.validateEmail(props.newEmailTag)"
                   >
                     <span class="flex items-center gap-2">
                       <span class="mdi mdi-plus"></span>
@@ -77,7 +85,7 @@
                 <!-- Error Messages -->
                 <div class="mt-3 min-h-[1.25rem]">
                   <div
-                    v-if="newEmailTag && !validateEmail(newEmailTag)"
+                    v-if="props.newEmailTag && !props.validateEmail(props.newEmailTag)"
                     class="text-xs text-red-600 dark:text-red-400 flex items-center gap-1"
                   >
                     <span class="mdi mdi-alert-circle"></span>
@@ -121,7 +129,7 @@
                         >
                       </div>
                       <button
-                        @click="removeEmailTag(email)"
+                        @click="props.removeEmailTag(email)"
                         type="button"
                         class="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 hover:bg-red-50 dark:hover:bg-red-900/20"
                         aria-label="Remove email"
@@ -184,27 +192,49 @@ const props = defineProps({
     },
     required: true,
   },
+  newEmailTag: {
+    type: String,
+    default: '',
+  },
+  validateEmail: {
+    type: Function,
+    required: true,
+  },
+  addEmailTag: {
+    type: Function,
+    required: true,
+  },
+  removeEmailTag: {
+    type: Function,
+    required: true,
+  },
+  handleTagKeydown: {
+    type: Function,
+    required: true,
+  },
 })
 
-const emit = defineEmits(['update:settings'])
+const emit = defineEmits(['update:settings', 'update:newEmailTag'])
 
-const newEmailTag = ref('')
 const showDuplicateError = ref(false)
 
 const emailInputClasses = computed(() => {
-  if (!newEmailTag.value) return ''
+  if (!props.newEmailTag) return ''
   if (showDuplicateError.value)
     return 'border-amber-300 dark:border-amber-500 focus:border-amber-500 dark:focus:border-amber-400'
-  return validateEmail(newEmailTag.value)
+  return props.validateEmail(props.newEmailTag)
     ? 'border-emerald-300 dark:border-emerald-600 focus:border-emerald-500 dark:focus:border-emerald-400'
     : 'border-red-300 dark:border-red-500 focus:border-red-500 dark:focus:border-red-400'
 })
 
-watch(newEmailTag, () => {
-  if (showDuplicateError.value) {
-    showDuplicateError.value = false
-  }
-})
+watch(
+  () => props.newEmailTag,
+  () => {
+    if (showDuplicateError.value) {
+      showDuplicateError.value = false
+    }
+  },
+)
 
 const emailEnabled = computed({
   get: () => props.settings.notifications.emailEnabled,
@@ -246,50 +276,6 @@ const pushEnabled = computed({
 })
 
 const emails = computed(() => props.settings.notifications.emails)
-
-function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-}
-
-function addEmailTag() {
-  const email = newEmailTag.value.trim()
-  if (!validateEmail(email)) return
-
-  if (emails.value.includes(email)) {
-    showDuplicateError.value = true
-    return
-  }
-
-  emit('update:settings', {
-    ...props.settings,
-    notifications: {
-      ...props.settings.notifications,
-      emails: [...emails.value, email],
-    },
-  })
-
-  newEmailTag.value = ''
-}
-
-function removeEmailTag(email: string) {
-  emit('update:settings', {
-    ...props.settings,
-    notifications: {
-      ...props.settings.notifications,
-      emails: emails.value.filter((e) => e !== email),
-    },
-  })
-}
-
-function handleTagKeydown(e: KeyboardEvent, type: string) {
-  if (e.key === 'Enter' && type === 'email') {
-    e.preventDefault()
-    addEmailTag()
-  } else if (e.key === 'Escape') {
-    e.preventDefault()
-    newEmailTag.value = ''
-  }
-}
 </script>
 
 <style scoped>

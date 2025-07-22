@@ -31,6 +31,7 @@ const windowWidth = ref(window.innerWidth)
 const isRefreshing = ref(false)
 const trendTimeframe = ref('24h')
 const showExportModal = ref(false)
+type TrendTimeframeOptions = '24h' | '7d' | '30d'
 
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
@@ -97,25 +98,29 @@ async function updateHistoricalData(timeframe: string) {
     const soilFileId = SENSOR_FILE_IDS.soil
     const airFileId = SENSOR_FILE_IDS.air
 
-    const soilResponse: Soil = await fetchFileById(soilFileId)
-    const airResponse: Air = await fetchFileById(airFileId)
+    try {
+      const soilResponse: Soil = await fetchFileById(soilFileId)
+      const airResponse: Air = await fetchFileById(airFileId)
 
-    const sensorMap: [HistoricalKey, SensorReading[] | undefined][] = [
-      ['soilTemperature', soilResponse?.temperature?.history],
-      ['soilMoisture', soilResponse?.moisture?.history],
-      ['soilPH', soilResponse?.ph?.history],
-      ['airTemperature', airResponse?.temperature?.history],
-      ['airHumidity', airResponse?.humidity?.history],
-    ]
+      const sensorMap: [HistoricalKey, SensorReading[] | undefined][] = [
+        ['soilTemperature', soilResponse?.temperature?.history],
+        ['soilMoisture', soilResponse?.moisture?.history],
+        ['soilPH', soilResponse?.ph?.history],
+        ['airTemperature', airResponse?.temperature?.history],
+        ['airHumidity', airResponse?.humidity?.history],
+      ]
 
-    for (const [key, history] of sensorMap) {
-      if (history) {
-        historicalData.value[key] = mapReadableHistory(history)
+      for (const [key, history] of sensorMap) {
+        if (history) {
+          historicalData.value[key] = mapReadableHistory(history)
+        }
       }
-    }
 
-    updateCurrentSensorValues(soilResponse, airResponse)
-  } catch {
+      updateCurrentSensorValues(soilResponse, airResponse)
+      return
+    } catch (fileErr) {
+      console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
+    }
     const endDate = new Date().toISOString().split('T')[0]
     let startDate = new Date()
 
@@ -243,36 +248,49 @@ function updateCurrentSensorValues(
   soilResponse: Record<string, SensorItems>,
   airResponse: Record<string, SensorItems>,
 ) {
+  if (!soilResponse && !airResponse) return
+
   const isFileApiFormat =
-    soilResponse?.temperature !== undefined || airResponse?.temperature !== undefined
+    (soilResponse && soilResponse.temperature !== undefined) ||
+    (airResponse && airResponse.temperature !== undefined)
 
   if (isFileApiFormat && soilResponse?.temperature?.history?.length > 0) {
     const latestReading =
       soilResponse.temperature.history[soilResponse.temperature.history.length - 1]
     sensorData.value.soilTemperature.value = latestReading.value
     sensorData.value.soilTemperature.unit = soilResponse.temperature.unit || '°C'
+    sensorData.value.soilTemperature.status = getSensorStatus(latestReading.value, 10, 35, 20, 28)
   } else if (soilResponse?.soil_temperature?.history?.length > 0) {
     const latestReading =
       soilResponse.soil_temperature.history[soilResponse.soil_temperature.history.length - 1]
     sensorData.value.soilTemperature.value = latestReading.value
     sensorData.value.soilTemperature.unit = soilResponse.soil_temperature.unit || '°C'
+    sensorData.value.soilTemperature.status = getSensorStatus(latestReading.value, 10, 35, 20, 28)
   }
 
   if (isFileApiFormat && soilResponse?.moisture?.history?.length > 0) {
     const latestReading = soilResponse.moisture.history[soilResponse.moisture.history.length - 1]
     sensorData.value.soilMoisture.value = latestReading.value
     sensorData.value.soilMoisture.unit = soilResponse.moisture.unit || '%'
+    sensorData.value.soilMoisture.status = getSensorStatus(latestReading.value, 20, 90, 50, 75)
   } else if (soilResponse?.soil_moisture?.history?.length > 0) {
     const latestReading =
       soilResponse.soil_moisture.history[soilResponse.soil_moisture.history.length - 1]
     sensorData.value.soilMoisture.value = latestReading.value
     sensorData.value.soilMoisture.unit = soilResponse.soil_moisture.unit || '%'
+    sensorData.value.soilMoisture.status = getSensorStatus(latestReading.value, 20, 90, 50, 75)
   }
 
-  if (soilResponse?.soil_ph?.history?.length > 0) {
+  if (isFileApiFormat && soilResponse?.ph?.history?.length > 0) {
+    const latestReading = soilResponse.ph.history[soilResponse.ph.history.length - 1]
+    sensorData.value.soilPH.value = latestReading.value
+    sensorData.value.soilPH.unit = soilResponse.ph.unit || 'pH'
+    sensorData.value.soilPH.status = getSensorStatus(latestReading.value, 4, 9, 6, 7)
+  } else if (soilResponse?.soil_ph?.history?.length > 0) {
     const latestReading = soilResponse.soil_ph.history[soilResponse.soil_ph.history.length - 1]
     sensorData.value.soilPH.value = latestReading.value
     sensorData.value.soilPH.unit = soilResponse.soil_ph.unit || 'pH'
+    sensorData.value.soilPH.status = getSensorStatus(latestReading.value, 4, 9, 6, 7)
   }
 
   if (isFileApiFormat && airResponse?.temperature?.history?.length > 0) {
@@ -280,22 +298,26 @@ function updateCurrentSensorValues(
       airResponse.temperature.history[airResponse.temperature.history.length - 1]
     sensorData.value.airTemperature.value = latestReading.value
     sensorData.value.airTemperature.unit = airResponse.temperature.unit || '°C'
+    sensorData.value.airTemperature.status = getSensorStatus(latestReading.value, 15, 35, 20, 26)
   } else if (airResponse?.air_temperature?.history?.length > 0) {
     const latestReading =
       airResponse.air_temperature.history[airResponse.air_temperature.history.length - 1]
     sensorData.value.airTemperature.value = latestReading.value
     sensorData.value.airTemperature.unit = airResponse.air_temperature.unit || '°C'
+    sensorData.value.airTemperature.status = getSensorStatus(latestReading.value, 15, 35, 20, 26)
   }
 
   if (isFileApiFormat && airResponse?.humidity?.history?.length > 0) {
     const latestReading = airResponse.humidity.history[airResponse.humidity.history.length - 1]
     sensorData.value.airHumidity.value = latestReading.value
     sensorData.value.airHumidity.unit = airResponse.humidity.unit || '%'
+    sensorData.value.airHumidity.status = getSensorStatus(latestReading.value, 20, 80, 40, 60)
   } else if (airResponse?.air_humidity?.history?.length > 0) {
     const latestReading =
       airResponse.air_humidity.history[airResponse.air_humidity.history.length - 1]
     sensorData.value.airHumidity.value = latestReading.value
     sensorData.value.airHumidity.unit = airResponse.air_humidity.unit || '%'
+    sensorData.value.airHumidity.status = getSensorStatus(latestReading.value, 20, 80, 40, 60)
   }
 
   sensorData.value.soilTemperature.status = getSensorStatus(
@@ -455,7 +477,9 @@ const systemStatus = computed(() => {
       <SensorTrends
         :plant-health-score="plantHealthScore"
         :growth-prediction="growthPrediction"
-        :trend-timeframe="trendTimeframe"
+        :trend-timeframe="trendTimeframe as TrendTimeframeOptions"
+        :sensor-data="sensorData"
+        :historical-data="historicalData"
         @update-historical-data="updateHistoricalData"
       />
     </div>

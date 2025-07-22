@@ -263,7 +263,7 @@ const cancelChanges = () => {
           class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-xl p-8 text-center"
         >
           <div
-            class="w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"
+            class="w-12 h-12 border-4 border-t-4 border-t-emerald-500 border-transparent rounded-full animate-spin mx-auto mb-4"
           ></div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
             Loading Settings
@@ -410,8 +410,8 @@ const cancelChanges = () => {
         <!-- Notification Settings Tab -->
         <div v-if="activeTab === 'notifications'" class="animate-fade-in">
           <NotificationChannels
-            :settings="settings"
-            :newEmailTag="newEmailTag"
+            v-model:settings="settings"
+            v-model:newEmailTag="newEmailTag"
             :addEmailTag="addEmailTag"
             :removeEmailTag="removeEmailTag"
             :handleTagKeydown="handleTagKeydown"

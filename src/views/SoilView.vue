@@ -113,7 +113,7 @@ async function refreshData() {
 
   try {
     try {
-      const soilFileId = '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG'
+      const soilFileId = SENSOR_FILE_IDS.soil
       const soilResponse: Soil = await fetchFileById(soilFileId)
 
       updateSoilData(soilResponse)

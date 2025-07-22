@@ -44,17 +44,6 @@ const airData = ref<SensorModification>({
     trend: 'stable',
     history: [],
   },
-  light: {
-    value: 0,
-    unit: 'lux',
-    min: 0,
-    max: 0,
-    optimal_min: 0,
-    optimal_max: 0,
-    status: 'unknown',
-    trend: 'stable',
-    history: [],
-  },
 })
 
 const lastUpdated = ref(formatCurrentTime())
@@ -127,7 +116,7 @@ async function handleRefresh() {
     const params = {
       startDate: startDateStr,
       endDate: endDate,
-      sensors: ['air_temperature', 'air_humidity', 'air_light'],
+      sensors: ['air_temperature', 'air_humidity'],
     }
 
     const fetchAirFile = async (): Promise<Air> => {
@@ -165,7 +154,6 @@ function updateAirData(response: Record<string, SensorResponse>) {
     'temperature',
   )
   updateSensorDataFromResponse(airData.value.humidity, response, 'air_humidity', 'humidity')
-  updateSensorDataFromResponse(airData.value.light, response, 'air_light', 'light')
 }
 
 function changeTimeFrame(frame: string) {
@@ -176,7 +164,6 @@ function changeTimeFrame(frame: string) {
 function updateSensorStatuses() {
   updateSensorStatus(airData.value.temperature)
   updateSensorStatus(airData.value.humidity)
-  updateSensorStatus(airData.value.light)
 }
 
 const airQualityIndex = computed(() => {

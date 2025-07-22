@@ -53,11 +53,8 @@ const availableFiles = ref<FileMetadata[]>([])
 
 const sensorMapping: Record<string, string> = {
   ph: 'soil_ph',
-  conductivity: 'soil_conductivity',
   air_temperature: 'air_temperature',
-  co2: 'air_co2',
-  tvoc: 'air_tvoc',
-  light: 'light_intensity',
+  air_humidity: 'air_humidity',
   soil_temperature: 'soil_temperature',
 }
 
@@ -65,12 +62,8 @@ const mockValueRanges = {
   soil_temperature: { base: 18, range: 8 },
   soil_moisture: { base: 45, range: 30 },
   soil_ph: { base: 6, range: 1.2 },
-  soil_conductivity: { base: 0.9, range: 0.5 },
   air_temperature: { base: 20, range: 6 },
   air_humidity: { base: 35, range: 20 },
-  air_co2: { base: 500, range: 450 },
-  air_tvoc: { base: 100, range: 200 },
-  light_intensity: { base: 250, range: 550 },
 }
 
 const setActiveTab = (tab: string) => {

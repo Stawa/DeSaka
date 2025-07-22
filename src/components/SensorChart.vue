@@ -37,6 +37,7 @@ const props = defineProps<{
   chartColor?: string
   valueUnit?: string
   icon?: string
+  currentValue?: number
 }>()
 
 const chartType = ref<'line' | 'bar'>('line')
@@ -295,12 +296,13 @@ const toggleChartType = () => {
 
 const getStats = () => {
   const values = props.data.map((item) => item.value)
-  if (!values.length) return { min: 0, max: 0, avg: 0, current: 0 }
+  if (!values.length) return { min: 0, max: 0, avg: 0, current: props.currentValue || 0 }
 
   const min = Math.min(...values)
   const max = Math.max(...values)
   const avg = values.reduce((sum, val) => sum + val, 0) / values.length
-  const current = values[values.length - 1]
+  // Use the provided currentValue if available, otherwise use the last value from data
+  const current = props.currentValue !== undefined ? props.currentValue : values[values.length - 1]
 
   return {
     min: Number(min.toFixed(1)),
