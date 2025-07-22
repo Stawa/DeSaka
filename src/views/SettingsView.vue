@@ -18,9 +18,8 @@ const isLoadingSettings = ref(false)
 const isSavingSettings = ref(false)
 const isResettingSettings = ref(false)
 
-const { fetchFileById, updateFileById } = useApi()
+const { fetchSettings, updateSettings } = useApi()
 
-const SETTINGS_FILE_ID = '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu'
 const newEmailTag = ref('')
 
 const originalSettings: Settings = {
@@ -44,7 +43,6 @@ const originalSettings: Settings = {
     soilPH: { min: 5.5, max: 7.5 },
     airTemperature: { min: 18, max: 30 },
     airHumidity: { min: 30, max: 70 },
-    lightIntensity: { min: 1000, max: 10000 },
   },
 }
 
@@ -92,13 +90,13 @@ function deepMerge<T>(target: T, source: Partial<T>): T {
 }
 
 onMounted(async () => {
-  await loadSettingsFromDrive()
+  await loadSettings()
 })
 
-async function loadSettingsFromDrive() {
+async function loadSettings() {
   try {
     isLoadingSettings.value = true
-    const response: Partial<Settings> = await fetchFileById(SETTINGS_FILE_ID)
+    const response: Partial<Settings> = await fetchSettings()
 
     if (response && Object.keys(response).length > 0) {
       const mergedSettings: Settings = JSON.parse(JSON.stringify(originalSettings))
@@ -128,10 +126,21 @@ async function loadSettingsFromDrive() {
   }
 }
 
-async function saveSettingsToDrive() {
+async function saveSettings() {
+  if (!formValid.value) {
+    toast.error('Please correct the validation errors before saving', {
+      position: toast.POSITION.TOP_RIGHT,
+      autoClose: 3000,
+    })
+    return false
+  }
+
   try {
     isSavingSettings.value = true
-    await updateFileById(SETTINGS_FILE_ID, JSON.parse(JSON.stringify(settings.value)), false)
+    await updateSettings(JSON.parse(JSON.stringify(settings.value)))
+
+    Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
+    settingsModified.value = false
 
     toast.success('Settings saved successfully', {
       position: toast.POSITION.TOP_RIGHT,
@@ -192,7 +201,7 @@ const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email
 const emailsValid = computed(() => settings.value.notifications.emails.every(validateEmail))
 const formValid = computed(() => emailsValid.value)
 
-const saveSettings = async () => {
+const handleSaveSettings = async () => {
   if (!formValid.value) {
     toast.error('Please correct the validation errors before saving', {
       position: toast.POSITION.TOP_RIGHT,
@@ -201,9 +210,9 @@ const saveSettings = async () => {
     return
   }
 
-  if (await saveSettingsToDrive()) {
-    Object.assign(originalSettings, JSON.parse(JSON.stringify(settings.value)))
-    settings.value = JSON.parse(JSON.stringify(originalSettings))
+  if (await saveSettings()) {
+    // Settings are already updated in the saveSettings function
+    settingsModified.value = false
   }
 }
 
@@ -212,7 +221,7 @@ const resetSettings = async () => {
     try {
       isResettingSettings.value = true
       settings.value = structuredClone(originalSettings)
-      await saveSettingsToDrive()
+      await saveSettings()
 
       toast.info('Settings reset to defaults', {
         position: toast.POSITION.TOP_RIGHT,
@@ -517,20 +526,6 @@ const cancelChanges = () => {
                   ringClass="focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   v-model:modelValue="settings.thresholds.airHumidity"
                 />
-
-                <ThresholdInputGroup
-                  id="light-intensity"
-                  title="Light Intensity"
-                  label="light level"
-                  icon="mdi-white-balance-sunny"
-                  iconColor="bg-yellow-100/80 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400"
-                  unit="lux"
-                  :min="0"
-                  :max="100000"
-                  :step="100"
-                  ringClass="focus:ring-yellow-500 focus:border-yellow-500 dark:focus:ring-yellow-500 dark:focus:border-yellow-500"
-                  v-model:modelValue="settings.thresholds.lightIntensity"
-                />
               </div>
             </div>
           </div>
@@ -620,7 +615,7 @@ const cancelChanges = () => {
 
               <!-- Save Button -->
               <button
-                @click="saveSettings"
+                @click="handleSaveSettings"
                 :disabled="!formValid || isSavingSettings"
                 class="flex-1 sm:flex-none inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/25 hover:from-emerald-700 hover:to-teal-700 hover:shadow-xl hover:shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
                 :class="{

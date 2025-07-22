@@ -19,7 +19,6 @@ const getSensorIcon = (sensorId: string) => {
     temperature: 'mdi-thermometer',
     humidity: 'mdi-water-percent',
     soilMoisture: 'mdi-water',
-    lightIntensity: 'mdi-white-balance-sunny',
     ph: 'mdi-flask',
     nitrogen: 'mdi-leaf',
     phosphorus: 'mdi-grain',

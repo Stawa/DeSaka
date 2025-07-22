@@ -94,7 +94,7 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
         </div>
       </div>
     </td>
-    
+
     <td class="px-6 py-4 whitespace-nowrap">
       <div
         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border"
@@ -104,7 +104,7 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
         {{ sensorData.status.charAt(0).toUpperCase() + sensorData.status.slice(1) }}
       </div>
     </td>
-    
+
     <td class="px-6 py-4 whitespace-nowrap">
       <div class="flex items-baseline gap-2">
         <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{
@@ -115,19 +115,31 @@ const statusInfo = computed(() => getStatusInfo(props.sensorData.status))
         }}</span>
       </div>
     </td>
-    
+
     <td class="px-6 py-4 whitespace-nowrap">
       <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <span>2 min ago</span>
       </div>
     </td>
-    
+
     <td class="px-6 py-4 whitespace-nowrap">
-      <div class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
-        <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div
+        class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors"
+      >
+        <svg
+          class="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>

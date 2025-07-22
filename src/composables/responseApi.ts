@@ -76,7 +76,6 @@ interface ThresholdSettings {
   soilPH: ThresholdRange
   airTemperature: ThresholdRange
   airHumidity: ThresholdRange
-  lightIntensity: ThresholdRange
 }
 
 interface Settings {

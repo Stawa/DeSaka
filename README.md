@@ -12,6 +12,14 @@ _Advanced IoT-based environmental monitoring solution for agriculture and enviro
 
 DeSaka is a comprehensive environmental monitoring system that collects, processes, and visualizes data from various sensors. The system provides real-time insights into soil and air conditions, enabling data-driven decision making for agricultural and environmental applications.
 
+### Key Features
+
+- **Real-time Monitoring**: View current environmental conditions at a glance
+- **Historical Analysis**: Track changes and trends over time
+- **Sensor Data Submission**: Manually input readings from various sensors
+- **Customizable Alerts**: Set thresholds for critical environmental factors
+- **Responsive Design**: Access from any device with a web browser
+
 ## 🏗️ System Architecture
 
 ![Example Image](./github/example.png)

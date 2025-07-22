@@ -20,8 +20,10 @@
 import { ref, type Ref } from 'vue'
 
 const SENSOR_FILE_IDS: Record<string, string> = {
-  air: '1WljLGjVfMa5DWtS33GYGmsTNjbBxl0K_',
-  soil: '13mBooyMXhDiBHtqJcwy3dcz1RsL6iXYG',
+  air: '1TdRbJKA4yQEKXnAZGkQTjhdgtefJNLHy',
+  soil: '1Ze9fgDbnt3_6_NPLLXsitr8uYOtKbANy',
+  settings: '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu',
+  system: '14CKhKpCGDWfpAsZp0tObHmwniNyeHk-t',
 }
 
 /**
@@ -180,7 +182,7 @@ export function useApi() {
   }
 
   /**
-   * Fetch file content by ID from Google Drive
+   * Fetch file content by ID
    *
    * @param fileId - The unique identifier of the file to retrieve
    * @returns Promise resolving to parsed file content
@@ -202,52 +204,6 @@ export function useApi() {
       const apiError = err instanceof ApiError ? err : new ApiError(String(err))
       error.value = apiError
       console.error(`[API] Error fetching file ${fileId}:`, apiError)
-      throw apiError
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /**
-   * Update or overwrite file content by ID
-   *
-   * @param fileId - The unique identifier of the file to update
-   * @param content - The new content to write to the file
-   * @param append - Whether to append to existing content or replace it
-   * @returns Promise resolving to API response
-   */
-  async function updateFileById(
-    fileId: string,
-    content: Record<string, string | number | boolean | SensorHistoryData[]>,
-    append = false,
-  ): Promise<ApiResponse> {
-    if (!fileId || typeof fileId !== 'string') {
-      throw new ApiError('Invalid file ID provided')
-    }
-
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const url = append
-        ? `${API_CONFIG.BASE_URL}/drive/file/${fileId}`
-        : `${API_CONFIG.BASE_URL}/drive/file/${fileId}/overwrite`
-
-      const method = append ? 'POST' : 'PUT'
-
-      const response = await fetchWithCors<ApiResponse>(url, {
-        method,
-        body: JSON.stringify(content),
-      })
-
-      return response
-    } catch (err) {
-      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
-      error.value = apiError
-      console.error(
-        `[API] Error ${append ? 'appending to' : 'replacing'} file ${fileId}:`,
-        apiError,
-      )
       throw apiError
     } finally {
       isLoading.value = false
@@ -284,6 +240,57 @@ export function useApi() {
     }
   }
 
+  /**
+   * Fetch settings configuration
+   *
+   * @returns Promise resolving to settings configuration
+   */
+  async function fetchSettings<T = Record<string, string | number | boolean>>(): Promise<T> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await fetchWithCors<T>(`${API_CONFIG.BASE_URL}/drive/settings`)
+      return response
+    } catch (err) {
+      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
+      error.value = apiError
+      console.error('[API] Error fetching settings:', apiError)
+      throw apiError
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Update settings configuration
+   *
+   * @param settings - The new settings configuration
+   * @returns Promise resolving to API response
+   */
+  async function updateSettings(
+    settings: Record<string, string | number | boolean | object>,
+  ): Promise<ApiResponse> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await fetchWithCors<ApiResponse>(`${API_CONFIG.BASE_URL}/drive/settings`, {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      })
+
+      return response
+    } catch (err) {
+      const apiError = err instanceof ApiError ? err : new ApiError(String(err))
+      error.value = apiError
+      console.error('[API] Error updating settings:', apiError)
+      throw apiError
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   /** Return the public API interface */
   return {
     /** Reactive state */
@@ -293,7 +300,8 @@ export function useApi() {
     /** Core API methods */
     fetchFiles,
     fetchFileById,
-    updateFileById,
+    fetchSettings,
+    updateSettings,
 
     /** Utility methods */
     refreshData,

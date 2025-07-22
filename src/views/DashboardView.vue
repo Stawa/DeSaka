@@ -53,7 +53,6 @@ type SensorDataType = {
   soilPH: SensorDataItem
   airTemperature: SensorDataItem
   airHumidity: SensorDataItem
-  lightIntensity: SensorDataItem
 }
 
 type HistoricalDataItem = { time: string; value: number }[]
@@ -72,7 +71,6 @@ const sensorData = ref<SensorDataType>({
   soilPH: { value: 6.8, unit: 'pH', status: 'normal' },
   airTemperature: { value: 28.2, unit: '°C', status: 'warning' },
   airHumidity: { value: 72, unit: '%', status: 'normal' },
-  lightIntensity: { value: 850, unit: 'lux', status: 'normal' },
 })
 
 const historicalData = ref<HistoricalDataType>({
@@ -81,7 +79,6 @@ const historicalData = ref<HistoricalDataType>({
   soilPH: [],
   airTemperature: [],
   airHumidity: [],
-  lightIntensity: [],
 })
 
 const { refreshData: apiRefreshData, fetchFileById } = useApi()
@@ -91,7 +88,6 @@ type HistoricalKey =
   | 'soilPH'
   | 'airTemperature'
   | 'airHumidity'
-  | 'lightIntensity'
 
 async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
@@ -110,7 +106,6 @@ async function updateHistoricalData(timeframe: string) {
       ['soilPH', soilResponse?.ph?.history],
       ['airTemperature', airResponse?.temperature?.history],
       ['airHumidity', airResponse?.humidity?.history],
-      ['lightIntensity', airResponse?.light_intensity?.history],
     ]
 
     for (const [key, history] of sensorMap) {

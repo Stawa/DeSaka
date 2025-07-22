@@ -66,7 +66,6 @@ const healthScore = ref(85)
 const availableSensors = [
   { id: 'temperature', name: 'Air Temperature', unit: '°C' },
   { id: 'humidity', name: 'Air Humidity', unit: '%' },
-  { id: 'light', name: 'Light Intensity', unit: 'lux' },
 ]
 
 const { refreshData: apiRefreshData, fetchFileById } = useApi()
@@ -89,7 +88,6 @@ function handleExport(exportOptions: {
   const sensorsList = [
     { name: 'temperature', label: 'Temperature', unit: '°C', selected: true },
     { name: 'humidity', label: 'Humidity', unit: '%', selected: true },
-    { name: 'light', label: 'Light Intensity', unit: 'lux', selected: true },
   ].filter((sensor) => sensor.selected)
 
   const exportData: Record<string, Array<{ timestamp: string; value: number }>> = {}
@@ -444,17 +442,6 @@ const handleExportData = (exportConfig: ExportConfig) => {
                 valueLabel="Humidity (%)"
                 chartColor="#3B82F6"
                 icon="mdi-water"
-              />
-            </div>
-
-            <!-- Light Intensity Chart -->
-            <div class="animate-fade-in lg:col-span-2" style="animation-delay: 0.5s">
-              <SensorChart
-                title="Light Intensity"
-                :data="airData.light.history"
-                valueLabel="light (lux)"
-                chartColor="#3B82F6"
-                icon="mdi-lightbulb-on"
               />
             </div>
           </div>

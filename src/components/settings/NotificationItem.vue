@@ -58,7 +58,8 @@
             type="checkbox"
             class="sr-only peer"
             :checked="enabled"
-            @change="$emit('update:enabled', $event.target.checked)"
+            @change="$emit('update:enabled', ($event.target as HTMLInputElement).checked)"
+            v-model="modelValue"
           />
           <div
             class="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer dark:bg-gray-700 peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-teal-600 transition-all duration-300 group-hover/toggle:shadow-lg"
@@ -86,12 +87,20 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps({
   icon: String,
   label: String,
   description: String,
   enabled: Boolean,
 })
-defineEmits(['update:enabled'])
+
+const emit = defineEmits(['update:enabled'])
+
+const modelValue = computed({
+  get: () => props.enabled,
+  set: (value) => emit('update:enabled', value),
+})
 </script>

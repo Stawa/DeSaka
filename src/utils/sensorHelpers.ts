@@ -136,13 +136,6 @@ export function transformSensorData(rawData: RawSensorData): SensorDataStructure
       category: 'Air',
       dataKey: 'airHumidity',
     },
-    {
-      id: 'lightIntensity',
-      name: 'Light Intensity',
-      icon: 'white-balance-sunny',
-      category: 'Environment',
-      dataKey: 'lightIntensity',
-    },
   ]
 
   return sensorMappings.map((mapping, index) => ({
@@ -170,7 +163,6 @@ function getDefaultUnit(sensorId: string): string {
     soilPH: 'pH',
     airTemperature: '°C',
     airHumidity: '%',
-    lightIntensity: 'lux',
   }
 
   return unitMap[sensorId] || ''

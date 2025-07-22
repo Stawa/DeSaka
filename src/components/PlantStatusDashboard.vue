@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+
+const { fetchFileById } = useApi()
 
 defineProps({
   sensorData: { type: Object, required: true },
@@ -8,7 +11,7 @@ defineProps({
   systemStatus: { type: String, default: 'normal' },
 })
 
-const esp32Info: Record<string, string | number> = {
+const esp32Info = ref<Record<string, string | number>>({
   chipModel: 'ESP32-WROOM-32',
   flashSize: '4MB',
   freeHeap: '180KB',
@@ -16,7 +19,7 @@ const esp32Info: Record<string, string | number> = {
   uptime: '2d 14h 32m',
   cpuFreq: '240MHz',
   temperature: '52°C',
-}
+})
 
 interface WifiSignal {
   label: string
@@ -26,7 +29,7 @@ interface WifiSignal {
 }
 
 const wifiStrength = computed<WifiSignal>(() => {
-  const signal = Number(esp32Info.wifiSignal ?? -100)
+  const signal = Number(esp32Info.value.wifiSignal ?? -100)
   if (signal >= -50)
     return { label: 'Excellent', bars: 4, color: 'emerald', icon: 'mdi-wifi-strength-4' }
   if (signal >= -60) return { label: 'Good', bars: 3, color: 'green', icon: 'mdi-wifi-strength-3' }
@@ -99,15 +102,6 @@ const esp32Sensors = [
   },
   {
     id: 4,
-    name: 'Light Intensity',
-    type: 'LDR',
-    pin: 'A1',
-    status: 'online',
-    value: '780 lux',
-    lastUpdate: '3s ago',
-  },
-  {
-    id: 5,
     name: 'Soil pH',
     type: 'Analog',
     pin: 'A2',
@@ -116,7 +110,7 @@ const esp32Sensors = [
     lastUpdate: '5m ago',
   },
   {
-    id: 6,
+    id: 5,
     name: 'Soil Temperature',
     type: 'DS18B20',
     pin: 'D5',
@@ -128,7 +122,35 @@ const esp32Sensors = [
 
 const screenWidth = ref(window.innerWidth)
 const updateWidth = () => (screenWidth.value = window.innerWidth)
-onMounted(() => window.addEventListener('resize', updateWidth))
+
+onMounted(async () => {
+  window.addEventListener('resize', updateWidth)
+
+  try {
+    const data = await fetchFileById<{
+      info: {
+        device: {
+          chip_model: string
+          free_heap_kb: number
+          calibrated_chip_temp: number
+        }
+        wifi: {
+          rssi: number
+        }
+      }
+    }>(SENSOR_FILE_IDS.system)
+
+    if (data?.info) {
+      esp32Info.value.chipModel = data.info.device.chip_model
+      esp32Info.value.freeHeap = `${data.info.device.free_heap_kb}KB`
+      esp32Info.value.temperature = `${data.info.device.calibrated_chip_temp.toFixed(1)}°C`
+      esp32Info.value.wifiSignal = data.info.wifi.rssi
+    }
+  } catch (err) {
+    console.error('[System Info] Failed to load:', err)
+  }
+})
+
 onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
 
 const currentTime = new Date().toLocaleString('en-US', {

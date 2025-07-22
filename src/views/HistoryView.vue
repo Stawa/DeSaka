@@ -35,7 +35,6 @@ const availableSensors = [
   { id: 'soil_ph', name: 'Soil pH', unit: 'pH', color: '#8b5cf6' },
   { id: 'air_temperature', name: 'Air Temperature', unit: '°C', color: '#ef4444' },
   { id: 'air_humidity', name: 'Air Humidity', unit: '%', color: '#0ea5e9' },
-  { id: 'light_intensity', name: 'Light Intensity', unit: 'lux', color: '#f59e0b' },
 ]
 
 type DataPoint = {
