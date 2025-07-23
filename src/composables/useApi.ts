@@ -20,10 +20,27 @@
 import { ref, type Ref } from 'vue'
 
 const SENSOR_FILE_IDS: Record<string, string> = {
-  air: '1TdRbJKA4yQEKXnAZGkQTjhdgtefJNLHy',
-  soil: '1Ze9fgDbnt3_6_NPLLXsitr8uYOtKbANy',
-  settings: '14c-pco5g6oHQMsAmVtIj4l3OejqNX0hu',
-  system: '14CKhKpCGDWfpAsZp0tObHmwniNyeHk-t',
+  air: '',
+  soil: '',
+  settings: '',
+  system: '',
+}
+
+/**
+ * Update SENSOR_FILE_IDS based on file list response
+ * @param files - Array of file metadata from fetchFiles
+ */
+function updateSensorFileIds(
+  files: Array<{ id: string; name: string; mimeType: string; modifiedTime: string }>,
+) {
+  files.forEach((file) => {
+    const fileType = file.name.replace('.json', '')
+    if (fileType in SENSOR_FILE_IDS) {
+      SENSOR_FILE_IDS[fileType] = file.id
+    }
+  })
+
+  console.log('[API] Updated SENSOR_FILE_IDS:', SENSOR_FILE_IDS)
 }
 
 /**
@@ -100,7 +117,7 @@ export function useApi() {
    * @returns Promise resolving to parsed JSON response
    * @throws ApiError for HTTP errors or network issues
    */
-  async function fetchWithCors<T = Record<string, string | number | boolean>>(
+  async function fetchWithCors<T = Record<string, number | boolean>>(
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
@@ -159,6 +176,7 @@ export function useApi() {
 
   /**
    * Fetch list of available files from Google Drive
+   * Also updates SENSOR_FILE_IDS with the latest file IDs
    *
    * @returns Promise resolving to array of file metadata
    */
@@ -170,6 +188,9 @@ export function useApi() {
       const response = await fetchWithCors<{ files: FileMetadata[] }>(
         `${API_CONFIG.BASE_URL}/drive/files`,
       )
+
+      updateSensorFileIds(response.files)
+
       return response.files
     } catch (err) {
       const apiError = err instanceof ApiError ? err : new ApiError(String(err))
@@ -312,4 +333,4 @@ export function useApi() {
  * Export types for external use
  */
 export type { ApiResponse, FileMetadata, SensorHistoryData }
-export { ApiError, SENSOR_FILE_IDS }
+export { ApiError, SENSOR_FILE_IDS, updateSensorFileIds }

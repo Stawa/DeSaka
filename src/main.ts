@@ -6,16 +6,25 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { setupGlobalErrorHandlers } from './utils/errorHandler'
-
+import { useApi } from '@/composables/useApi'
 import { Chart, Filler } from 'chart.js'
 
+const { fetchFiles } = useApi()
 Chart.register(Filler)
 
-const app = createApp(App)
+async function bootstrap() {
+  try {
+    await fetchFiles()
 
-app.use(createPinia())
-app.use(router)
+    const app = createApp(App)
+    app.use(createPinia())
+    app.use(router)
 
-setupGlobalErrorHandlers(app)
+    setupGlobalErrorHandlers(app)
+    app.mount('#app')
+  } catch (error) {
+    console.error('❌ Failed to initialize file map:', error)
+  }
+}
 
-app.mount('#app')
+bootstrap()
