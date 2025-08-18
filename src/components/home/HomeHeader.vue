@@ -185,14 +185,14 @@ defineProps({
 })
 
 const isRefreshing = ref(false)
-const emit = defineEmits(['export'])
+const emit = defineEmits(['export', 'refresh'])
 
 const refreshData = async () => {
   if (isRefreshing.value) return
   isRefreshing.value = true
   try {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    console.log('Data refreshed.')
+    emit('refresh')
+    console.log('Data refresh requested.')
   } catch (error) {
     console.error('Failed to refresh data:', error)
   } finally {

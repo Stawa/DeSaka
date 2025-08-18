@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
 const { fetchFileById } = useApi()
 
-defineProps({
+const props = defineProps({
   sensorData: { type: Object, required: true },
-  plantHealthScore: { type: Number, required: true },
-  growthPrediction: { type: String, default: 'Normal' },
-  systemStatus: { type: String, default: 'normal' },
 })
+
+console.log(props.sensorData)
 
 const esp32Info = ref<Record<string, string | number>>({
   chipModel: 'ESP32-WROOM-32',
@@ -26,6 +25,18 @@ interface WifiSignal {
   bars: number
   color: string
   icon: string
+}
+
+function formatTimeDifference(ms: number): string {
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days} day(s) ago`
+  if (hours > 0) return `${hours} hour(s) ago`
+  if (minutes > 0) return `${minutes} minute(s) ago`
+  return `${seconds} second(s) ago`
 }
 
 const wifiStrength = computed<WifiSignal>(() => {
@@ -72,15 +83,15 @@ const infoCards = [
   },
 ]
 
-const esp32Sensors = [
+const esp32Sensors = computed(() => [
   {
     id: 1,
     name: 'Soil Moisture',
     type: 'Analog',
     pin: 'A0',
     status: 'online',
-    value: '45%',
-    lastUpdate: '2s ago',
+    value: props.sensorData.soilMoisture.value + props.sensorData.soilMoisture.unit,
+    lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilMoisture.time)),
   },
   {
     id: 2,
@@ -88,8 +99,8 @@ const esp32Sensors = [
     type: 'DHT22',
     pin: 'D4',
     status: 'online',
-    value: '24.5°C',
-    lastUpdate: '1s ago',
+    value: props.sensorData.airTemperature.value + props.sensorData.airTemperature.unit,
+    lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airTemperature.time)),
   },
   {
     id: 3,
@@ -97,17 +108,17 @@ const esp32Sensors = [
     type: 'DHT22',
     pin: 'D4',
     status: 'online',
-    value: '62%',
-    lastUpdate: '1s ago',
+    value: props.sensorData.airHumidity.value + props.sensorData.airHumidity.unit,
+    lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airHumidity.time)),
   },
   {
     id: 4,
     name: 'Soil pH',
     type: 'Analog',
     pin: 'A2',
-    status: 'offline',
-    value: '--',
-    lastUpdate: '5m ago',
+    status: 'online',
+    value: props.sensorData.soilPH.value + props.sensorData.soilPH.unit,
+    lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilPH.time)),
   },
   {
     id: 5,
@@ -115,10 +126,12 @@ const esp32Sensors = [
     type: 'DS18B20',
     pin: 'D5',
     status: 'online',
-    value: '22.1°C',
-    lastUpdate: '2s ago',
+    value: props.sensorData.soilTemperature.value + props.sensorData.soilTemperature.unit,
+    lastUpdate: formatTimeDifference(
+      Date.now() - Date.parse(props.sensorData.soilTemperature.time),
+    ),
   },
-]
+])
 
 const screenWidth = ref(window.innerWidth)
 const updateWidth = () => (screenWidth.value = window.innerWidth)
@@ -153,12 +166,22 @@ onMounted(async () => {
 
 onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
 
-const currentTime = new Date().toLocaleString('en-US', {
+const currentTime = ref(new Date().toLocaleString('en-US', {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
   hour12: true,
-})
+}))
+
+// Update currentTime when sensorData changes
+watch(() => props.sensorData, () => {
+  currentTime.value = new Date().toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
+}, { deep: true })
 </script>
 
 <template>
@@ -193,8 +216,8 @@ const currentTime = new Date().toLocaleString('en-US', {
             ESP32 System Monitor
           </h1>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            Hardware status • Updated {{ currentTime }}
-          </p>
+              Hardware status • Updated {{ currentTime }}
+            </p>
         </div>
       </div>
     </div>
