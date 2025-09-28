@@ -138,7 +138,9 @@
               </svg>
             </div>
             <div>
-              <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">6</div>
+              <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {{ totalSensor }}
+              </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">Active Sensors</div>
             </div>
           </div>
@@ -147,9 +149,16 @@
 
           <div class="flex items-center gap-3">
             <div
-              class="w-10 h-10 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/20 rounded-xl flex items-center justify-center ring-1 ring-emerald-200/50 dark:ring-emerald-700/30"
+              :class="[
+                'w-10 h-10 rounded-xl flex items-center justify-center ring-1',
+                isUp
+                  ? 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/20 ring-emerald-200/50 dark:ring-emerald-700/30'
+                  : 'bg-gradient-to-br from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-800/20 ring-red-200/50 dark:ring-red-700/30',
+              ]"
             >
+              <!-- Green check when up -->
               <svg
+                v-if="isUp"
                 class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
                 fill="none"
                 stroke="currentColor"
@@ -162,9 +171,27 @@
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
+
+              <!-- Red power symbol when down -->
+              <svg
+                v-else
+                class="w-5 h-5 text-red-600 dark:text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 2v10M5.64 5.64a9 9 0 1012.72 0"
+                />
+              </svg>
             </div>
             <div>
-              <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">98%</div>
+              <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                {{ uptime }}%
+              </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">System Health</div>
             </div>
           </div>
@@ -181,6 +208,18 @@ defineProps({
   lastUpdate: {
     type: String,
     default: '2 minutes ago',
+  },
+  uptime: {
+    type: Number,
+    default: 0,
+  },
+  isUp: {
+    type: Boolean,
+    default: true,
+  },
+  totalSensor: {
+    type: Number,
+    default: 0,
   },
 })
 

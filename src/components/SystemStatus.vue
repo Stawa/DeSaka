@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { Uptime } from '@/composables/responseApi'
 import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
+import { formatUptimeSinceLastDowntime } from '@/scripts'
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
 const { fetchFileById } = useApi()
@@ -8,16 +10,12 @@ const props = defineProps({
   sensorData: { type: Object, required: true },
 })
 
-console.log(props.sensorData)
-
 const esp32Info = ref<Record<string, string | number>>({
-  chipModel: 'ESP32-WROOM-32',
-  flashSize: '4MB',
-  freeHeap: '180KB',
-  wifiSignal: -45,
-  uptime: '2d 14h 32m',
-  cpuFreq: '240MHz',
-  temperature: '52°C',
+  chipModel: 'Loading...',
+  freeHeap: '0KB',
+  wifiSignal: 0,
+  uptime: '0 days',
+  temperature: '0°C',
 })
 
 interface WifiSignal {
@@ -87,8 +85,8 @@ const esp32Sensors = computed(() => [
   {
     id: 1,
     name: 'Soil Moisture',
-    type: 'Analog',
-    pin: 'A0',
+    type: 'Soil Moisture Sensor 2.0',
+    pin: 'D32',
     status: 'online',
     value: props.sensorData.soilMoisture.value + props.sensorData.soilMoisture.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilMoisture.time)),
@@ -97,7 +95,7 @@ const esp32Sensors = computed(() => [
     id: 2,
     name: 'Air Temperature',
     type: 'DHT22',
-    pin: 'D4',
+    pin: 'D27',
     status: 'online',
     value: props.sensorData.airTemperature.value + props.sensorData.airTemperature.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airTemperature.time)),
@@ -106,7 +104,7 @@ const esp32Sensors = computed(() => [
     id: 3,
     name: 'Air Humidity',
     type: 'DHT22',
-    pin: 'D4',
+    pin: 'D27',
     status: 'online',
     value: props.sensorData.airHumidity.value + props.sensorData.airHumidity.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airHumidity.time)),
@@ -114,8 +112,8 @@ const esp32Sensors = computed(() => [
   {
     id: 4,
     name: 'Soil pH',
-    type: 'Analog',
-    pin: 'A2',
+    type: 'PH-4502C',
+    pin: 'D34',
     status: 'online',
     value: props.sensorData.soilPH.value + props.sensorData.soilPH.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilPH.time)),
@@ -124,7 +122,7 @@ const esp32Sensors = computed(() => [
     id: 5,
     name: 'Soil Temperature',
     type: 'DS18B20',
-    pin: 'D5',
+    pin: 'D26',
     status: 'online',
     value: props.sensorData.soilTemperature.value + props.sensorData.soilTemperature.unit,
     lastUpdate: formatTimeDifference(
@@ -140,7 +138,7 @@ onMounted(async () => {
   window.addEventListener('resize', updateWidth)
 
   try {
-    const data = await fetchFileById<{
+    const systemResponse = await fetchFileById<{
       info: {
         device: {
           chip_model: string
@@ -152,12 +150,17 @@ onMounted(async () => {
         }
       }
     }>(SENSOR_FILE_IDS.system)
+    const uptimeResponse = await fetchFileById<Uptime>(SENSOR_FILE_IDS.uptime)
 
-    if (data?.info) {
-      esp32Info.value.chipModel = data.info.device.chip_model
-      esp32Info.value.freeHeap = `${data.info.device.free_heap_kb}KB`
-      esp32Info.value.temperature = `${data.info.device.calibrated_chip_temp.toFixed(1)}°C`
-      esp32Info.value.wifiSignal = data.info.wifi.rssi
+    if (systemResponse && uptimeResponse) {
+      const lastDowntimeEnd =
+        uptimeResponse.downtimeHistory[uptimeResponse.downtimeHistory.length - 1].end
+
+      esp32Info.value.chipModel = systemResponse.info.device.chip_model
+      esp32Info.value.freeHeap = `${systemResponse.info.device.free_heap_kb}KB`
+      esp32Info.value.temperature = `${systemResponse.info.device.calibrated_chip_temp.toFixed(1)}°C`
+      esp32Info.value.wifiSignal = systemResponse.info.wifi.rssi
+      esp32Info.value.uptime = formatUptimeSinceLastDowntime(lastDowntimeEnd || '')
     }
   } catch (err) {
     console.error('[System Info] Failed to load:', err)
@@ -166,22 +169,27 @@ onMounted(async () => {
 
 onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
 
-const currentTime = ref(new Date().toLocaleString('en-US', {
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hour12: true,
-}))
-
-// Update currentTime when sensorData changes
-watch(() => props.sensorData, () => {
-  currentTime.value = new Date().toLocaleString('en-US', {
+const currentTime = ref(
+  new Date().toLocaleString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: true,
-  })
-}, { deep: true })
+  }),
+)
+
+watch(
+  () => props.sensorData,
+  () => {
+    currentTime.value = new Date().toLocaleString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    })
+  },
+  { deep: true },
+)
 </script>
 
 <template>
@@ -216,8 +224,8 @@ watch(() => props.sensorData, () => {
             ESP32 System Monitor
           </h1>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-              Hardware status • Updated {{ currentTime }}
-            </p>
+            Hardware status • Uptime {{ esp32Info.uptime }}
+          </p>
         </div>
       </div>
     </div>

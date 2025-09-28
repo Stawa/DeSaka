@@ -27,6 +27,7 @@ const selectedSensors = ref([
   'soil_moisture',
   'air_temperature',
   'air_humidity',
+  'soil_ph',
 ])
 
 const availableSensors = [
@@ -768,6 +769,7 @@ onMounted(() => {
                 selectedSensors = [
                   'soil_temperature',
                   'soil_moisture',
+                  'soil_ph',
                   'air_temperature',
                   'air_humidity',
                 ]

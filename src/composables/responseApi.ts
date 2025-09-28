@@ -84,6 +84,19 @@ interface Settings {
   thresholds: ThresholdSettings
 }
 
+export interface DowntimeRecord {
+  start: string
+  end: string | null
+}
+
+export interface Uptime {
+  uptimePercent: number
+  isUp: boolean
+  lastUpdate: string
+  lastCheck: string
+  downtimeHistory: DowntimeRecord[]
+}
+
 /**
  * Converts an array of sensor readings with ISO timestamp strings
  * into a more human-readable format using `toLocaleString()` for the time.

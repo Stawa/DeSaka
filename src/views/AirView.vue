@@ -7,13 +7,13 @@ import { handleDataExport } from '@/utils/exportUtils'
 import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
 import {
-  formatCurrentTime,
   calculateParameterScore,
   getDateRangeFromTimeframe,
   updateSensorDataFromResponse,
   updateSensorStatus,
   formatSensorDataForExport,
   type TimeframeOption,
+  formatReadableDateTime,
 } from '@/scripts'
 import AirHeader from '@/components/air/AirHeader.vue'
 import type { SensorResponse } from '@/scripts/sensorDataUtils'
@@ -46,7 +46,7 @@ const airData = ref<SensorModification>({
   },
 })
 
-const lastUpdated = ref(formatCurrentTime())
+const lastUpdated = ref('Loading...')
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
 const showExportModal = ref(false)
@@ -104,7 +104,9 @@ async function handleRefresh() {
       updateAirData(airResponse)
       updateSensorStatuses()
 
-      lastUpdated.value = formatCurrentTime()
+      const history = airResponse.temperature.history
+      lastUpdated.value = formatReadableDateTime(history[history.length - 1].time)
+
       return
     } catch (fileErr) {
       console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
@@ -127,7 +129,7 @@ async function handleRefresh() {
       (airResponse: Air) => {
         updateAirData(airResponse)
         updateSensorStatuses()
-        lastUpdated.value = formatCurrentTime()
+        lastUpdated.value = formatReadableDateTime(airResponse.humidity.history[-1].time)
       },
       fetchAirFile,
       params,

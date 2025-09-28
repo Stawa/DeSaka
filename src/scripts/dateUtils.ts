@@ -8,28 +8,61 @@
 export type TimeframeOption = '24h' | '7d' | '30d'
 
 /**
- * Format a date as a time string with specified options
- * @param date The date to format
- * @param options Formatting options
- * @returns Formatted time string
+ * Format a given datetime as a relative time string like "1 minute ago" or fallback to readable time
+ * @param date Date object or ISO string
+ * @returns Formatted relative time string
  */
-export function formatTime(date: Date, options: Intl.DateTimeFormatOptions = {}): string {
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }
+export function formatRelativeTime(date: Date | string): string {
+  const target = typeof date === 'string' ? new Date(date) : date
+  const now = new Date()
+  const diffMs = now.getTime() - target.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
 
-  return date.toLocaleTimeString('en-US', { ...defaultOptions, ...options })
+  if (diffSec < 60) return 'Just now'
+
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`
+
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+
+  return target.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 /**
- * Format the current time as a string with "Today, " prefix
- * @param options Formatting options
- * @returns Formatted time string with "Today, " prefix
+ * Format a given datetime as a readable string with "Today, " prefix if it's today
+ * @param date Date object or ISO string
+ * @param options Intl.DateTimeFormatOptions
+ * @returns Formatted datetime string like "Today, 10:35:38 PM"
  */
-export function formatCurrentTime(options: Intl.DateTimeFormatOptions = {}): string {
-  return `Today, ${formatTime(new Date(), options)}`
+export function formatReadableDateTime(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = {},
+): string {
+  const target = typeof date === 'string' ? new Date(date) : date
+  const now = new Date()
+
+  const isToday =
+    target.getFullYear() === now.getFullYear() &&
+    target.getMonth() === now.getMonth() &&
+    target.getDate() === now.getDate()
+
+  const timeString = target.toLocaleTimeString('en-US', {
+    hour12: true,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    ...options,
+  })
+
+  return isToday ? `Today, ${timeString}` : timeString
 }
 
 /**
@@ -46,4 +79,41 @@ export function getTimeLabel(date: Date, timeframe: TimeframeOption): string {
   } else {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
+}
+
+/**
+ * Format uptime since last downtime into human-readable string
+ * @param lastDowntimeEnd ISO string of last downtime end
+ * @returns Formatted uptime string
+ */
+export function formatUptimeSinceLastDowntime(lastDowntimeEnd: string): string {
+  const lastEnd = new Date(lastDowntimeEnd)
+  const now = new Date()
+  let diffMs = now.getTime() - lastEnd.getTime()
+
+  if (diffMs <= 0) return 'Uptime: Just now'
+
+  const msInSecond = 1000
+  const msInMinute = msInSecond * 60
+  const msInHour = msInMinute * 60
+  const msInDay = msInHour * 24
+
+  const days = Math.floor(diffMs / msInDay)
+  diffMs %= msInDay
+
+  const hours = Math.floor(diffMs / msInHour)
+  diffMs %= msInHour
+
+  const minutes = Math.floor(diffMs / msInMinute)
+  diffMs %= msInMinute
+
+  const seconds = Math.floor(diffMs / msInSecond)
+
+  const parts: string[] = []
+  if (days) parts.push(`${days} day${days > 1 ? 's' : ''}`)
+  if (hours) parts.push(`${hours} hour${hours > 1 ? 's' : ''}`)
+  if (minutes) parts.push(`${minutes} minute${minutes > 1 ? 's' : ''}`)
+  if (seconds && parts.length === 0) parts.push(`${seconds} second${seconds > 1 ? 's' : ''}`) // only show seconds if <1 min
+
+  return `${parts.join(' ')}`
 }

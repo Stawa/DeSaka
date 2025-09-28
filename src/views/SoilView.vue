@@ -4,7 +4,7 @@ import SensorChart from '../components/SensorChart.vue'
 import SoilHealthDashboard from '../components/SoilHealthDashboard.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
 import SoilHeader from '@/components/soil/SoilHeader.vue'
-import { formatCurrentTime, calculateParameterScore, type TimeframeOption } from '@/scripts'
+import { calculateParameterScore, formatReadableDateTime, type TimeframeOption } from '@/scripts'
 import { handleDataExport } from '@/utils/exportUtils'
 import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
 import {
@@ -54,7 +54,7 @@ const soilData = ref<SensorModification>({
   },
 })
 
-const lastUpdated = ref(formatCurrentTime())
+const lastUpdated = ref('Loading...')
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
 const showExportModal = ref(false)
@@ -120,7 +120,9 @@ async function refreshData() {
       updateSensorStatuses()
       updateSensorTrends()
 
-      lastUpdated.value = formatCurrentTime()
+      const history = soilResponse.temperature.history
+      lastUpdated.value = formatReadableDateTime(history[history.length - 1].time)
+
       return
     } catch (fileErr) {
       console.warn('Could not fetch from file endpoint, falling back to sensors endpoint:', fileErr)
@@ -153,7 +155,6 @@ async function refreshData() {
         updateSoilData(soilResponse)
         updateSensorStatuses()
         updateSensorTrends()
-        lastUpdated.value = formatCurrentTime()
       },
       fetchSoilFile,
       params,

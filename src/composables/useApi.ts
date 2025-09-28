@@ -23,6 +23,7 @@ const SENSOR_FILE_IDS: Record<string, string> = {
   air: '',
   soil: '',
   settings: '',
+  uptime: '',
   system: '',
 }
 
@@ -61,20 +62,6 @@ interface ApiResponse<T = Record<string, number | boolean>> {
   error?: string
   message?: string
   status?: number
-}
-
-interface SensorHistoryData {
-  time: string
-  value: number
-}
-
-export interface SensorFieldData {
-  unit: string
-  history: SensorHistoryData[]
-}
-
-export interface SensorApiResponse {
-  [key: string]: SensorFieldData
 }
 
 interface FileMetadata {
@@ -332,5 +319,5 @@ export function useApi() {
 /**
  * Export types for external use
  */
-export type { ApiResponse, FileMetadata, SensorHistoryData }
+export type { ApiResponse, FileMetadata }
 export { ApiError, SENSOR_FILE_IDS, updateSensorFileIds }

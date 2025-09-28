@@ -16,6 +16,7 @@ import {
   type SensorTrend,
   type SensorCategory,
 } from '@/constants/sensorConstants'
+import { formatRelativeTime } from '@/scripts'
 
 /**
  * Raw sensor data interface
@@ -25,6 +26,7 @@ export interface RawSensorData {
     value?: number
     unit?: string
     status?: string
+    time?: string
   }
 }
 
@@ -138,7 +140,8 @@ export function transformSensorData(rawData: RawSensorData): SensorDataStructure
     },
   ]
 
-  return sensorMappings.map((mapping, index) => ({
+  console.log(rawData)
+  return sensorMappings.map((mapping) => ({
     id: mapping.id,
     name: mapping.name,
     value: rawData[mapping.dataKey]?.value ?? DEFAULT_SENSOR_CONFIG.value,
@@ -146,7 +149,7 @@ export function transformSensorData(rawData: RawSensorData): SensorDataStructure
     status: (rawData[mapping.dataKey]?.status ?? DEFAULT_SENSOR_CONFIG.status) as SensorStatus,
     icon: getSensorIconClass(mapping.icon),
     category: mapping.category,
-    lastUpdate: getRelativeTime(index + 1),
+    lastUpdate: formatRelativeTime(rawData[mapping.dataKey]?.time || ''),
     trend: DEFAULT_SENSOR_CONFIG.trend,
   }))
 }
@@ -166,15 +169,6 @@ function getDefaultUnit(sensorId: string): string {
   }
 
   return unitMap[sensorId] || ''
-}
-
-/**
- * Generates a mock relative time string
- * @param minutes - Number of minutes ago
- * @returns Formatted relative time string
- */
-function getRelativeTime(minutes: number): string {
-  return `${minutes} min ago`
 }
 
 /**

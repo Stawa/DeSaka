@@ -4,7 +4,7 @@ import SensorReadingsGrid from '../components/SensorReadingsGrid.vue'
 import SensorReadingsTable from '../components/SensorReadingsTable.vue'
 import DataExportModal from '@/components/DataExportModal.vue'
 import { handleDataExport } from '@/utils/exportUtils'
-import { SENSOR_FILE_IDS, useApi, type SensorApiResponse } from '@/composables/useApi'
+import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
 import HomeHeader from '@/components/home/HomeHeader.vue'
 import SensorTrends from '@/components/home/SensorTrends.vue'
 import PlantAnalysis from '@/components/home/PlantAnalysis.vue'
@@ -13,14 +13,15 @@ import {
   getSensorStatus,
   calculateParameterScore,
   getGrowthPrediction,
-  formatCurrentTime,
+  formatReadableDateTime,
 } from '@/scripts'
 import {
   mapReadableHistory,
   type Air,
   type SensorReading,
   type Soil,
-  type SensorItems,
+  type Settings,
+  type Uptime,
 } from '@/composables/responseApi'
 import { getMinMax } from '@/utils/sensorHelpers'
 import SystemStatus from '@/components/SystemStatus.vue'
@@ -72,6 +73,8 @@ const sensorData = ref<SensorDataType>({
   airHumidity: { value: 0, unit: '%', status: 'normal', time: '' },
 })
 
+const SettingsResponse = ref<Settings | null>(null)
+
 const historicalData = ref<HistoricalDataType>({
   soilTemperature: [],
   soilMoisture: [],
@@ -88,14 +91,25 @@ type HistoricalKey =
   | 'airTemperature'
   | 'airHumidity'
 
+const lastUpdate: Ref<string> = ref('Loading...')
+const uptime: Ref<number> = ref(0)
+const totalSensor: Ref<number> = ref(0)
+
 async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
   isRefreshing.value = true
 
-  try {
-    const soilFileId = SENSOR_FILE_IDS.soil
-    const airFileId = SENSOR_FILE_IDS.air
+  const soilFileId = SENSOR_FILE_IDS.soil
+  const airFileId = SENSOR_FILE_IDS.air
+  const settingsFileId = SENSOR_FILE_IDS.settings
+  const uptimeFileId = SENSOR_FILE_IDS.uptime
+  const settingsResponse: Settings = await fetchFileById(settingsFileId)
+  const uptimeResponse: Uptime = await fetchFileById(uptimeFileId)
 
+  uptime.value = uptimeResponse.uptimePercent
+  SettingsResponse.value = settingsResponse
+
+  try {
     try {
       const soilResponse: Soil = await fetchFileById(soilFileId)
       const airResponse: Air = await fetchFileById(airFileId)
@@ -144,11 +158,11 @@ async function updateHistoricalData(timeframe: string) {
       sensors: ['air_temperature', 'air_humidity', 'light_intensity'],
     }
 
-    const fetchAirFile = async (): Promise<SensorApiResponse> => {
+    const fetchAirFile = async (): Promise<Air> => {
       return await fetchFileById(SENSOR_FILE_IDS.air)
     }
 
-    const fetchSoilFile = async (): Promise<SensorApiResponse> => {
+    const fetchSoilFile = async (): Promise<Soil> => {
       return await fetchFileById(SENSOR_FILE_IDS.soil)
     }
 
@@ -212,10 +226,9 @@ async function updateHistoricalData(timeframe: string) {
     updateCurrentSensorValues(soilResponse, airResponse)
   } finally {
     isRefreshing.value = false
+    totalSensor.value = Object.keys(sensorData.value).length
   }
 }
-
-const lastUpdate: Ref<string> = ref(formatCurrentTime({ second: '2-digit' }))
 
 function openSensorDetails(sensorId: string) {
   console.log(`Opening details for sensor: ${sensorId}`)
@@ -225,7 +238,7 @@ async function updateData() {
   isRefreshing.value = true
   try {
     await updateHistoricalData(trendTimeframe.value)
-    lastUpdate.value = formatCurrentTime({ second: '2-digit' })
+    lastUpdate.value = formatReadableDateTime(sensorData.value.airHumidity.time)
   } catch (err) {
     console.error('Error updating data:', err)
   } finally {
@@ -242,123 +255,83 @@ function handleExport(exportOptions: {
   handleDataExport(exportOptions)
 }
 
-function updateCurrentSensorValues(
-  soilResponse: Record<string, SensorItems>,
-  airResponse: Record<string, SensorItems>,
-) {
+function updateCurrentSensorValues(soilResponse: Soil, airResponse: Air) {
   if (!soilResponse && !airResponse) return
+  if (!SettingsResponse.value) return
 
-  const isFileApiFormat =
-    (soilResponse && soilResponse.temperature !== undefined) ||
-    (airResponse && airResponse.temperature !== undefined)
+  const thresholds = SettingsResponse.value.thresholds
 
-  if (isFileApiFormat && soilResponse?.temperature?.history?.length > 0) {
+  if (soilResponse?.temperature?.history?.length > 0) {
     const latestReading =
       soilResponse.temperature.history[soilResponse.temperature.history.length - 1]
     sensorData.value.soilTemperature.value = latestReading.value
     sensorData.value.soilTemperature.unit = soilResponse.temperature.unit || '°C'
-    sensorData.value.soilTemperature.status = getSensorStatus(latestReading.value, 10, 35, 20, 28)
-    sensorData.value.soilTemperature.time = latestReading.time
-  } else if (soilResponse?.soil_temperature?.history?.length > 0) {
-    const latestReading =
-      soilResponse.soil_temperature.history[soilResponse.soil_temperature.history.length - 1]
-    sensorData.value.soilTemperature.value = latestReading.value
-    sensorData.value.soilTemperature.unit = soilResponse.soil_temperature.unit || '°C'
-    sensorData.value.soilTemperature.status = getSensorStatus(latestReading.value, 10, 35, 20, 28)
+    sensorData.value.soilTemperature.status = getSensorStatus(
+      latestReading.value,
+      thresholds.soilTemperature.min - 5,
+      thresholds.soilTemperature.max + 5,
+      thresholds.soilTemperature.min,
+      thresholds.soilTemperature.max,
+    )
     sensorData.value.soilTemperature.time = latestReading.time
   }
 
-  if (isFileApiFormat && soilResponse?.moisture?.history?.length > 0) {
+  if (soilResponse?.moisture?.history?.length > 0) {
     const latestReading = soilResponse.moisture.history[soilResponse.moisture.history.length - 1]
     sensorData.value.soilMoisture.value = latestReading.value
     sensorData.value.soilMoisture.unit = soilResponse.moisture.unit || '%'
-    sensorData.value.soilMoisture.status = getSensorStatus(latestReading.value, 20, 90, 50, 75)
-    sensorData.value.soilMoisture.time = latestReading.time
-  } else if (soilResponse?.soil_moisture?.history?.length > 0) {
-    const latestReading =
-      soilResponse.soil_moisture.history[soilResponse.soil_moisture.history.length - 1]
-    sensorData.value.soilMoisture.value = latestReading.value
-    sensorData.value.soilMoisture.unit = soilResponse.soil_moisture.unit || '%'
-    sensorData.value.soilMoisture.status = getSensorStatus(latestReading.value, 20, 90, 50, 75)
+    sensorData.value.soilMoisture.status = getSensorStatus(
+      latestReading.value,
+      thresholds.soilMoisture.min - 5,
+      thresholds.soilMoisture.max + 5,
+      thresholds.soilMoisture.min,
+      thresholds.soilMoisture.max,
+    )
     sensorData.value.soilMoisture.time = latestReading.time
   }
 
-  if (isFileApiFormat && soilResponse?.ph?.history?.length > 0) {
+  if (soilResponse?.ph?.history?.length > 0) {
     const latestReading = soilResponse.ph.history[soilResponse.ph.history.length - 1]
     sensorData.value.soilPH.value = latestReading.value
     sensorData.value.soilPH.unit = soilResponse.ph.unit || 'pH'
-    sensorData.value.soilPH.status = getSensorStatus(latestReading.value, 4, 9, 6, 7)
-    sensorData.value.soilPH.time = latestReading.time
-  } else if (soilResponse?.soil_ph?.history?.length > 0) {
-    const latestReading = soilResponse.soil_ph.history[soilResponse.soil_ph.history.length - 1]
-    sensorData.value.soilPH.value = latestReading.value
-    sensorData.value.soilPH.unit = soilResponse.soil_ph.unit || 'pH'
-    sensorData.value.soilPH.status = getSensorStatus(latestReading.value, 4, 9, 6, 7)
+    sensorData.value.soilPH.status = getSensorStatus(
+      latestReading.value,
+      thresholds.soilPH.min - 5,
+      thresholds.soilPH.max + 5,
+      thresholds.soilPH.min,
+      thresholds.soilPH.max,
+    )
     sensorData.value.soilPH.time = latestReading.time
   }
 
-  if (isFileApiFormat && airResponse?.temperature?.history?.length > 0) {
+  if (airResponse?.temperature?.history?.length > 0) {
     const latestReading =
       airResponse.temperature.history[airResponse.temperature.history.length - 1]
     sensorData.value.airTemperature.value = latestReading.value
     sensorData.value.airTemperature.unit = airResponse.temperature.unit || '°C'
-    sensorData.value.airTemperature.status = getSensorStatus(latestReading.value, 15, 35, 20, 26)
-    sensorData.value.airTemperature.time = latestReading.time
-  } else if (airResponse?.air_temperature?.history?.length > 0) {
-    const latestReading =
-      airResponse.air_temperature.history[airResponse.air_temperature.history.length - 1]
-    sensorData.value.airTemperature.value = latestReading.value
-    sensorData.value.airTemperature.unit = airResponse.air_temperature.unit || '°C'
-    sensorData.value.airTemperature.status = getSensorStatus(latestReading.value, 15, 35, 20, 26)
+    sensorData.value.airTemperature.status = getSensorStatus(
+      latestReading.value,
+      thresholds.airTemperature.min - 5,
+      thresholds.airTemperature.max + 5,
+      thresholds.airTemperature.min,
+      thresholds.airTemperature.max,
+    )
     sensorData.value.airTemperature.time = latestReading.time
   }
 
-  if (isFileApiFormat && airResponse?.humidity?.history?.length > 0) {
+  if (airResponse?.humidity?.history?.length > 0) {
     const latestReading = airResponse.humidity.history[airResponse.humidity.history.length - 1]
     sensorData.value.airHumidity.value = latestReading.value
     sensorData.value.airHumidity.unit = airResponse.humidity.unit || '%'
-    sensorData.value.airHumidity.status = getSensorStatus(latestReading.value, 20, 80, 40, 60)
-    sensorData.value.airHumidity.time = latestReading.time
-  } else if (airResponse?.air_humidity?.history?.length > 0) {
-    const latestReading =
-      airResponse.air_humidity.history[airResponse.air_humidity.history.length - 1]
-    sensorData.value.airHumidity.value = latestReading.value
-    sensorData.value.airHumidity.unit = airResponse.air_humidity.unit || '%'
-    sensorData.value.airHumidity.status = getSensorStatus(latestReading.value, 20, 80, 40, 60)
+    sensorData.value.airHumidity.status = getSensorStatus(
+      latestReading.value,
+      thresholds.airHumidity.min - 5,
+      thresholds.airHumidity.max + 5,
+      thresholds.airHumidity.min,
+      thresholds.airHumidity.max,
+    )
     sensorData.value.airHumidity.time = latestReading.time
   }
-
-  sensorData.value.soilTemperature.status = getSensorStatus(
-    sensorData.value.soilTemperature.value,
-    15,
-    32,
-    20,
-    28,
-  )
-  sensorData.value.soilMoisture.status = getSensorStatus(
-    sensorData.value.soilMoisture.value,
-    30,
-    85,
-    40,
-    75,
-  )
-  sensorData.value.soilPH.status = getSensorStatus(sensorData.value.soilPH.value, 5, 8, 5.5, 7.5)
-  sensorData.value.airTemperature.status = getSensorStatus(
-    sensorData.value.airTemperature.value,
-    15,
-    35,
-    20,
-    30,
-  )
-  sensorData.value.airHumidity.status = getSensorStatus(
-    sensorData.value.airHumidity.value,
-    30,
-    90,
-    40,
-    80,
-  )
-
-  lastUpdate.value = formatCurrentTime({ second: '2-digit' })
 }
 
 const plantHealthScore = computed(() => {
@@ -374,26 +347,47 @@ const plantHealthScore = computed(() => {
   const airTempHistory = historicalData.value.airTemperature
   const airHumidityHistory = historicalData.value.airHumidity
 
+  if (!SettingsResponse.value) return 0
+  const thresholds = SettingsResponse.value.thresholds
+
   const { min: soilTempMin, max: soilTempMax } = getMinMax(soilTempHistory)
   const { min: soilMoistureMin, max: soilMoistureMax } = getMinMax(soilMoistureHistory)
   const { min: soilPHMin, max: soilPHMax } = getMinMax(soilPHHistory)
   const { min: airTempMin, max: airTempMax } = getMinMax(airTempHistory)
   const { min: airHumidityMin, max: airHumidityMax } = getMinMax(airHumidityHistory)
 
-  const soilTempScore = calculateParameterScore(soilTempValue, 22, 26, soilTempMin, soilTempMax)
+  const soilTempScore = calculateParameterScore(
+    soilTempValue,
+    thresholds.soilTemperature.min,
+    thresholds.soilTemperature.max,
+    soilTempMin,
+    soilTempMax,
+  )
   const soilMoistureScore = calculateParameterScore(
     soilMoistureValue,
-    60,
-    70,
+    thresholds.soilMoisture.min,
+    thresholds.soilMoisture.max,
     soilMoistureMin,
     soilMoistureMax,
   )
-  const soilPHScore = calculateParameterScore(soilPHValue, 6.5, 7.0, soilPHMin, soilPHMax)
-  const airTempScore = calculateParameterScore(airTempValue, 24, 28, airTempMin, airTempMax)
+  const soilPHScore = calculateParameterScore(
+    soilPHValue,
+    thresholds.soilPH.min,
+    thresholds.soilPH.max,
+    soilPHMin,
+    soilPHMax,
+  )
+  const airTempScore = calculateParameterScore(
+    airTempValue,
+    thresholds.airTemperature.min,
+    thresholds.airTemperature.max,
+    airTempMin,
+    airTempMax,
+  )
   const airHumidityScore = calculateParameterScore(
     airHumidityValue,
-    65,
-    75,
+    thresholds.airHumidity.min,
+    thresholds.airHumidity.max,
     airHumidityMin,
     airHumidityMax,
   )
@@ -430,7 +424,13 @@ const growthPrediction = computed(() => {
         - Includes system status and last update information
         - Provides quick access to export functionality
       -->
-      <HomeHeader :last-update="lastUpdate" @export="showExportModal = true" @refresh="updateData" />
+      <HomeHeader
+        :last-update="lastUpdate"
+        :uptime="uptime"
+        :total-sensor="totalSensor"
+        @export="showExportModal = true"
+        @refresh="updateData"
+      />
 
       <!--
         Plant Status Overview Dashboard
