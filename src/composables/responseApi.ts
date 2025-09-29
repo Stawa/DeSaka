@@ -97,6 +97,18 @@ export interface Uptime {
   downtimeHistory: DowntimeRecord[]
 }
 
+export interface LogSystem {
+  timestamp: string
+  level: 'ok' | 'warning' | 'critical'
+  eventKey: string
+  message: string
+  sent: boolean
+}
+
+export interface SystemLogs {
+  logs: LogSystem[]
+}
+
 /**
  * Converts an array of sensor readings with ISO timestamp strings
  * into a more human-readable format using `toLocaleString()` for the time.

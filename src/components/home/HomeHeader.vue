@@ -202,9 +202,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
-defineProps({
+const props = defineProps({
   lastUpdate: {
     type: String,
     default: '2 minutes ago',
@@ -221,21 +219,17 @@ defineProps({
     type: Number,
     default: 0,
   },
+  isRefreshing: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const isRefreshing = ref(false)
 const emit = defineEmits(['export', 'refresh'])
 
 const refreshData = async () => {
-  if (isRefreshing.value) return
-  isRefreshing.value = true
-  try {
+  if (!props.isRefreshing) {
     emit('refresh')
-    console.log('Data refresh requested.')
-  } catch (error) {
-    console.error('Failed to refresh data:', error)
-  } finally {
-    isRefreshing.value = false
   }
 }
 

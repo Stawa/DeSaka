@@ -15,7 +15,7 @@ import {
   formatSensorDataForExport,
   type SensorResponse,
 } from '@/scripts/sensorDataUtils'
-import type { SensorModification, Soil } from '@/composables/responseApi'
+import type { SensorModification, Settings, Soil } from '@/composables/responseApi'
 import { getMinMax } from '@/utils/sensorHelpers'
 
 const soilData = ref<SensorModification>({
@@ -54,11 +54,28 @@ const soilData = ref<SensorModification>({
   },
 })
 
+type HistoricalDataItem = { time: string; value: number }[]
+type HistoricalDataType = {
+  [key: string]: HistoricalDataItem
+  soilTemperature: HistoricalDataItem
+  soilMoisture: HistoricalDataItem
+  soilPH: HistoricalDataItem
+  airTemperature: HistoricalDataItem
+  airHumidity: HistoricalDataItem
+}
+const historicalData = ref<HistoricalDataType>({
+  soilTemperature: [],
+  soilMoisture: [],
+  soilPH: [],
+  airTemperature: [],
+  airHumidity: [],
+})
+
 const lastUpdated = ref('Loading...')
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
 const showExportModal = ref(false)
-const error = ref<string | null>(null)
+const SettingsResponse = ref<Settings | null>(null)
 
 const { refreshData: apiRefreshData, fetchFileById } = useApi()
 
@@ -108,8 +125,11 @@ function handleExport(exportOptions: {
 }
 
 async function refreshData() {
+  const settingsFileId = SENSOR_FILE_IDS.settings
+  const settingsResponse: Settings = await fetchFileById(settingsFileId)
+
   isRefreshing.value = true
-  error.value = null
+  SettingsResponse.value = settingsResponse
 
   try {
     try {
@@ -161,7 +181,6 @@ async function refreshData() {
     )
   } catch (err) {
     console.error('Error refreshing soil data:', err)
-    error.value = 'Failed to fetch soil data. Please try again later.'
   } finally {
     isRefreshing.value = false
   }
@@ -185,6 +204,7 @@ function updateSensorTrends() {
  * @param response The API response containing sensor data
  */
 function updateSoilData(response: Record<string, SensorResponse>) {
+  if (!SettingsResponse.value) return
   if (!response) return
 
   const sensorMappings = [
@@ -196,30 +216,97 @@ function updateSoilData(response: Record<string, SensorResponse>) {
   sensorMappings.forEach((mapping) => {
     updateSensorDataFromResponse(mapping.sensor, response, mapping.apiKey, mapping.fileKey)
   })
+
+  if (SettingsResponse.value) {
+    const t = SettingsResponse.value.thresholds
+    soilData.value.temperature.optimal_min = t.soilTemperature.min
+    soilData.value.temperature.optimal_max = t.soilTemperature.max
+    soilData.value.moisture.optimal_min = t.soilMoisture.min
+    soilData.value.moisture.optimal_max = t.soilMoisture.max
+    soilData.value.ph.optimal_min = t.soilPH.min
+    soilData.value.ph.optimal_max = t.soilPH.max
+  }
+
+  const { min: soilTempMin, max: soilTempMax } = getMinMax(historicalData.value.soilTemperature)
+  soilData.value.temperature.min = soilTempMin
+  soilData.value.temperature.max = soilTempMax
+
+  const { min: soilMoistureMin, max: soilMoistureMax } = getMinMax(
+    historicalData.value.soilMoisture,
+  )
+  soilData.value.moisture.min = soilMoistureMin
+  soilData.value.moisture.max = soilMoistureMax
+
+  const { min: soilPHMin, max: soilPHMax } = getMinMax(historicalData.value.soilPH)
+  soilData.value.ph.min = soilPHMin
+  soilData.value.ph.max = soilPHMax
 }
 
 function updateSensorStatuses() {
-  updateSensorStatus(soilData.value.temperature, 20, 28)
-  updateSensorStatus(soilData.value.moisture, 50, 75)
-  updateSensorStatus(soilData.value.ph, 6.0, 7.0)
+  if (!SettingsResponse.value) return
+
+  updateSensorStatus(
+    soilData.value.temperature,
+    SettingsResponse.value?.thresholds.soilTemperature.min - 5,
+    SettingsResponse.value?.thresholds.soilTemperature.max + 5,
+    SettingsResponse.value?.thresholds.soilTemperature.min,
+    SettingsResponse.value?.thresholds.soilTemperature.max,
+  )
+  updateSensorStatus(
+    soilData.value.moisture,
+    SettingsResponse.value?.thresholds.soilMoisture.min - 5,
+    SettingsResponse.value?.thresholds.soilMoisture.max + 5,
+    SettingsResponse.value?.thresholds.soilMoisture.min,
+    SettingsResponse.value?.thresholds.soilMoisture.max,
+  )
+  updateSensorStatus(
+    soilData.value.ph,
+    SettingsResponse.value?.thresholds.soilPH.min - 5,
+    SettingsResponse.value?.thresholds.soilPH.max + 5,
+    SettingsResponse.value?.thresholds.soilPH.min,
+    SettingsResponse.value?.thresholds.soilPH.max,
+  )
 }
 
 const soilHealthScore = computed(() => {
-  const temp = soilData.value.temperature
-  const moisture = soilData.value.moisture
-  const ph = soilData.value.ph
+  if (!SettingsResponse.value) return 0
+  const thresholds = SettingsResponse.value.thresholds
 
-  const { min: tempMin, max: tempMax } = getMinMax(temp.history)
-  const { min: moistureMin, max: moistureMax } = getMinMax(moisture.history)
-  const { min: phMin, max: phMax } = getMinMax(ph.history)
+  const soilTempValue = soilData.value.temperature.value
+  const soilMoistureValue = soilData.value.moisture.value
+  const soilPHValue = soilData.value.ph.value
 
-  const tempScore = calculateParameterScore(temp.value, tempMin, tempMax, 20, 28)
-  const moistureScore = calculateParameterScore(moisture.value, moistureMin, moistureMax, 50, 75)
-  const phScore = calculateParameterScore(ph.value, phMin, phMax, 6.0, 7.0)
+  const soilTempHistory = soilData.value.temperature.history
+  const soilMoistureHistory = soilData.value.moisture.history
+  const soilPHHistory = soilData.value.ph.history
 
-  const score = tempScore * 0.15 + moistureScore * 0.2 + phScore * 0.15
+  const { min: soilTempMin, max: soilTempMax } = getMinMax(soilTempHistory)
+  const { min: soilMoistureMin, max: soilMoistureMax } = getMinMax(soilMoistureHistory)
+  const { min: soilPHMin, max: soilPHMax } = getMinMax(soilPHHistory)
 
-  return Math.round(score)
+  const soilTempScore = calculateParameterScore(
+    soilTempValue,
+    thresholds.soilTemperature.min,
+    thresholds.soilTemperature.max,
+    soilTempMin,
+    soilTempMax,
+  )
+  const soilMoistureScore = calculateParameterScore(
+    soilMoistureValue,
+    thresholds.soilMoisture.min,
+    thresholds.soilMoisture.max,
+    soilMoistureMin,
+    soilMoistureMax,
+  )
+  const soilPHScore = calculateParameterScore(
+    soilPHValue,
+    thresholds.soilPH.min,
+    thresholds.soilPH.max,
+    soilPHMin,
+    soilPHMax,
+  )
+
+  return Math.round(soilTempScore * 0.15 + soilMoistureScore * 0.2 + soilPHScore * 0.15)
 })
 </script>
 

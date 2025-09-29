@@ -25,6 +25,8 @@ const props = defineProps({
   },
 })
 
+console.log(props.airData)
+
 const healthStatus = computed(() => {
   if (props.healthScore >= 90) {
     return {

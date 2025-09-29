@@ -88,8 +88,10 @@ export function updateSensorDataFromResponse(
  */
 export function updateSensorStatus(
   sensorData: SensorData,
-  optimalMin?: number,
-  optimalMax?: number,
+  min: number,
+  max: number,
+  optimalMin: number,
+  optimalMax: number,
 ): void {
   if (
     sensorData.min === undefined ||
@@ -99,12 +101,7 @@ export function updateSensorStatus(
     return
   }
 
-  const min = sensorData.min
-  const max = sensorData.max
-  const oMin = optimalMin ?? sensorData.optimal_min ?? min
-  const oMax = optimalMax ?? sensorData.optimal_max ?? max
-
-  sensorData.status = getSensorStatus(sensorData.value, min, max, oMin, oMax)
+  sensorData.status = getSensorStatus(sensorData.value, min, max, optimalMin, optimalMax)
 }
 
 /**

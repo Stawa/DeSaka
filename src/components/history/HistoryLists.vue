@@ -16,14 +16,7 @@ const isDesktop = computed(() => screenWidth.value >= 1024)
 
 const getSensorIcon = (sensorId: string) => {
   const iconMap: Record<string, string> = {
-    temperature: 'mdi-thermometer',
-    humidity: 'mdi-water-percent',
-    soilMoisture: 'mdi-water',
-    ph: 'mdi-flask',
-    nitrogen: 'mdi-leaf',
-    phosphorus: 'mdi-grain',
-    potassium: 'mdi-nutrition',
-    airQuality: 'mdi-air-filter',
+    soil_ph: 'mdi-flask',
     soil_temperature: 'mdi-thermometer',
     soil_moisture: 'mdi-water',
     air_temperature: 'mdi-thermometer-lines',
@@ -61,7 +54,7 @@ onUnmounted(() => {
           <div>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Sensor Charts</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {{ selectedSensors.length }} of 6 selected
+              {{ selectedSensors.length }} of 5 selected
             </p>
           </div>
         </div>

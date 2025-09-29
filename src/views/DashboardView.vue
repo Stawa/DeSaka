@@ -22,6 +22,7 @@ import {
   type Soil,
   type Settings,
   type Uptime,
+  type SystemLogs,
 } from '@/composables/responseApi'
 import { getMinMax } from '@/utils/sensorHelpers'
 import SystemStatus from '@/components/SystemStatus.vue'
@@ -74,6 +75,7 @@ const sensorData = ref<SensorDataType>({
 })
 
 const SettingsResponse = ref<Settings | null>(null)
+const LogsResponse = ref<SystemLogs | null>(null)
 
 const historicalData = ref<HistoricalDataType>({
   soilTemperature: [],
@@ -83,6 +85,11 @@ const historicalData = ref<HistoricalDataType>({
   airHumidity: [],
 })
 
+const lastUpdate: Ref<string> = ref('Loading...')
+const uptime: Ref<number> = ref(0)
+const totalSensor: Ref<number> = ref(0)
+const isUp: Ref<boolean> = ref(false)
+
 const { refreshData: apiRefreshData, fetchFileById } = useApi()
 type HistoricalKey =
   | 'soilTemperature'
@@ -90,10 +97,6 @@ type HistoricalKey =
   | 'soilPH'
   | 'airTemperature'
   | 'airHumidity'
-
-const lastUpdate: Ref<string> = ref('Loading...')
-const uptime: Ref<number> = ref(0)
-const totalSensor: Ref<number> = ref(0)
 
 async function updateHistoricalData(timeframe: string) {
   trendTimeframe.value = timeframe
@@ -103,11 +106,15 @@ async function updateHistoricalData(timeframe: string) {
   const airFileId = SENSOR_FILE_IDS.air
   const settingsFileId = SENSOR_FILE_IDS.settings
   const uptimeFileId = SENSOR_FILE_IDS.uptime
+  const logsFileId = SENSOR_FILE_IDS.logs
   const settingsResponse: Settings = await fetchFileById(settingsFileId)
+  const logsResponse: SystemLogs = await fetchFileById(logsFileId)
   const uptimeResponse: Uptime = await fetchFileById(uptimeFileId)
 
   uptime.value = uptimeResponse.uptimePercent
   SettingsResponse.value = settingsResponse
+  LogsResponse.value = logsResponse
+  isUp.value = uptimeResponse.isUp
 
   try {
     try {
@@ -227,6 +234,7 @@ async function updateHistoricalData(timeframe: string) {
   } finally {
     isRefreshing.value = false
     totalSensor.value = Object.keys(sensorData.value).length
+    lastUpdate.value = formatReadableDateTime(sensorData.value.airHumidity.time)
   }
 }
 
@@ -238,7 +246,6 @@ async function updateData() {
   isRefreshing.value = true
   try {
     await updateHistoricalData(trendTimeframe.value)
-    lastUpdate.value = formatReadableDateTime(sensorData.value.airHumidity.time)
   } catch (err) {
     console.error('Error updating data:', err)
   } finally {
@@ -428,6 +435,8 @@ const growthPrediction = computed(() => {
         :last-update="lastUpdate"
         :uptime="uptime"
         :total-sensor="totalSensor"
+        :isUp="isUp"
+        :is-refreshing="isRefreshing"
         @export="showExportModal = true"
         @refresh="updateData"
       />
@@ -448,7 +457,11 @@ const growthPrediction = computed(() => {
         - Responsive layout adapting to screen size
         - Actionable insights for plant care optimization
       -->
-      <PlantAnalysis :plant-health-score="plantHealthScore" :growth-prediction="growthPrediction" />
+      <PlantAnalysis
+        :plant-health-score="plantHealthScore"
+        :growth-prediction="growthPrediction"
+        :logs="LogsResponse?.logs ?? []"
+      />
 
       <!--
         Adaptive Sensor Readings Display

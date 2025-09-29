@@ -211,7 +211,6 @@ const handleSaveSettings = async () => {
   }
 
   if (await saveSettings()) {
-    // Settings are already updated in the saveSettings function
     settingsModified.value = false
   }
 }
@@ -334,12 +333,6 @@ const cancelChanges = () => {
                   :class="settingsModified ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'"
                 ></div>
                 <span>{{ settingsModified ? 'Unsaved changes' : 'All changes saved' }}</span>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                Last updated: {{ new Date().toLocaleTimeString() }}
               </div>
             </div>
           </div>

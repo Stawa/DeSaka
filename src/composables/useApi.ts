@@ -25,6 +25,7 @@ const SENSOR_FILE_IDS: Record<string, string> = {
   settings: '',
   uptime: '',
   system: '',
+  logs: '',
 }
 
 /**

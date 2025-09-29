@@ -2,7 +2,7 @@
 import type { Uptime } from '@/composables/responseApi'
 import { SENSOR_FILE_IDS, useApi } from '@/composables/useApi'
 import { formatUptimeSinceLastDowntime } from '@/scripts'
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const { fetchFileById } = useApi()
 
@@ -87,7 +87,7 @@ const esp32Sensors = computed(() => [
     name: 'Soil Moisture',
     type: 'Soil Moisture Sensor 2.0',
     pin: 'D32',
-    status: 'online',
+    status: 'Overview',
     value: props.sensorData.soilMoisture.value + props.sensorData.soilMoisture.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilMoisture.time)),
   },
@@ -96,7 +96,7 @@ const esp32Sensors = computed(() => [
     name: 'Air Temperature',
     type: 'DHT22',
     pin: 'D27',
-    status: 'online',
+    status: 'Overview',
     value: props.sensorData.airTemperature.value + props.sensorData.airTemperature.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airTemperature.time)),
   },
@@ -105,7 +105,7 @@ const esp32Sensors = computed(() => [
     name: 'Air Humidity',
     type: 'DHT22',
     pin: 'D27',
-    status: 'online',
+    status: 'Overview',
     value: props.sensorData.airHumidity.value + props.sensorData.airHumidity.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.airHumidity.time)),
   },
@@ -114,7 +114,7 @@ const esp32Sensors = computed(() => [
     name: 'Soil pH',
     type: 'PH-4502C',
     pin: 'D34',
-    status: 'online',
+    status: 'Overview',
     value: props.sensorData.soilPH.value + props.sensorData.soilPH.unit,
     lastUpdate: formatTimeDifference(Date.now() - Date.parse(props.sensorData.soilPH.time)),
   },
@@ -123,7 +123,7 @@ const esp32Sensors = computed(() => [
     name: 'Soil Temperature',
     type: 'DS18B20',
     pin: 'D26',
-    status: 'online',
+    status: 'Overview',
     value: props.sensorData.soilTemperature.value + props.sensorData.soilTemperature.unit,
     lastUpdate: formatTimeDifference(
       Date.now() - Date.parse(props.sensorData.soilTemperature.time),
@@ -168,28 +168,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => window.removeEventListener('resize', updateWidth))
-
-const currentTime = ref(
-  new Date().toLocaleString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  }),
-)
-
-watch(
-  () => props.sensorData,
-  () => {
-    currentTime.value = new Date().toLocaleString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    })
-  },
-  { deep: true },
-)
 </script>
 
 <template>
@@ -340,14 +318,9 @@ watch(
                 </p>
               </div>
               <div
-                :class="[
-                  'px-2.5 py-1 rounded-full text-xs font-medium',
-                  sensor.status === 'online'
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-                ]"
+                class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
               >
-                {{ sensor.status.toUpperCase() }}
+                Overview
               </div>
             </div>
 

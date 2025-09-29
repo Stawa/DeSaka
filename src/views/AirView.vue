@@ -17,7 +17,7 @@ import {
 } from '@/scripts'
 import AirHeader from '@/components/air/AirHeader.vue'
 import type { SensorResponse } from '@/scripts/sensorDataUtils'
-import type { Air, SensorModification } from '@/composables/responseApi'
+import type { Air, SensorModification, Settings } from '@/composables/responseApi'
 import type { ExportConfig } from '@/composables/exportTypes'
 import { getMinMax } from '@/utils/sensorHelpers'
 
@@ -46,11 +46,28 @@ const airData = ref<SensorModification>({
   },
 })
 
+type HistoricalDataItem = { time: string; value: number }[]
+type HistoricalDataType = {
+  [key: string]: HistoricalDataItem
+  soilTemperature: HistoricalDataItem
+  soilMoisture: HistoricalDataItem
+  soilPH: HistoricalDataItem
+  airTemperature: HistoricalDataItem
+  airHumidity: HistoricalDataItem
+}
+const historicalData = ref<HistoricalDataType>({
+  soilTemperature: [],
+  soilMoisture: [],
+  soilPH: [],
+  airTemperature: [],
+  airHumidity: [],
+})
+
 const lastUpdated = ref('Loading...')
 const isRefreshing = ref(false)
 const timeFrame = ref('24h')
 const showExportModal = ref(false)
-const healthScore = ref(85)
+const SettingsResponse = ref<Settings | null>(null)
 
 const availableSensors = [
   { id: 'temperature', name: 'Air Temperature', unit: '°C' },
@@ -95,11 +112,18 @@ function handleExport(exportOptions: {
 }
 
 async function handleRefresh() {
+  const settingsFileId = SENSOR_FILE_IDS.settings
+  const settingsResponse: Settings = await fetchFileById(settingsFileId)
+
   isRefreshing.value = true
+  SettingsResponse.value = settingsResponse
+
   try {
     try {
       const airFileId = SENSOR_FILE_IDS.air
       const airResponse: Air = await fetchFileById(airFileId)
+
+      console.log('Air Temperature History:', airResponse)
 
       updateAirData(airResponse)
       updateSensorStatuses()
@@ -156,6 +180,22 @@ function updateAirData(response: Record<string, SensorResponse>) {
     'temperature',
   )
   updateSensorDataFromResponse(airData.value.humidity, response, 'air_humidity', 'humidity')
+
+  if (SettingsResponse.value) {
+    const t = SettingsResponse.value.thresholds
+    airData.value.temperature.optimal_min = t.airTemperature.min
+    airData.value.temperature.optimal_max = t.airTemperature.max
+    airData.value.humidity.optimal_min = t.airHumidity.min
+    airData.value.humidity.optimal_max = t.airHumidity.max
+  }
+
+  const { min: airTempMin, max: airTempMax } = getMinMax(historicalData.value.airTemperature)
+  airData.value.temperature.min = airTempMin
+  airData.value.temperature.max = airTempMax
+
+  const { min: airHumidityMin, max: airHumidityMax } = getMinMax(historicalData.value.airHumidity)
+  airData.value.humidity.min = airHumidityMin
+  airData.value.humidity.max = airHumidityMax
 }
 
 function changeTimeFrame(frame: string) {
@@ -164,23 +204,55 @@ function changeTimeFrame(frame: string) {
 }
 
 function updateSensorStatuses() {
-  updateSensorStatus(airData.value.temperature)
-  updateSensorStatus(airData.value.humidity)
+  if (!SettingsResponse.value) return
+
+  updateSensorStatus(
+    airData.value.temperature,
+    SettingsResponse.value?.thresholds.airTemperature.min - 5,
+    SettingsResponse.value?.thresholds.airTemperature.max + 5,
+    SettingsResponse.value?.thresholds.airTemperature.min,
+    SettingsResponse.value?.thresholds.airTemperature.max,
+  )
+  updateSensorStatus(
+    airData.value.humidity,
+    SettingsResponse.value?.thresholds.airHumidity.min - 5,
+    SettingsResponse.value?.thresholds.airHumidity.max + 5,
+    SettingsResponse.value?.thresholds.airHumidity.min,
+    SettingsResponse.value?.thresholds.airHumidity.max,
+  )
 }
 
 const airQualityIndex = computed(() => {
-  const temp = airData.value.temperature
-  const humidity = airData.value.humidity
+  if (!SettingsResponse.value) return 0
+  const thresholds = SettingsResponse.value.thresholds
 
-  const { min: tempMin, max: tempMax } = getMinMax(temp.history)
-  const { min: humidityMin, max: humidityMax } = getMinMax(humidity.history)
+  const airTempValue = airData.value.temperature.value
+  const airHumidityValue = airData.value.humidity.value
 
-  const temperatureScore = calculateParameterScore(temp.value, tempMin, tempMax, 20, 26)
-  const humidityScore = calculateParameterScore(humidity.value, humidityMin, humidityMax, 40, 60)
+  const airTempHistory = historicalData.value.airTemperature
+  const airHumidityHistory = historicalData.value.airHumidity
 
-  const totalScore = temperatureScore * 0.2 + humidityScore * 0.2
+  const { min: airTempMin, max: airTempMax } = getMinMax(airTempHistory)
+  const { min: airHumidityMin, max: airHumidityMax } = getMinMax(airHumidityHistory)
 
-  return Math.round(totalScore)
+  const airTempScore = calculateParameterScore(
+    airTempValue,
+    thresholds.airTemperature.min,
+    thresholds.airTemperature.max,
+    airTempMin,
+    airTempMax,
+  )
+  const airHumidityScore = calculateParameterScore(
+    airHumidityValue,
+    thresholds.airHumidity.min,
+    thresholds.airHumidity.max,
+    airHumidityMin,
+    airHumidityMax,
+  )
+
+  console.log('Air Temp Score:', airTempScore, 'Air Humidity Score:', airHumidityScore)
+
+  return Math.round(airTempScore * 0.2 + airHumidityScore * 0.4)
 })
 
 const healthStatus = computed(() => {
@@ -242,7 +314,7 @@ const handleExportData = (exportConfig: ExportConfig) => {
 
       <!-- Air Quality Dashboard -->
       <div class="animate-fade-in" style="animation-delay: 0.1s">
-        <AirQualityDashboard :air-data="airData" :health-score="healthScore" />
+        <AirQualityDashboard :air-data="airData" :health-score="airQualityIndex" />
       </div>
 
       <!-- Air Analysis Insights -->
