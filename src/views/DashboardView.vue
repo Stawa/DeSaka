@@ -23,6 +23,8 @@ import {
   type Settings,
   type Uptime,
   type SystemLogs,
+  type HistoricalDataType,
+  type SensorDataType,
 } from '@/composables/responseApi'
 import { getMinMax } from '@/utils/sensorHelpers'
 import SystemStatus from '@/components/SystemStatus.vue'
@@ -45,26 +47,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth)
 })
-
-type SensorDataItem = { value: number; unit: string; status: string; time: string }
-type SensorDataType = {
-  [key: string]: SensorDataItem
-  soilTemperature: SensorDataItem
-  soilMoisture: SensorDataItem
-  soilPH: SensorDataItem
-  airTemperature: SensorDataItem
-  airHumidity: SensorDataItem
-}
-
-type HistoricalDataItem = { time: string; value: number }[]
-type HistoricalDataType = {
-  [key: string]: HistoricalDataItem
-  soilTemperature: HistoricalDataItem
-  soilMoisture: HistoricalDataItem
-  soilPH: HistoricalDataItem
-  airTemperature: HistoricalDataItem
-  airHumidity: HistoricalDataItem
-}
 
 const sensorData = ref<SensorDataType>({
   soilTemperature: { value: 0, unit: '°C', status: 'normal', time: '' },
@@ -294,9 +276,24 @@ function handleExport(exportOptions: {
   format: 'csv' | 'json' | 'excel'
   sensors: Array<{ id: string; name?: string; unit?: string } | string>
   dateRange: { start: string | null; end: string | null }
-  timeRange: { start: string; end: string }
+  timeRange?: { start: string; end: string }
+  dataType?: string
+  exportData?: Record<string, { timestamp: string; value: number }[]>
+  sensorInfo?: Record<string, { name: string; unit: string }>
 }) {
-  handleDataExport(exportOptions)
+  handleDataExport(
+    {
+      format: exportOptions.format,
+      sensors: exportOptions.sensors,
+      dateRange: exportOptions.dateRange,
+      timeRange: exportOptions.timeRange || {
+        start: exportOptions.dateRange.start || '',
+        end: exportOptions.dateRange.end || '',
+      },
+    },
+    exportOptions.exportData,
+    exportOptions.sensorInfo,
+  )
 }
 
 function updateCurrentSensorValues(soilResponse: Soil, airResponse: Air) {
@@ -554,6 +551,7 @@ const growthPrediction = computed(() => {
         { id: 'airTemperature', name: 'Air Temperature', unit: sensorData.airTemperature.unit },
         { id: 'airHumidity', name: 'Air Humidity', unit: sensorData.airHumidity.unit },
       ]"
+      :sensor-data="historicalData"
       @close="showExportModal = false"
       @export="handleExport"
     />

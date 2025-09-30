@@ -109,6 +109,26 @@ export interface SystemLogs {
   logs: LogSystem[]
 }
 
+type SensorDataItem = { value: number; unit: string; status: string; time: string }
+type SensorDataType = {
+  [key: string]: SensorDataItem
+  soilTemperature: SensorDataItem
+  soilMoisture: SensorDataItem
+  soilPH: SensorDataItem
+  airTemperature: SensorDataItem
+  airHumidity: SensorDataItem
+}
+
+type HistoricalDataItem = { time: string; value: number }[]
+type HistoricalDataType = {
+  [key: string]: HistoricalDataItem
+  soilTemperature: HistoricalDataItem
+  soilMoisture: HistoricalDataItem
+  soilPH: HistoricalDataItem
+  airTemperature: HistoricalDataItem
+  airHumidity: HistoricalDataItem
+}
+
 /**
  * Converts an array of sensor readings with ISO timestamp strings
  * into a more human-readable format using `toLocaleString()` for the time.
@@ -131,5 +151,15 @@ function mapReadableHistory(history: SensorReading[]): { time: string; value: nu
   }))
 }
 
-export type { Soil, Air, SensorReading, Settings, SensorItems, SensorData, SensorModification }
+export type {
+  Soil,
+  Air,
+  SensorReading,
+  Settings,
+  SensorItems,
+  SensorData,
+  SensorModification,
+  HistoricalDataType,
+  SensorDataType,
+}
 export { mapReadableHistory }

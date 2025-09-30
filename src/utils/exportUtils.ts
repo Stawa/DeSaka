@@ -72,7 +72,10 @@ export function exportAsCSV(
     }
   })
 
-  const sortedTimestamps = Array.from(timestamps).sort((a, b) => a.localeCompare(b))
+  const sortedTimestamps = Array.from(timestamps).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+  )
+
   const dataMap: Record<string, Record<string, number>> = {}
   sortedTimestamps.forEach((timestamp) => {
     dataMap[timestamp] = {}

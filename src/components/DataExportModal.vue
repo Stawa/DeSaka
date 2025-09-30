@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { onClickOutside } from '@vueuse/core'
+import type { HistoricalDataType } from '@/composables/responseApi'
 
 const props = defineProps<{
   show: boolean
@@ -9,6 +10,7 @@ const props = defineProps<{
   dataType?: 'dashboard' | 'soil' | 'air' | 'history'
   availableSensors?: Array<{ id: string; name: string; unit: string }>
   dateRange?: { start: string; end: string }
+  sensorData?: HistoricalDataType
 }>()
 
 const emit = defineEmits(['close', 'export'])
@@ -51,13 +53,23 @@ const hasSelectedAllSensors = computed(
 )
 
 const estimatedRecords = computed(() => {
+  if (props.sensorData && selectedSensors.value.length > 0) {
+    return selectedSensors.value.reduce((total, sensorId) => {
+      const history = props.sensorData?.[sensorId] || []
+      return total + history.length
+    }, 0)
+  }
+
+  const msInDay = 1000 * 60 * 60 * 24
   const daysDiff =
     Math.ceil(
       (new Date(customDateRange.value.end).getTime() -
         new Date(customDateRange.value.start).getTime()) /
-        (1000 * 60 * 60 * 24),
+        msInDay,
     ) + 1
-  return daysDiff * selectedSensorsCount.value * 24
+
+  const recordsPerDay = (24 * 60) / 5
+  return Math.round(daysDiff * selectedSensorsCount.value * recordsPerDay)
 })
 
 watch(
@@ -136,14 +148,43 @@ const handleExport = async () => {
   isExporting.value = true
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const exportData: Record<string, { timestamp: string; value: number }[]> = {}
+
+    if (props.sensorData) {
+      const startDate = new Date(customDateRange.value.start + 'T00:00:00').getTime()
+      const endDate = new Date(customDateRange.value.end + 'T23:59:59').getTime()
+
+      selectedSensors.value.forEach((sensorId) => {
+        const history = props.sensorData?.[sensorId] || []
+        exportData[sensorId] = history
+          .filter((point) => {
+            const ts = Date.parse(point.time)
+            return ts >= startDate && ts <= endDate
+          })
+          .sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
+          .map((point) => ({
+            timestamp: point.time,
+            value: point.value,
+          }))
+      })
+    }
+
+    console.log('Export Data:', exportData)
+
+    const sensorInfo: Record<string, { name: string; unit: string }> = {}
+    props.availableSensors?.forEach((s) => {
+      sensorInfo[s.id] = { name: s.name, unit: s.unit }
+    })
 
     emit('export', {
       format: exportFormat.value,
       dateRange: customDateRange.value,
       sensors: selectedSensors.value,
       dataType: props.dataType,
+      exportData,
+      sensorInfo,
     })
+
     emit('close')
   } catch (error) {
     console.error('Export failed:', error)
@@ -627,14 +668,12 @@ const getFormatDescription = (format: string) => {
   background-color: rgba(75, 85, 99, 0.5);
 }
 
-/* Smooth transitions */
 .transition-colors {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
-/* Responsive adjustments */
 @media (max-width: 640px) {
   .flex-wrap {
     justify-content: center;
