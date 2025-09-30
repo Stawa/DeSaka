@@ -123,8 +123,6 @@ async function handleRefresh() {
       const airFileId = SENSOR_FILE_IDS.air
       const airResponse: Air = await fetchFileById(airFileId)
 
-      console.log('Air Temperature History:', airResponse)
-
       updateAirData(airResponse)
       updateSensorStatuses()
 
@@ -250,48 +248,7 @@ const airQualityIndex = computed(() => {
     airHumidityMax,
   )
 
-  console.log('Air Temp Score:', airTempScore, 'Air Humidity Score:', airHumidityScore)
-
   return Math.round(airTempScore * 0.2 + airHumidityScore * 0.4)
-})
-
-const healthStatus = computed(() => {
-  if (airQualityIndex.value >= 90) {
-    return {
-      color: 'text-emerald-600 dark:text-emerald-400',
-      label: 'Excellent',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
-      accentColor: 'from-emerald-500 to-emerald-600',
-    }
-  } else if (airQualityIndex.value >= 75) {
-    return {
-      color: 'text-green-600 dark:text-green-400',
-      label: 'Good',
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-      accentColor: 'from-green-500 to-green-600',
-    }
-  } else if (airQualityIndex.value >= 60) {
-    return {
-      color: 'text-amber-600 dark:text-amber-400',
-      label: 'Fair',
-      bgColor: 'bg-amber-50 dark:bg-amber-900/20',
-      accentColor: 'from-amber-500 to-amber-600',
-    }
-  } else if (airQualityIndex.value >= 40) {
-    return {
-      color: 'text-orange-600 dark:text-orange-400',
-      label: 'Poor',
-      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-      accentColor: 'from-orange-500 to-orange-600',
-    }
-  } else {
-    return {
-      color: 'text-red-600 dark:text-red-400',
-      label: 'Critical',
-      bgColor: 'bg-red-50 dark:bg-red-900/20',
-      accentColor: 'from-red-500 to-red-600',
-    }
-  }
 })
 
 const handleExportData = (exportConfig: ExportConfig) => {
@@ -315,106 +272,6 @@ const handleExportData = (exportConfig: ExportConfig) => {
       <!-- Air Quality Dashboard -->
       <div class="animate-fade-in" style="animation-delay: 0.1s">
         <AirQualityDashboard :air-data="airData" :health-score="airQualityIndex" />
-      </div>
-
-      <!-- Air Analysis Insights -->
-      <div
-        class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm overflow-hidden animate-fade-in"
-        style="animation-delay: 0.2s"
-      >
-        <!-- Accent bar matching design -->
-        <div class="h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500"></div>
-
-        <!-- Header -->
-        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <div class="flex items-center gap-4">
-            <div
-              class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center ring-1 ring-blue-200/50 dark:ring-blue-700/30"
-            >
-              <span
-                class="mdi mdi-monitor-dashboard text-xl text-blue-600 dark:text-blue-400"
-              ></span>
-            </div>
-            <div>
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Air Analysis</h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Comprehensive air quality insights and environmental conditions
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Analysis Content -->
-        <div class="p-6">
-          <!-- Air Quality Card -->
-          <div
-            class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/30"
-          >
-            <div class="flex items-center gap-3 mb-4">
-              <div
-                class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-white"
-              >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.951-.69l1.07-3.292z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 class="font-semibold text-blue-900 dark:text-blue-100">Air Quality Index</h3>
-                <p class="text-sm text-blue-700 dark:text-blue-300">
-                  {{ healthStatus.label }} conditions
-                </p>
-              </div>
-            </div>
-            <div class="space-y-3">
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-blue-800 dark:text-blue-200">Temperature</span>
-                <span class="font-medium text-blue-900 dark:text-blue-100">
-                  {{ airData.temperature.value }}{{ airData.temperature.unit }}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-blue-800 dark:text-blue-200">Humidity</span>
-                <span class="font-medium text-blue-900 dark:text-blue-100">
-                  {{ airData.humidity.value }}{{ airData.humidity.unit }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recommendations Section -->
-          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div
-              class="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 rounded-lg p-4 border border-green-200/50 dark:border-green-700/30"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span class="text-sm font-medium text-green-800 dark:text-green-200">
-                  {{ healthStatus.label }} Air Quality
-                </span>
-              </div>
-              <p class="text-xs text-green-700 dark:text-green-300">
-                Current air conditions are {{ healthStatus.label.toLowerCase() }} for indoor
-                environments.
-              </p>
-            </div>
-
-            <div
-              class="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200/50 dark:border-purple-700/30"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span class="text-sm font-medium text-purple-800 dark:text-purple-200">
-                  Low Particulates
-                </span>
-              </div>
-              <p class="text-xs text-purple-700 dark:text-purple-300">
-                Particulate matter levels are within healthy ranges for indoor air quality.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Air Quality Trends Section -->

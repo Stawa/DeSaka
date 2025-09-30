@@ -74,7 +74,44 @@ const sensorData = ref<SensorDataType>({
   airHumidity: { value: 0, unit: '%', status: 'normal', time: '' },
 })
 
-const SettingsResponse = ref<Settings | null>(null)
+const SettingsResponse = ref<Settings>({
+  general: {
+    dataRefreshInterval: 0,
+    dataRetentionPeriod: 0,
+    timezone: '',
+    dateFormat: '',
+    timeFormat: '',
+  },
+  notifications: {
+    emailEnabled: false,
+    smsEnabled: false,
+    pushEnabled: false,
+    emails: [],
+    phones: [],
+  },
+  thresholds: {
+    soilTemperature: {
+      min: 0,
+      max: 0,
+    },
+    soilMoisture: {
+      min: 0,
+      max: 0,
+    },
+    soilPH: {
+      min: 0,
+      max: 0,
+    },
+    airTemperature: {
+      min: 0,
+      max: 0,
+    },
+    airHumidity: {
+      min: 0,
+      max: 0,
+    },
+  },
+})
 const LogsResponse = ref<SystemLogs | null>(null)
 
 const historicalData = ref<HistoricalDataType>({
@@ -462,6 +499,7 @@ const growthPrediction = computed(() => {
         :growth-prediction="growthPrediction"
         :logs="LogsResponse?.logs ?? []"
         :sensor-data="sensorData"
+        :settings="SettingsResponse"
       />
 
       <!--
