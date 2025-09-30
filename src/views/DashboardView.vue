@@ -461,6 +461,7 @@ const growthPrediction = computed(() => {
         :plant-health-score="plantHealthScore"
         :growth-prediction="growthPrediction"
         :logs="LogsResponse?.logs ?? []"
+        :sensor-data="sensorData"
       />
 
       <!--
